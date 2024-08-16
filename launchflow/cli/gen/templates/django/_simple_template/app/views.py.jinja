@@ -1,0 +1,11 @@
+{% for views_import in app_views_imports %}{{ views_import }}
+{% endfor %}
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+
+
+@api_view(["GET"])
+def root(request):
+    return Response({"message": "Hello, world!"})
+{% for endpoint in app_infra_endpoints %}
+{{ endpoint }}{% endfor %}

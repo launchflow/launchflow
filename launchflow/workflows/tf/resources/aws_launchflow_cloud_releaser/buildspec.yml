@@ -1,0 +1,19 @@
+version: 0.2
+
+phases:
+  install:
+    on-failure: ABORT
+    commands:
+      - nohup dockerd &
+      - timeout 15 sh -c "until docker info; do echo .; sleep 1; done"
+  build:
+    on-failure: ABORT
+    commands:
+      - |
+        tar -xvf $SOURCE_TAR_NAME
+        eval $LAUNCHFLOW_COMMAND
+        exit $?
+artifacts:
+  files:
+    - "**/*"
+  discard-paths: yes

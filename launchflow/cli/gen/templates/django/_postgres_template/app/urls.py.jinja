@@ -1,0 +1,10 @@
+from django.urls import path
+
+from . import views
+
+urlpatterns = [
+    path("", views.root),
+    path("users/", views.list_or_create_users),
+    path("users/<int:user_id>", views.user_detail),{% for infra_url in app_infra_urls %}
+    {{ infra_url }}{% endfor %}
+]

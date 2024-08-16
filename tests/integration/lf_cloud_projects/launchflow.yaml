@@ -1,0 +1,6 @@
+# TODO: remove this yaml file after we release the prod backend
+project: not-used-by-tests
+backend: lf://default
+backend_options:
+  # We use a yaml for now so we can override the backend url
+  lf_backend_url: https://cloud.dev.launchflow.com

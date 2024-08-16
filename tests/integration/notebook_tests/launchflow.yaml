@@ -1,0 +1,3 @@
+project: launchflow-integration-tests
+default_environment: testing
+backend: file://.launchflow

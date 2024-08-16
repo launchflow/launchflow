@@ -1,0 +1,3 @@
+project: gcp-integration-testing
+default_environment: gcp-dev
+backend: file://state

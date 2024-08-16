@@ -1,0 +1,8 @@
+from django.urls import path
+
+from . import views
+
+urlpatterns = [
+    path("", views.root),{% for infra_url in app_infra_urls %}
+    {{ infra_url }}{% endfor %}
+]

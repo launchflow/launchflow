@@ -1,0 +1,88 @@
+[project]
+name = "launchflow"
+version = "0.4.6.dev12"
+description = "Python-native infrastructure for the cloud: LaunchFlow provides a Python SDK that automatically creates and connects to production-ready infrastructure (such as Postgres, Redis, etc..) in your own cloud account. LaunchFlow completely removes the need for DevOps allowing you to focus on your application logic."
+authors = [
+    { name = "CalebTVanDyke", email = "caleb@launchflow.com" },
+    { name = "Josh Tanke", email = "josh@launchflow.com" },
+    { name = "Michael Noronha", email = "michael@launchflow.com" },
+]
+readme = "README.md"
+license = { file = "LICENSE" }
+classifiers = ["Operating System :: OS Independent"]
+dependencies = [
+    "beaupy",
+    "rich",
+    "toml",
+    "pyyaml",
+    "pathspec",
+    "pydantic>=2.0",
+    "deepdiff",
+    "typer",
+    "requests",
+    "httpx",
+    "uvloop",
+    "Jinja2",
+    "docker",
+    "pyjwt",
+    "terminaltexteffects",
+    "setuptools",
+    "posthog",
+]
+requires-python = ">=3.9"
+
+[tool.setuptools.packages.find]
+include = ["launchflow*"]
+exclude = ["tests", "docker"]
+
+[tool.setuptools.package-data]
+launchflow = ["**/*.jinja", "**/*.tf", "**/*.yml", "launchflow/py.typed"]
+
+[project.optional-dependencies]
+gcp = [
+    "cloud-sql-python-connector",
+    "google-cloud-storage",
+    "google-cloud-resource-manager",
+    "google-api-python-client",
+    "google-cloud-bigquery",
+    "google-cloud-secret-manager",
+    "google-cloud-pubsub",
+    "google-cloud-billing",
+    "google-cloud-compute",
+    "google-cloud-build",
+    "google-cloud-run",
+    "google-cloud-tasks",
+    "google-cloud-service-usage",
+    "google-cloud-compute",
+]
+aws = ["boto3"]
+dev = [
+    "pytest>=7.4.4",
+    "pytest-asyncio",
+    "sqlalchemy[asyncio]>=2.0.27",
+    "pytest-httpx",
+    "boto3-stubs[secretsmanager]",
+    "freezegun",
+    "moto",
+    "mypy",
+    "types-requests",
+    "types-pyyaml",
+    "types-setuptools",
+    "types-toml",
+    "types-redis",
+]
+
+[project.scripts]
+launchflow = "launchflow.cli.main:app"
+lf = "launchflow.cli.main:app"
+
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+markers = ["integration: mark a test as an integration test"]
+
+[tool.mypy]
+exclude = ["tests"]
+ignore_missing_imports = true

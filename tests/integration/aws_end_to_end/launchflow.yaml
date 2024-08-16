@@ -1,0 +1,3 @@
+project: aws-integration-testing
+default_environment: aws-dev
+backend: file://state

@@ -1,0 +1,25 @@
+{{ fastapi_imports }}{% for infra_import in app_infra_imports %}
+{{ infra_import }}{% endfor %}
+
+
+{{ app_global_setup }}
+
+
+# This is how FastAPI manages the lifespan of the application
+# Learn more: https://fastapi.tiangolo.com/advanced/events/#lifespan
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    {{ app_infra_setup }}
+
+    # NOTE: all setup code needs to happen before the yield
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
+
+
+@app.get("/")
+def root():
+    return {"message": "Hello World"}
+{% for endpoint in app_infra_endpoints %}
+{{ endpoint }}{% endfor %}

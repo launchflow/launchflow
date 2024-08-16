@@ -1,0 +1,75 @@
+on:
+  workflow_dispatch:
+    inputs:
+      repository:
+        type: string
+        default: launchflow-dev
+        description: "The docker repository to release to"
+      environment:
+        type: string
+        default: dev
+        description: "The environment to release to"
+
+  workflow_call:
+    inputs:
+      repository:
+        type: string
+        default: launchflow-dev
+        description: "The docker repository to release to"
+      environment:
+        type: string
+        default: dev
+        description: "The environment to release to"
+
+name: Build Docker Images
+
+jobs:
+  release_docker_image:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: "read"
+      id-token: "write"
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - id: "auth"
+        name: "Authenticate to Google Cloud"
+        uses: "google-github-actions/auth@v1"
+        with:
+          workload_identity_provider: "projects/679460943454/locations/global/workloadIdentityPools/public-github-pool/providers/public-github-provider"
+          service_account: "public-releaser@launchflow-docker-413018.iam.gserviceaccount.com"
+
+      - name: Find Launchflow Version
+        id: find_version
+        run: |
+          export LAUNCHFLOW_VERSION=$(cat launchflow/__init__.py | grep __version__ | cut -d '"' -f 2)
+          echo "launchflow-version=$LAUNCHFLOW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Docker Login
+        run: |
+          gcloud auth configure-docker us-central1-docker.pkg.dev
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Docker Tags
+        id: docker_tags
+        run: |
+          echo "launchflow_version_tag=us-central1-docker.pkg.dev/launchflow-docker-413018/public/${{ inputs.repository }}-python${{ matrix.python-version }}:${{ steps.find_version.outputs.launchflow-version }}" >> $GITHUB_OUTPUT
+          echo "latest_tag=us-central1-docker.pkg.dev/launchflow-docker-413018/public/${{ inputs.repository }}-python${{ matrix.python-version }}:latest" >> $GITHUB_OUTPUT
+
+      - name: Build Docker Image
+        run: |
+          docker build -f docker/Dockerfile .  -t ${{ steps.docker_tags.outputs.launchflow_version_tag }} -t ${{ steps.docker_tags.outputs.latest_tag }}
+
+      - name: Push Docker Image
+        run: |
+          docker push ${{ steps.docker_tags.outputs.launchflow_version_tag }}
+          docker push ${{ steps.docker_tags.outputs.latest_tag }}

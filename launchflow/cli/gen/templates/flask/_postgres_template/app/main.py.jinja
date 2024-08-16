@@ -1,0 +1,13 @@
+{{ flask_imports }}{% for infra_import in app_infra_imports %}
+{{ infra_import }}{% endfor %}
+
+app = Flask(__name__)
+
+{{ app_infra_setup }}
+
+{{ app_global_setup }}
+@app.get("/")
+def root():
+    return {"message": "Hello World"}
+{% for endpoint in app_infra_endpoints %}
+{{ endpoint }}{% endfor %}

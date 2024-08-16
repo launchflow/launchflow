@@ -1,0 +1,5 @@
+project: launchflow-integration-tests
+default_environment: testing
+backend: lf://default
+backend_options:
+  lf_backend_url: https://cloud.dev.launchflow.com

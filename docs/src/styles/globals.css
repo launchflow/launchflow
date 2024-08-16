@@ -1,0 +1,131 @@
+@import 'tailwindcss/base';
+@import './prism.css';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+@layer base {
+  [inert] ::-webkit-scrollbar {
+    display: none;
+  }
+
+  :root {
+    --color-background-dark: 34 34 34;
+    --color-background-light: 255 255 255;
+    --color-background-light-highlight: #e2e2e2;
+    --color-background-light-faded: rgba(226, 226, 226, 0.3);
+    --color-highlight: #3a3d41;
+    --color-text-input: #333333;
+    --color-text-input-outline: #555555;
+    --color-divider: #555555;
+    --color-text: #dddddd;
+    --color-text-dark: #222222;
+    --color-link: #3789ff;
+    --color-primary: 55 137 255;
+    --color-primary-transition: #4994ff;
+    --color-primary-faded: rgba(55, 137, 255, 0.302);
+    --color-primary-extra-faded: rgba(55, 137, 255, 0.1);
+    --color-logo: 147 42 255;
+    --color-logo-faded: rgba(147, 42, 255, 0.3);
+    --color-logo-extra-faded: rgba(147, 42, 255, 0.1);
+    --color-secondary: 255 160 35;
+    --color-secondary-transition: #ffa937;
+    --color-secondary-faded: rgba(255, 160, 35, 0.4);
+    --color-error: #ff3b30;
+    --color-success: #4cd964;
+    --color-warning: #ffcc00;
+
+    --moon-size: 40vw;
+    --crater-size: calc(var(--moon-size) * 0.2);
+    --crater-offset-x: calc(var(--moon-size) * 0.01);
+    --crater-offset-y: calc(var(--moon-size) * 0.06);
+  }
+}
+
+:root {
+  --code-color-text: #18181b;
+  --code-color-background: #f4f4f5;
+  --code-color-box-shadow: #d4d4d8;
+}
+
+.dark {
+  --code-color-text: #e4e4e7;
+  --code-color-background: #2c2c2e;
+  --code-color-box-shadow: #575757;
+}
+
+/* fallback */
+@font-face {
+  font-family: 'Material Symbols Outlined';
+  font-style: normal;
+  font-weight: 400;
+  src: url(https://fonts.gstatic.com/s/materialsymbolsoutlined/v161/kJF1BvYX7BgnkSrUwT8OhrdQw4oELdPIeeII9v6oDMzByHX9rA6RzaxHMPdY43zj-jCxv3fzvRNU22ZXGJpEpjC_1v-p_4MrImHCIJIZrDCvHOejbd5zrDAt.woff2)
+    format('woff2');
+}
+
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+
+.fluid-text {
+  font-size: clamp(1rem, 7.2vw, 2.7rem);
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.prose-headings\:text-2xl
+  :is(:where(h3):not(:where([class~='not-prose'], [class~='not-prose'] *))) {
+  font-size: 1.25rem !important;
+  font-weight: 400 !important;
+}
+
+.prose-headings\:text-2xl
+  :is(:where(h4):not(:where([class~='not-prose'], [class~='not-prose'] *))) {
+  font-size: 1.15rem !important;
+}
+
+.prose
+  :where(code):not(
+    :where([class~='not-prose'], [class~='not-prose'] *)
+  )::after {
+  content: '';
+}
+
+.prose
+  :where(code):not(
+    :where([class~='not-prose'], [class~='not-prose'] *)
+  )::before {
+  content: '';
+}
+
+:where(code):not(pre code) {
+  color: var(--code-color-text);
+  border-radius: 0.5rem;
+  padding: 0.25rem 0.375rem;
+  box-shadow: inset 0 0 0 1px var(--code-color-box-shadow);
+  background-color: var(--code-color-background);
+  font-size: 0.75rem;
+}
+
+:where(a code) {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: #7dd3fc;
+}
+
+:where(a code):hover {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-decoration-color: #7dd3fc;
+}

@@ -1,0 +1,39 @@
+version: 0.2
+
+phases:
+  pre_build:
+    on-failure: ABORT
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME
+  build:
+    on-failure: ABORT
+    commands:
+      - |
+        echo $BUILD_MODE
+        if [ "$BUILD_MODE" = "promotion" ]; then
+          echo "Promoting image"
+          echo $SOURCE_ECR_PASSWORD | docker login --username AWS --password-stdin $SOURCE_ENV_IMAGE_REPO_NAME
+          docker pull $SOURCE_ENV_IMAGE_REPO_NAME:$SOURCE_ENV_IMAGE_TAG
+          docker tag $SOURCE_ENV_IMAGE_REPO_NAME:$SOURCE_ENV_IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:latest
+          docker tag $SOURCE_ENV_IMAGE_REPO_NAME:$SOURCE_ENV_IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
+          aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME
+        else
+          echo "Building image"
+          tar -xvf $SOURCE_TAR_NAME
+          docker build -t $IMAGE_REPO_NAME -f $DOCKERFILE_PATH .
+          docker tag $IMAGE_REPO_NAME $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:latest
+          docker tag $IMAGE_REPO_NAME $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
+        fi
+  post_build:
+    on-failure: ABORT
+    commands:
+      - echo Pushing the Docker image...
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:latest
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
+      - echo Build completed on `date`
+
+artifacts:
+  files:
+    - "**/*"
+  discard-paths: yes

@@ -1,0 +1,6 @@
+# Include all Jinja templates
+recursive-include launchflow/cli/gen/templates *
+recursive-include launchflow/workflows/tf *
+
+# Include the license
+include LICENSE
