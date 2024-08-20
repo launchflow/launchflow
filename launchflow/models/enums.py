@@ -31,6 +31,8 @@ class ResourceProduct(str, Enum):
     GCP_FIREWALL_ALLOW_RULE = "gcp_firewall_allow_rule"
     GCP_COMPUTE_HTTP_HEALTH_CHECK = "gcp_compute_http_health_check"
     GCP_REGIONAL_AUTO_SCALER = "gcp_regional_auto_scaler"
+    GCP_GKE_CLUSTER = "gcp_gke_cluster"
+    GCP_GKE_NODE_POOL = "gcp_gke_node_pool"
     # AWS product types
     AWS_RDS_POSTGRES = "aws_rds_postgres"
     AWS_ELASTICACHE_REDIS = "aws_elasticache_redis"
@@ -66,6 +68,7 @@ class ServiceProduct(str, Enum):
     # GCP product types
     GCP_CLOUD_RUN = "gcp_cloud_run"
     GCP_COMPUTE_ENGINE = "gcp_compute_engine"
+    GCP_GKE = "gcp_gke"
     # AWS product types
     AWS_ECS_FARGATE = "aws_ecs_fargate"
 

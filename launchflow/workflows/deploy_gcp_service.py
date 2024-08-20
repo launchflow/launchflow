@@ -3,18 +3,31 @@ import json
 import os
 import time
 from datetime import timedelta
-from typing import Any, Callable, List, Tuple
+from typing import Any, Callable, List, Tuple, Dict, TYPE_CHECKING, Union
 
 from docker.errors import APIError, BuildError
 
 from launchflow import exceptions
+from launchflow.backend import Backend, GCSBackend, LaunchFlowBackend, LocalBackend
 from launchflow.config import config
 from launchflow.gcp.cloud_run import CloudRun
 from launchflow.gcp.compute_engine_service import ComputeEngineService
+from launchflow.gcp.gke_service import GKEService
 from launchflow.gcp.service import GCPService
+from launchflow.managers.resource_manager import ResourceManager
 from launchflow.managers.service_manager import ServiceManager
 from launchflow.models.flow_state import GCPEnvironmentConfig, ServiceState
+from launchflow.workflows.k8s_service import (
+    deploy_new_k8s_service,
+    destroy_k8s_service,
+    update_k8s_service,
+)
 from launchflow.workflows.utils import tar_source_in_memory
+
+from kubernetes import client as k8_client, config as k8_config
+
+if TYPE_CHECKING:
+    from google.cloud.container import Cluster
 
 
 async def _upload_source_tarball_to_gcs(
@@ -663,7 +676,151 @@ async def release_docker_image_to_compute_engine(
     return service_url
 
 
-# TODO: add a way to promote the docker image without cloud build
+def _get_gke_config(cluster_id: str, cluster: "Cluster") -> Dict[str, Any]:
+    try:
+        from google.auth import default
+        from google.auth.transport.requests import Request
+        from google.auth.credentials import Credentials
+    except ImportError:
+        raise exceptions.MissingGCPDependency()
+
+    results: Tuple[Credentials, Any] = default()  # type: ignore
+    credentials = results[0]
+    if not credentials.valid:
+        credentials.refresh(Request())
+    return {
+        "apiVersion": "v1",
+        "clusters": [
+            {
+                "cluster": {
+                    "certificate-authority-data": cluster.master_auth.cluster_ca_certificate,
+                    "server": f"https://{cluster.endpoint}",
+                },
+                "name": cluster_id,
+            }
+        ],
+        "contexts": [
+            {
+                "context": {
+                    "cluster": cluster_id,
+                    "user": "gke-user",
+                },
+                "name": f"{cluster_id}-context",
+            }
+        ],
+        "current-context": f"{cluster_id}-context",
+        "kind": "Config",
+        "preferences": {},
+        "users": [
+            {
+                "name": "gke-user",
+                "user": {
+                    "auth-provider": {
+                        "name": "gcp",
+                        "config": {
+                            "access-token": credentials.token,
+                            "cmd-path": "gcloud",
+                            "cmd-args": "config config-helper --format=json",
+                            "expiry-key": "{.credential.token_expiry}",
+                            "token-key": "{.credential.access_token}",
+                        },
+                    }
+                },
+            }
+        ],
+    }
+
+
+async def destroy_gke_service(
+    service_manager: ServiceManager,
+    gcp_environment_config: GCPEnvironmentConfig,
+):
+    try:
+        from google.cloud import container_v1
+    except ImportError:
+        raise exceptions.MissingGCPDependency()
+    service = await service_manager.load_service()
+    inputs = service.inputs
+    if inputs is None:
+        raise ValueError("Service inputs are missing")
+    resource_manager = ResourceManager(
+        project_name=service_manager.project_name,
+        environment_name=service_manager.environment_name,
+        resource_name=inputs["cluster_name"],
+        backend=service_manager.backend,
+    )
+    resource = await resource_manager.load_resource()
+    cluster_inputs = resource.inputs
+    if cluster_inputs is None:
+        raise ValueError("Cluster inputs are missing. Does this cluster exist?")
+    location = None
+    if cluster_inputs["regional"] == "true":
+        location = cluster_inputs["region"]
+    else:
+        location = cluster_inputs["zones"][0]
+
+    cluster_id = cluster_inputs["resource_id"]
+    cluster_name = f"projects/{gcp_environment_config.project_id}/locations/{location}/clusters/{cluster_id}"
+    gcp_client = container_v1.ClusterManagerAsyncClient()
+    cluster = await gcp_client.get_cluster(name=cluster_name)
+    k8_config.load_kube_config_from_dict(_get_gke_config(cluster_name, cluster))
+    await destroy_k8s_service(service.name, namespace=inputs["namespace"])
+
+
+async def release_docker_image_to_gke(
+    docker_image: str,
+    service_manager: ServiceManager,
+    gcp_environment_config: GCPEnvironmentConfig,
+    gke_service: GKEService,
+    deployment_id: str,
+):
+    # TODO: this only deploys doesn't update we need to handle update seperately
+    try:
+        from google.cloud import container_v1
+    except ImportError:
+        raise exceptions.MissingGCPDependency()
+    cluster = gke_service.cluster
+    location = None
+    if cluster.regional:
+        location = cluster.region or gcp_environment_config.default_region
+    else:
+        location = (
+            cluster.zones[0] if cluster.zones else gcp_environment_config.default_zone
+        )
+    cluster_name = f"projects/{gcp_environment_config.project_id}/locations/{location}/clusters/{gke_service.cluster.resource_id}"
+    gcp_client = container_v1.ClusterManagerAsyncClient()
+    cluster = await gcp_client.get_cluster(name=cluster_name)
+    k8_config.load_kube_config_from_dict(_get_gke_config(cluster_name, cluster))
+
+    k8s_client = k8_client.AppsV1Api()
+
+    # Retrieve the existing deployment
+    try:
+        _ = k8s_client.read_namespaced_deployment(
+            name=gke_service.name, namespace="default"
+        )
+        return await update_k8s_service(
+            k8_client=k8s_client,
+            node_pool_id=gke_service.node_pool.resource_id,
+            docker_image=docker_image,
+            namespace=gke_service.namespace,
+            service_name=gke_service.name,
+            port=gke_service.port,
+        )
+    except k8_client.ApiException as e:
+        if e.status == 404:
+            return await deploy_new_k8s_service(
+                k8_client=k8s_client,
+                node_pool_id=gke_service.node_pool.resource_id,
+                docker_image=docker_image,
+                namespace=gke_service.namespace,
+                service_name=gke_service.name,
+                port=gke_service.port,
+            )
+        else:
+            raise e
+
+
 async def promote_gcp_service_image(
     gcp_service: GCPService,
     from_service_state: ServiceState,

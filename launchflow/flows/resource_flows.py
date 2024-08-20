@@ -24,6 +24,7 @@ from launchflow.flows.flow_utils import (
     SERVICE_COLOR,
     ResourceRef,
 )
+from launchflow.gcp.gke_service import GKEService
 from launchflow.locks import Lock, LockOperation, OperationType
 from launchflow.managers.environment_manager import EnvironmentManager
 from launchflow.managers.resource_manager import ResourceManager
@@ -49,6 +50,7 @@ from launchflow.models.utils import (
 from launchflow.node import Node
 from launchflow.resource import Resource
 from launchflow.service import Service
+from launchflow.workflows.deploy_gcp_service import destroy_gke_service
 from launchflow.workflows.destroy_resource_tofu.delete_tofu_resource import (
     delete_tofu_resource,
 )
@@ -87,10 +89,20 @@ class DestroyServicePlan:
         )
         return f"[{SERVICE_COLOR}]{service_cls.__name__}({self.service_name})[/{SERVICE_COLOR}]"
 
+    async def execute_plan(self):
+        """Optional method that can be overridden for destroys."""
+        pass
+
 
 @dataclasses.dataclass(frozen=True)
 class DestroyGCPServicePlan(DestroyServicePlan):
     gcp_environment_config: GCPEnvironmentConfig
+
+
+@dataclasses.dataclass(frozen=True)
+class DestroyGKEServicePlan(DestroyGCPServicePlan):
+    async def execute_plan(self):
+        await destroy_gke_service(self.service_manager, self.gcp_environment_config)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -157,6 +169,9 @@ async def _organize_destroy_plans(locked_plans: List[Tuple[Lock, DestroyResource
     for plan_node in keyed_plans.values():
         if plan_node.plan.resource.depends_on:
             for resource_name in plan_node.plan.resource.depends_on:
+                if resource_name not in keyed_plans:
+                    # This is a resource that is not being destroyed, so we can ignore it
+                    continue
                 child_plan = keyed_plans[resource_name]
                 if resource_name in root_plan_nodes:
                     del root_plan_nodes[resource_name]
@@ -269,7 +284,7 @@ async def _destroy_service(lock: Lock, plan: DestroyServicePlan, progress: Progr
             plan.existing_service, lock_info.lock_id
         )
         try:
-            # NOTE: We dont need to delete anything except for the service info in the flowstate
+            await plan.execute_plan()
             await plan.service_manager.delete_service(lock_info.lock_id)
             progress.console.print(f"[green]✓[/green] {plan.ref} successfully deleted")
             with open(logs_file, "a") as f:
@@ -418,6 +433,19 @@ async def destroy(
                     )
                 destroy_plans.append(
                     DestroyGCPServicePlan(  # type: ignore
+                        service_name=name,
+                        service_manager=service_manager,
+                        existing_service=service,
+                        gcp_environment_config=environment.gcp_config,  # type: ignore
+                    )
+                )
+            elif service.product == ServiceProduct.GCP_GKE:
+                if environment.gcp_config is None:  # type: ignore
+                    raise exceptions.GCPConfigNotFound(
+                        environment_name=environment_name
+                    )
+                destroy_plans.append(
+                    DestroyGKEServicePlan(  # type: ignore
                         service_name=name,
                         service_manager=service_manager,
                         existing_service=service,

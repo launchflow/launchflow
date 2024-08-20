@@ -24,6 +24,7 @@ from launchflow.gcp.compute_engine_service import ComputeEngineService
 from launchflow.gcp.compute_engine import ComputeEngine
 from launchflow.gcp.custom_domain_mapping import CustomDomainMapping
 from launchflow.gcp.gcs import GCSBucket
+from launchflow.gcp.gke import GKECluster, NodePool
 from launchflow.gcp.http_health_check import HttpHealthCheck
 from launchflow.gcp.launchflow_cloud_releaser import (
     LaunchFlowCloudReleaser as GCPReleaser,
@@ -63,6 +64,8 @@ RESOURCE_PRODUCTS_TO_RESOURCES = {
     ResourceProduct.GCP_FIREWALL_ALLOW_RULE: FirewallAllowRule,
     ResourceProduct.GCP_COMPUTE_HTTP_HEALTH_CHECK: HttpHealthCheck,
     ResourceProduct.GCP_REGIONAL_AUTO_SCALER: RegionalAutoscaler,
+    ResourceProduct.GCP_GKE_CLUSTER: GKECluster,
+    ResourceProduct.GCP_GKE_NODE_POOL: NodePool,
     # AWS product types
     ResourceProduct.AWS_RDS_POSTGRES: RDSPostgres,
     ResourceProduct.AWS_ELASTICACHE_REDIS: ElasticacheRedis,
