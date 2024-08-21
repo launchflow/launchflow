@@ -205,16 +205,20 @@ class ComputeEngine(GCPResource[T]):
         """
         if self.vm_config is None:
             raise ValueError("VM configuration is required.")
-        if self.vm_config.machine_type is not None:
-            return self.vm_config
-        if environment_state.environment_type == EnvironmentType.PRODUCTION:
-            machine_type = "n1-standard-1"
+
+        if self.vm_config.machine_type is None:
+            if environment_state.environment_type == EnvironmentType.PRODUCTION:
+                machine_type = "n1-standard-1"
+            else:
+                machine_type = "e2-micro"
         else:
-            machine_type = "e2-micro"
+            machine_type = self.vm_config.machine_type
+
         if self.vm_config.service_account_email == "environment":
             service_account_email = environment_state.gcp_config.service_account_email  # type: ignore
         else:
             service_account_email = self.vm_config.service_account_email
+
         return dataclasses.replace(
             self.vm_config,
             machine_type=machine_type,
@@ -244,7 +248,13 @@ class ComputeEnginePostgres(ComputeEngine[ComputeEnginePostgresOutputs]):
     ```
     """
 
-    def __init__(self, name: str, *, password: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        name: str,
+        *,
+        password: Optional[str] = None,
+        machine_type: Optional[str] = None,
+    ) -> None:
         """Create a new Compute Engine Postgres resource.
 
         **Args:**
@@ -253,6 +263,7 @@ class ComputeEnginePostgres(ComputeEngine[ComputeEnginePostgresOutputs]):
         """
         super().__init__(name=name, vm_config=None)
         self.password = password
+        self.machine_type = machine_type
 
     def inputs(self, environment_state: EnvironmentState) -> VMConfig:
         """Get the inputs for the Compute Engine Postgres resource.
@@ -286,7 +297,7 @@ class ComputeEnginePostgres(ComputeEngine[ComputeEnginePostgresOutputs]):
                     EnvironmentVariable("POSTGRES_PASSWORD", self.password)
                 ],
             ),
-            machine_type=None,
+            machine_type=self.machine_type,
             firewall_cfg=FirewallConfig(expose_ports=expose_ports),
         )
         return super().inputs(environment_state)
@@ -462,7 +473,13 @@ class ComputeEngineRedis(ComputeEngine[ComputeEngineRedisOutputs]):
     ```
     """
 
-    def __init__(self, name: str, *, password: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        name: str,
+        *,
+        password: Optional[str] = None,
+        machine_type: Optional[str] = None,
+    ) -> None:
         """Create a new Compute Engine Redis resource.
 
         **Args:**
@@ -471,6 +488,7 @@ class ComputeEngineRedis(ComputeEngine[ComputeEngineRedisOutputs]):
         """
         super().__init__(name=name, vm_config=None)
         self.password = password
+        self.machine_type = machine_type
         self._async_pool = None
         self._sync_client = None
 
@@ -492,12 +510,10 @@ class ComputeEngineRedis(ComputeEngine[ComputeEngineRedisOutputs]):
 
         if environment_state.environment_type == EnvironmentType.PRODUCTION:
             expose_ports = []
-            machine_type = "n1-standard-1"
         else:
             expose_ports = [
                 6379
             ]  # We only expose firewall port for non-production environments
-            machine_type = "e2-micro"
 
         self.vm_config = VMConfig(
             resource_id=self.resource_id,
@@ -507,7 +523,7 @@ class ComputeEngineRedis(ComputeEngine[ComputeEngineRedisOutputs]):
                 args=f"redis-server --appendonly yes --requirepass {self.password}".split(),
                 environment_variables=[],
             ),
-            machine_type=machine_type,
+            machine_type=self.machine_type,
             firewall_cfg=FirewallConfig(expose_ports=expose_ports),
         )
         return super().inputs(environment_state)
