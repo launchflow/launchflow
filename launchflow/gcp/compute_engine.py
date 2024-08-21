@@ -210,7 +210,7 @@ class ComputeEngine(GCPResource[T]):
         if environment_state.environment_type == EnvironmentType.PRODUCTION:
             machine_type = "n1-standard-1"
         else:
-            machine_type = "f1-micro"
+            machine_type = "e2-micro"
         if self.vm_config.service_account_email == "environment":
             service_account_email = environment_state.gcp_config.service_account_email  # type: ignore
         else:
