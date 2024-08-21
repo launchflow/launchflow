@@ -497,7 +497,7 @@ class ComputeEngineRedis(ComputeEngine[ComputeEngineRedisOutputs]):
             expose_ports = [
                 6379
             ]  # We only expose firewall port for non-production environments
-            machine_type = "f1-micro"
+            machine_type = "e2-micro"
 
         self.vm_config = VMConfig(
             resource_id=self.resource_id,
