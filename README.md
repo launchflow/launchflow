@@ -1,20 +1,28 @@
-<div align="center">
+<div align="center" style="display: flex; flex-direction: column; justify-content: center; margin-top: 16px; margin-bottom: 16px;">
+    <a style="align-self: center" href="https://launchflow.com/#gh-dark-mode-only" target="_blank">
+        <img  height="auto" width="270" src="https://storage.googleapis.com/launchflow-public-images/launchflow-logo-dark.png#gh-dark-mode-only">
+    </a>
+    <a style="align-self: center" href="https://launchflow.com/#gh-light-mode-only" target="_blank">
+        <img  height="auto" width="270" src="https://storage.googleapis.com/launchflow-public-images/launchflow-logo-light.svg#gh-light-mode-only">
+    </a>
+    <div style="display: flex; align-content: center; gap: 4px; justify-content: center;   border-bottom: none;">
+        <h2 style="margin-top: 0px; margin-bottom: 0px; border-bottom: none; text-align: start;">
+            Deploy to AWS / GCP with Python
+        </h2>
+    </div>
+</div>
+<div style="text-align: center;" align="center">
 
-<img src="https://storage.googleapis.com/launchflow-public-images/launchflow-logo.svg" style="width: 75px; height: 75px;" alt="LaunchFlow Logo" /><h1>LaunchFlow</h1>
-
-<hr>
-
-### **🚀 Python-native infrastructure for the cloud 🚀⚒️**
-
-📖 [Docs](https://docs.launchflow.com/) &nbsp; | &nbsp; ⚡ [Quickstart](https://docs.launchflow.com/quickstart) &nbsp; | &nbsp; 👋 [Slack](https://join.slack.com/t/launchflowusers/shared_invite/zt-27wlowsza-Uiu~8hlCGkvPINjmMiaaMQ)
+📖 [Docs](https://docs.launchflow.com/) &nbsp; | &nbsp; ⚡ [Quickstart](https://docs.launchflow.com/docs/get-started) &nbsp; | &nbsp; 👋 [Slack](https://join.slack.com/t/launchflowusers/shared_invite/zt-27wlowsza-Uiu~8hlCGkvPINjmMiaaMQ)
 
 </div>
 
-LaunchFlow's Python SDK allows you to create and connect to cloud infrastructure in your own account on GCP, AWS, and Azure.
+[LaunchFlow](https://launchflow.com/) is an open source deployment tool that makes it easy to launch applications to Serverless, VMs, & Kubernetes on AWS and GCP (Azure coming soon).
 
-## 🤔 What is LaunchFlow?
+Use the Python SDK to define your infrastructure in code, then run `lf deploy` to deploy everything to a dedicated environment in your cloud account.
 
-LaunchFlow enables you to instantly provision cloud resources and deploy your python backend to the cloud of your choice (GCP, AWS, and Azure) all from python code.
+Fully customizable but configured by default - no messy YAML required.
+
 
 ## ⚙️ Installation
 
