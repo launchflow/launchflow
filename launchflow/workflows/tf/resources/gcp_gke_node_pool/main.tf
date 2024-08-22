@@ -10,8 +10,8 @@ resource "google_container_node_pool" "default" {
   node_count = 1
 
   node_config {
-    preemptible  = true
-    machine_type = "e2-medium"
+    preemptible  = var.preemptible
+    machine_type = var.machine_type
 
     service_account = var.environment_service_account_email
     oauth_scopes = [
@@ -19,6 +19,17 @@ resource "google_container_node_pool" "default" {
     ]
     labels = {
       nodepool = var.resource_id
+    }
+  }
+
+  dynamic "autoscaling" {
+    for_each = var.autoscaling != null ? [var.autoscaling] : []
+    content {
+      min_node_count       = autoscaling.value.min_node_count
+      max_node_count       = autoscaling.value.max_node_count
+      total_min_node_count = autoscaling.value.total_min_node_count
+      total_max_node_count = autoscaling.value.total_max_node_count
+      location_policy      = autoscaling.value.location_policy
     }
   }
 }

@@ -1,5 +1,6 @@
 from launchflow import exceptions
 from launchflow.gcp_clients import get_storage_client
+from launchflow.models.enums import CloudProvider, ResourceProduct
 from launchflow.workflows.commands.tf_commands import TFDestroyCommand
 from launchflow.workflows.destroy_resource_tofu.schemas import DestroyResourceTofuInputs
 from launchflow.workflows.utils import run_tofu
@@ -11,10 +12,31 @@ async def delete_tofu_resource(inputs: DestroyResourceTofuInputs):
     )
 
     tf_vars = {}
-    if inputs.gcp_env_config:
+    is_k8_resource = (
+        inputs.resource.product == ResourceProduct.KUBERNETES_SERVICE_CONTAINER
+    )
+    if is_k8_resource:
+        k8_inputs = inputs.resource.inputs
+        if k8_inputs is None:
+            # if there was no inputs there is nothing to do
+            return
+        # tf_vars["cluster_id"] = k8_inputs["cluster_id"]
+        tf_vars["cluster_id"] = (
+            "projects/caleb-hello-world-dev-3204/locations/us-central1-a/clusters/my-cluster"
+        )
+        tf_vars["k8_provider"] = k8_inputs["k8_provider"]
+        module_dir = "empty/kubernetes_empty"
+
+    elif (
+        inputs.resource.cloud_provider == CloudProvider.GCP
+        and inputs.gcp_env_config is not None
+    ):
         tf_vars["gcp_project_id"] = inputs.gcp_env_config.project_id
         module_dir = "empty/gcp_empty"
-    else:
+    elif (
+        inputs.resource.cloud_provider == CloudProvider.AWS
+        and inputs.aws_env_config is not None
+    ):
         tf_vars["aws_region"] = inputs.aws_env_config.region  # type: ignore
         module_dir = "empty/aws_empty"
 

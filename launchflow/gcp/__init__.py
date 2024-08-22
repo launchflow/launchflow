@@ -20,3 +20,36 @@ from .networking import FirewallAllowRule
 from .http_health_check import HttpHealthCheck
 from .regional_autoscaler import RegionalAutoscaler
 from .regional_managed_instance_group import RegionalManagedInstanceGroup
+from .gke import GKECluster, NodePool
+from .gke_service import GKEService
+
+__all__ = [
+    "ArtifactRegistryRepository",
+    "BigQueryDataset",
+    "CloudRun",
+    "CloudRunServiceContainer",
+    "CloudTasksQueue",
+    "CloudSQLDatabase",
+    "CloudSQLPostgres",
+    "CloudSQLUser",
+    "ComputeEnginePostgres",
+    "ComputeEngineRedis",
+    "CustomDomainMapping",
+    "GCSBucket",
+    "LaunchFlowCloudReleaser",
+    "MemorystoreRedis",
+    "PubsubSubscription",
+    "PubsubTopic",
+    "GCPResource",
+    "SecretManagerSecret",
+    "get_service_account_credentials",
+    "WorkbenchInstance",
+    "ComputeEngineService",
+    "FirewallAllowRule",
+    "HttpHealthCheck",
+    "RegionalAutoscaler",
+    "RegionalManagedInstanceGroup",
+    "GKECluster",
+    "GKEService",
+    "NodePool",
+]

@@ -25,6 +25,7 @@ from launchflow.gcp.compute_engine import ComputeEngine
 from launchflow.gcp.custom_domain_mapping import CustomDomainMapping
 from launchflow.gcp.gcs import GCSBucket
 from launchflow.gcp.gke import GKECluster, NodePool
+from launchflow.gcp.gke_service import GKEService
 from launchflow.gcp.http_health_check import HttpHealthCheck
 from launchflow.gcp.launchflow_cloud_releaser import (
     LaunchFlowCloudReleaser as GCPReleaser,
@@ -36,6 +37,7 @@ from launchflow.gcp.regional_autoscaler import RegionalAutoscaler
 from launchflow.gcp.regional_managed_instance_group import RegionalManagedInstanceGroup
 from launchflow.gcp.secret_manager import SecretManagerSecret
 from launchflow.gcp.workbench import WorkbenchInstance
+from launchflow.kubernetes.service_container import ServiceContainer
 from launchflow.models.enums import ResourceProduct, ServiceProduct
 from launchflow.resource import Resource
 from launchflow.service import Service
@@ -81,6 +83,8 @@ RESOURCE_PRODUCTS_TO_RESOURCES = {
     ResourceProduct.AWS_ECS_CLUSTER: ECSCluster,
     ResourceProduct.AWS_SQS_QUEUE: SQSQueue,
     ResourceProduct.AWS_LAUNCHFLOW_CLOUD_RELEASER: AWSReleaser,
+    # K8s resource
+    ResourceProduct.KUBERNETES_SERVICE_CONTAINER: ServiceContainer,
     # Local product types
     # TODO consider having a separate resource product for each local docker type
     ResourceProduct.LOCAL_DOCKER: DockerResource,
@@ -94,4 +98,5 @@ SERVICE_PRODUCTS_TO_SERVICES = {
     # GCP product types
     ServiceProduct.GCP_CLOUD_RUN: CloudRun,
     ServiceProduct.GCP_COMPUTE_ENGINE: ComputeEngineService,
+    ServiceProduct.GCP_GKE: GKEService,
 }

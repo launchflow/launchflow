@@ -4,7 +4,7 @@ import launchflow
 from launchflow import exceptions
 from launchflow.clients.docker_client import DockerClient
 from launchflow.managers.docker_resource_manager import base64_to_dict
-from launchflow.models.enums import ResourceProduct
+from launchflow.models.enums import CloudProvider, ResourceProduct
 from launchflow.node import Inputs
 from launchflow.resource import Resource, T
 
@@ -40,6 +40,9 @@ class DockerResource(Resource[T]):
             self.ports.update(connection_info.ports)  # type: ignore
         except Exception:
             return
+
+    def cloud_provider(self) -> CloudProvider:
+        return CloudProvider.UNKNOWN
 
     def inputs(self, *args, **kwargs) -> Inputs:  # type: ignore
         raise NotImplementedError

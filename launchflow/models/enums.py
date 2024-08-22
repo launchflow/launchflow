@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Optional
 
 
 class CloudProvider(str, Enum):
@@ -49,18 +48,8 @@ class ResourceProduct(str, Enum):
     AWS_LAUNCHFLOW_CLOUD_RELEASER = "aws_launchflow_cloud_releaser"
     # Local product types
     LOCAL_DOCKER = "local_docker"
-
-    def cloud_provider(self) -> Optional[CloudProvider]:
-        if self.name.startswith("GCP"):
-            return CloudProvider.GCP
-        elif self.name.startswith("AWS"):
-            return CloudProvider.AWS
-        elif self.name.startswith("LOCAL"):
-            return None
-        else:
-            raise NotImplementedError(
-                f"Product type {self.name} could not be mapped to a cloud provider."
-            )
+    # Kubernetes product types
+    KUBERNETES_SERVICE_CONTAINER = "kubernetes_service_container"
 
 
 class ServiceProduct(str, Enum):
@@ -71,12 +60,6 @@ class ServiceProduct(str, Enum):
     GCP_GKE = "gcp_gke"
     # AWS product types
     AWS_ECS_FARGATE = "aws_ecs_fargate"
-
-    def cloud_provider(self):
-        if self.name.startswith("GCP"):
-            return CloudProvider.GCP
-        elif self.name.startswith("AWS"):
-            return CloudProvider.AWS
 
 
 class EnvironmentType(str, Enum):

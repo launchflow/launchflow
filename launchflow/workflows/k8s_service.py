@@ -1,4 +1,28 @@
 from kubernetes import client
+import asyncio
+import time
+
+
+async def _wait_for_ingress_ip(
+    core_client: client.CoreV1Api,
+    service_name: str,
+    namespace: str,
+    timeout: int = 300,
+) -> str:
+    start_time = time.time()
+    while True:
+        service = core_client.read_namespaced_service(
+            name=service_name, namespace=namespace
+        )
+        if service.status.load_balancer.ingress:
+            return service.status.load_balancer.ingress[0].ip
+
+        if time.time() - start_time > timeout:
+            raise TimeoutError(
+                f"Timeout waiting for Ingress {service_name} to get an IP address"
+            )
+
+        await asyncio.sleep(5)
 
 
 # TODO: make this async
@@ -52,43 +76,61 @@ async def deploy_new_k8s_service(
         namespace=namespace, body=service
     )  # type: ignore
 
-    print("DO NOT SUBMIT: ", service)
+    ip = await _wait_for_ingress_ip(core_client, service_name, namespace)
 
-    # TODO: this only works for loadbalancer types
-    if service.status.load_balancer.ingress:
-        return (
-            service.status.load_balancer.ingress[0].ip
-            or service.status.load_balancer.ingress[0].hostname
-        )
+    return f"http://{ip}"
 
-    return service.spec.cluster_ip
+    return await _wait_for_ingress_ip(core_client, service_name, namespace)
 
 
 async def update_k8s_service(
-    k8_client: client.AppsV1Api,
-    node_pool_id: str,
     docker_image: str,
-    service_name: str,
-    port: int,
-    namespace: str,
-):
-    print("DO NOT SUBMIT: update_k8s_service")
-    return ""
-
-
-async def destroy_k8s_service(
     service_name: str,
     namespace: str,
 ):
     app_client = client.AppsV1Api()
-    app_client.delete_namespaced_deployment(
-        name=service_name,
-        namespace=namespace,
-        body=client.V1DeleteOptions(),
+    # Get the current deployment
+    deployment: client.V1Deployment = app_client.read_namespaced_deployment(
+        name=service_name, namespace=namespace
     )
 
-    core_client = client.CoreV1Api()
-    core_client.delete_namespaced_service(
-        name=service_name,
-        namespace=namespace,
+    # Update the container image
+    deployment.spec.template.spec.containers[0].image = docker_image
+
+    # Update the deployment
+    app_client.patch_namespaced_deployment(
+        name=service_name, namespace=namespace, body=deployment
     )
+
+    # Wait for the rollout to complete
+    await _wait_for_deployment_rollout(app_client, service_name, namespace)
+
+    core_client = client.CoreV1Api()
+
+    return await _wait_for_ingress_ip(core_client, service_name, namespace)
+
+
+async def _wait_for_deployment_rollout(
+    k8_client: client.AppsV1Api,
+    deployment_name: str,
+    namespace: str,
+    timeout: int = 300,
+):
+    start_time = time.time()
+    while True:
+        deployment = k8_client.read_namespaced_deployment_status(
+            name=deployment_name, namespace=namespace
+        )
+        if (
+            deployment.status.updated_replicas == deployment.spec.replicas
+            and deployment.status.replicas == deployment.spec.replicas
+            and deployment.status.available_replicas == deployment.spec.replicas
+        ):
+            return
+
+        if time.time() - start_time > timeout:
+            raise TimeoutError(
+                f"Timeout waiting for deployment {deployment_name} to complete rollout"
+            )
+
+        await asyncio.sleep(5)

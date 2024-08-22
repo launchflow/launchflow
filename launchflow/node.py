@@ -3,6 +3,9 @@ from enum import Enum
 from functools import wraps
 from typing import Any, Dict, Generic, List, Optional, Set, TypeVar, get_args
 
+from launchflow.models.enums import CloudProvider
+from launchflow import exceptions
+
 
 def _serialize_type(val: Any) -> Any:
     if isinstance(val, DependsOnValue):
@@ -72,7 +75,12 @@ class Depends:
 
     def _create_field(self, name, field_type):
         if Depends._mode == "plan":
-            return DependsOnValue(self.node, name, field_type)
+            try:
+                if self._outputs is None:
+                    self._outputs = self.node.outputs()
+                return getattr(self._outputs, name)
+            except exceptions.ResourceOutputsNotFound:
+                return DependsOnValue(self.node, name, field_type)
         elif Depends._mode == "execute":
             if self._outputs is None:
                 self._outputs = self.node.outputs()
@@ -124,6 +132,9 @@ class Node(Generic[T]):
             raise ValueError(
                 f"Node outputs must be a dataclass, got {self._outputs_type}"
             )
+
+    def cloud_provider(self) -> CloudProvider:
+        raise NotImplementedError
 
     def __hash__(self):
         return hash(f"{self._node_type.value}/{self.name}")

@@ -50,7 +50,6 @@ from launchflow.models.utils import (
 from launchflow.node import Node
 from launchflow.resource import Resource
 from launchflow.service import Service
-from launchflow.workflows.deploy_gcp_service import destroy_gke_service
 from launchflow.workflows.destroy_resource_tofu.delete_tofu_resource import (
     delete_tofu_resource,
 )
@@ -97,12 +96,6 @@ class DestroyServicePlan:
 @dataclasses.dataclass(frozen=True)
 class DestroyGCPServicePlan(DestroyServicePlan):
     gcp_environment_config: GCPEnvironmentConfig
-
-
-@dataclasses.dataclass(frozen=True)
-class DestroyGKEServicePlan(DestroyGCPServicePlan):
-    async def execute_plan(self):
-        await destroy_gke_service(self.service_manager, self.gcp_environment_config)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -426,6 +419,7 @@ async def destroy(
             if (
                 service.product == ServiceProduct.GCP_CLOUD_RUN
                 or service.product == ServiceProduct.GCP_COMPUTE_ENGINE
+                or service.product == ServiceProduct.GCP_GKE
             ):
                 if environment.gcp_config is None:  # type: ignore
                     raise exceptions.GCPConfigNotFound(
@@ -433,19 +427,6 @@ async def destroy(
                     )
                 destroy_plans.append(
                     DestroyGCPServicePlan(  # type: ignore
-                        service_name=name,
-                        service_manager=service_manager,
-                        existing_service=service,
-                        gcp_environment_config=environment.gcp_config,  # type: ignore
-                    )
-                )
-            elif service.product == ServiceProduct.GCP_GKE:
-                if environment.gcp_config is None:  # type: ignore
-                    raise exceptions.GCPConfigNotFound(
-                        environment_name=environment_name
-                    )
-                destroy_plans.append(
-                    DestroyGKEServicePlan(  # type: ignore
                         service_name=name,
                         service_manager=service_manager,
                         existing_service=service,
@@ -732,7 +713,7 @@ async def _run_import_plans(
     new_resource_state = ResourceState(
         name=plan.resource.name,
         product=plan.resource.product,
-        cloud_provider=plan.resource.product.cloud_provider(),
+        cloud_provider=plan.resource.cloud_provider(),
         created_at=created_time,
         updated_at=updated_time,
         status=status,

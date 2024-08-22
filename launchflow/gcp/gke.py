@@ -1,10 +1,10 @@
 import dataclasses
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from launchflow.gcp.resource import GCPResource
 from launchflow.models.enums import EnvironmentType, ResourceProduct
 from launchflow.models.flow_state import EnvironmentState
-from launchflow.node import Depends, Outputs
+from launchflow.node import Depends, Inputs, Outputs
 from launchflow.resource import ResourceInputs
 
 
@@ -86,19 +86,54 @@ class NodePoolOutputs(Outputs):
 
 
 @dataclasses.dataclass
+class Autoscaling(Inputs):
+    """Autoscaling configurate for a GKE Node Pool.
+
+    **Args:***
+    - `min_node_count (int)`: The minimum number of nodes per zone in the node pool. Cannot be used with the `total_*` limits.
+    - `max_node_count (int)`: The maximum number of nodes per zone in the node pool. Cannot be used with the `total_*` limits.
+    - `total_min_node_count (int)`: The minimum number of nodes in the node pool. Cannot be used with the zone limits.
+    - `total_max_node_count (int)`: The maximum number of nodes in the node pool. Cannot be used with the zone limits.
+    """
+
+    min_node_count: Optional[int] = None
+    max_node_count: Optional[int] = None
+    total_min_node_count: Optional[int] = None
+    total_max_node_count: Optional[int] = None
+    location_policy: Optional[Literal["BALANCED", "ANY"]] = None
+
+
+@dataclasses.dataclass
 class NodePoolInputs(ResourceInputs):
     cluster_id: str
+    machine_type: str
+    preemptible: bool
+    autoscaling: Optional[Autoscaling] = None
 
 
 class NodePool(GCPResource[NodePoolOutputs]):
     product = ResourceProduct.GCP_GKE_NODE_POOL
 
-    def __init__(self, name: str, *, cluster: GKECluster):
+    def __init__(
+        self,
+        name: str,
+        *,
+        cluster: GKECluster,
+        machine_type: str = "e2-medium",
+        preemptible: bool = False,
+        autoscaling: Optional[Autoscaling] = None,
+    ):
         super().__init__(name)
         self.cluster = cluster
+        self.autoscaling = autoscaling
+        self.machine_type = machine_type
+        self.preemptible = preemptible
 
     def inputs(self, environment_state: EnvironmentState) -> NodePoolInputs:
         return NodePoolInputs(
             resource_id=self.resource_id,
             cluster_id=Depends(self.cluster).gcp_id,  # type: ignore
+            autoscaling=self.autoscaling,
+            machine_type=self.machine_type,
+            preemptible=self.preemptible,
         )

@@ -13,6 +13,7 @@ from launchflow.service import Service
 # execute that file.
 KNOWN_IMPORT_PATHS = [
     "launchflow.gcp",
+    "launchflow.kubernetes",
     "launchflow.aws",
     "launchflow.docker",
     "launchflow",

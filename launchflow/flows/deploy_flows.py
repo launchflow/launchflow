@@ -444,7 +444,7 @@ class DeployServicePlan(ServicePlan):
             new_service_state = ServiceState(
                 name=self.service.name,
                 product=self.service.product,
-                cloud_provider=self.service.product.cloud_provider(),
+                cloud_provider=self.service.cloud_provider(),
                 created_at=created_time,
                 updated_at=updated_time,
                 status=ServiceStatus.DEPLOYING,
@@ -623,13 +623,13 @@ async def plan_deploy_service(
             error_message=str(e),
         )
 
-    if service.product.cloud_provider() == CloudProvider.GCP:
+    if service.cloud_provider() == CloudProvider.GCP:
         if environment_state.gcp_config is None:
             return FailedToPlan(
                 service=service,
                 error_message="CloudProviderMismatch: Cannot use a GCP Service in an AWS Environment.",
             )
-    elif service.product.cloud_provider() == CloudProvider.AWS:
+    elif service.cloud_provider() == CloudProvider.AWS:
         if environment_state.aws_config is None:
             return FailedToPlan(
                 service=service,
@@ -1532,7 +1532,7 @@ class PromoteServicePlan(ServicePlan):
             new_to_service_state = ServiceState(
                 name=self.service.name,
                 product=self.service.product,
-                cloud_provider=self.service.product.cloud_provider(),
+                cloud_provider=self.service.cloud_provider(),
                 created_at=created_time,
                 updated_at=updated_time,
                 status=ServiceStatus.PROMOTING,
@@ -1715,13 +1715,13 @@ async def plan_promote_service(
             error_message=str(e),
         )
 
-    if service.product.cloud_provider() == CloudProvider.GCP:
+    if service.cloud_provider() == CloudProvider.GCP:
         if to_environment_state.gcp_config is None:
             return FailedToPlan(
                 service=service,
                 error_message="CloudProviderMismatch: Cannot use a GCP Service in an AWS Environment.",
             )
-    elif service.product.cloud_provider() == CloudProvider.AWS:
+    elif service.cloud_provider() == CloudProvider.AWS:
         if to_environment_state.aws_config is None:
             return FailedToPlan(
                 service=service,
