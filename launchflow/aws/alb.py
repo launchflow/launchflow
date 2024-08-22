@@ -1,12 +1,14 @@
 from dataclasses import dataclass
 from typing import Optional
 
+import launchflow as lf
 from launchflow.aws.acm import ACMCertificate
 from launchflow.aws.resource import AWSResource
 from launchflow.models.enums import ResourceProduct
 from launchflow.models.flow_state import EnvironmentState
 from launchflow.node import Depends, Outputs
 from launchflow.resource import ResourceInputs
+import hashlib
 
 
 @dataclass
@@ -56,7 +58,15 @@ class ApplicationLoadBalancer(AWSResource[ApplicationLoadBalancerOutputs]):
         - `health_check_path (Optional[str])`: The path to use for the health check
         - `certificate (Optional[ACMCertificate])`: The certificate to use for the ALB.
         """
-        super().__init__(name=name)
+        hash_id = hashlib.sha256(f"{lf.project}-{lf.environment}".encode()).hexdigest()[
+            :5
+        ]
+        if len(name) > 27:
+            id_name = name[:27]
+        else:
+            id_name = name
+        resource_id = f"{id_name}-{hash_id}"
+        super().__init__(name, resource_id=resource_id)
         self.container_port = container_port
         self.health_check_path = health_check_path
         self.certificate = certificate

@@ -157,6 +157,8 @@ async def _organize_destroy_plans(locked_plans: List[Tuple[Lock, DestroyResource
     for plan_node in keyed_plans.values():
         if plan_node.plan.resource.depends_on:
             for resource_name in plan_node.plan.resource.depends_on:
+                if resource_name not in keyed_plans:
+                    continue
                 child_plan = keyed_plans[resource_name]
                 if resource_name in root_plan_nodes:
                     del root_plan_nodes[resource_name]
