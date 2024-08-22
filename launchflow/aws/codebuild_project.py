@@ -152,7 +152,7 @@ class CodeBuildProject(AWSResource[CodeBuildProjectOutputs]):
     ```
     """
 
-    product = ResourceProduct.AWS_CODEBUILD_PROJECT
+    product = ResourceProduct.AWS_CODEBUILD_PROJECT.value
 
     def __init__(
         self,

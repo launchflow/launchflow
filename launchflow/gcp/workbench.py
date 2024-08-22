@@ -19,7 +19,7 @@ class WorkbenchInstanceInputs(ResourceInputs):
 
 
 class WorkbenchInstance(GCPResource[WorkbenchInstanceOutputs]):
-    product = ResourceProduct.GCP_WORKBENCH_INSTANCE
+    product = ResourceProduct.GCP_WORKBENCH_INSTANCE.value
 
     def __init__(
         self,

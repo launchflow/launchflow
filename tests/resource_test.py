@@ -12,7 +12,12 @@ import yaml
 from launchflow.cache import cache
 from launchflow.config import config
 from launchflow.managers.environment_manager import EnvironmentManager
-from launchflow.models.enums import EnvironmentStatus, EnvironmentType, ResourceProduct
+from launchflow.models.enums import (
+    CloudProvider,
+    EnvironmentStatus,
+    EnvironmentType,
+    ResourceProduct,
+)
 from launchflow.models.flow_state import (
     AWSEnvironmentConfig,
     EnvironmentState,
@@ -27,11 +32,24 @@ class FakeResourceOutputs(Outputs):
     field: str
 
 
-class FakeResource(Resource[FakeResourceOutputs]):
-    product = ResourceProduct.GCP_STORAGE_BUCKET
+class FakeGCPResource(Resource[FakeResourceOutputs]):
+    product = ResourceProduct.GCP_STORAGE_BUCKET.value
 
     def __init__(self, name: str):
         super().__init__(name)
+
+    def cloud_provider(self) -> CloudProvider:
+        return CloudProvider.GCP
+
+
+class FakeAWSResource(Resource[FakeResourceOutputs]):
+    product = ResourceProduct.AWS_S3_BUCKET.value
+
+    def __init__(self, name: str):
+        super().__init__(name)
+
+    def cloud_provider(self) -> CloudProvider:
+        return CloudProvider.AWS
 
 
 @pytest.mark.usefixtures("launchflow_yaml_local_backend_fixture")
@@ -43,14 +61,15 @@ class ResourceTest(unittest.IsolatedAsyncioTestCase):
             project_name=self.launchflow_yaml.project,
             environment_name=self.launchflow_yaml.default_environment,
         )
-        self.resource = FakeResource(name="test-resource")
+        self.gcp_resource = FakeGCPResource(name="test-resource")
+        self.aws_resource = FakeAWSResource(name="test-aws-resource")
 
     async def asyncTearDown(self):
         cache.delete_resource_outputs(
             self.environment_manager.project_name,
             self.environment_manager.environment_name,
-            self.resource.product.value,
-            self.resource.name,
+            self.gcp_resource.product,
+            self.gcp_resource.name,
         )
 
     async def test_connect_sync_mounted_volume(self):
@@ -62,7 +81,7 @@ class ResourceTest(unittest.IsolatedAsyncioTestCase):
             with open(os.path.join(tempdir, "test-resource", "latest"), "w") as f:
                 yaml.safe_dump(want.to_dict(), f)
 
-            got = self.resource.outputs()
+            got = self.gcp_resource.outputs()
 
             self.assertEqual(got, want)
 
@@ -75,7 +94,7 @@ class ResourceTest(unittest.IsolatedAsyncioTestCase):
             with open(os.path.join(tempdir, "test-resource", "latest"), "w") as f:
                 yaml.safe_dump(want.to_dict(), f)
 
-            got = await self.resource.outputs_async()
+            got = await self.gcp_resource.outputs_async()
 
             self.assertEqual(got, want)
 
@@ -86,12 +105,12 @@ class ResourceTest(unittest.IsolatedAsyncioTestCase):
         cache.set_resource_outputs(
             self.environment_manager.project_name,
             self.environment_manager.environment_name,
-            self.resource.product.value,
-            self.resource.name,
+            self.gcp_resource.product,
+            self.gcp_resource.name,
             want.to_dict(),
         )
 
-        got = self.resource.outputs()
+        got = self.gcp_resource.outputs()
 
         self.assertEqual(got, want)
 
@@ -102,18 +121,17 @@ class ResourceTest(unittest.IsolatedAsyncioTestCase):
         cache.set_resource_outputs(
             self.environment_manager.project_name,
             self.environment_manager.environment_name,
-            self.resource.product.value,
-            self.resource.name,
+            self.gcp_resource.product,
+            self.gcp_resource.name,
             want.to_dict(),
         )
 
-        got = await self.resource.outputs_async()
+        got = await self.gcp_resource.outputs_async()
 
         self.assertEqual(got, want)
 
     @mock.patch("launchflow.resource.read_file")
     async def test_connect_sync_remote_bucket_aws(self, read_file_mock: mock.MagicMock):
-        self.resource.product = ResourceProduct.AWS_S3_BUCKET
         want = FakeResourceOutputs(field=f"test-{str(uuid.uuid4())}")
         yaml_str = yaml.safe_dump(want.to_dict())
         with mock.patch(
@@ -139,12 +157,12 @@ class ResourceTest(unittest.IsolatedAsyncioTestCase):
                 environment_state=self.environment, lock_id="lock"
             )
 
-            got = self.resource.outputs()
+            got = self.aws_resource.outputs()
 
             self.assertEqual(got, want)
 
             read_file_mock.assert_called_once_with(
-                "s3://test-bucket/resources/test-resource.yaml"
+                "s3://test-bucket/resources/test-aws-resource.yaml"
             )
 
     async def test_connect_sync_remote_bucket_gcp(self):
@@ -173,7 +191,7 @@ class ResourceTest(unittest.IsolatedAsyncioTestCase):
                 environment_state=self.environment, lock_id="lock"
             )
 
-            got = self.resource.outputs()
+            got = self.gcp_resource.outputs()
 
             self.assertEqual(got, want)
 
@@ -207,7 +225,7 @@ class ResourceTest(unittest.IsolatedAsyncioTestCase):
                 environment_state=self.environment, lock_id="lock"
             )
 
-            got = await self.resource.outputs_async()
+            got = await self.gcp_resource.outputs_async()
 
             self.assertEqual(got, want)
 

@@ -192,7 +192,7 @@ class CreateResourcePlan(ResourcePlan):
             new_resource_state = ResourceState(
                 name=self.resource.name,
                 product=self.resource.product,
-                cloud_provider=self.resource.product.cloud_provider(),
+                cloud_provider=self.resource.cloud_provider(),
                 created_at=created_time,
                 updated_at=updated_time,
                 status=status,
@@ -405,7 +405,7 @@ class CreateResourcePlan(ResourcePlan):
             if existing is None:
                 if (
                     refreshed is not None
-                    and refreshed.product != ResourceProduct.UNKNOWN
+                    and refreshed.product != ResourceProduct.UNKNOWN.value
                 ):
                     return True
                 return False
@@ -513,7 +513,7 @@ class CreateServicePlan(ServicePlan):
             new_service_state = ServiceState(
                 name=self.service.name,
                 product=self.service.product,
-                cloud_provider=self.service.product.cloud_provider(),
+                cloud_provider=self.service.cloud_provider(),
                 created_at=created_time,
                 updated_at=updated_time,
                 status=status,
@@ -767,13 +767,13 @@ async def plan_create_resource(
             error_message=str(e),
         )
 
-    if resource.product.cloud_provider() == CloudProvider.GCP:
+    if resource.cloud_provider() == CloudProvider.GCP:
         if environment_state.gcp_config is None:
             return FailedToPlan(
                 resource=resource,
                 error_message="CloudProviderMismatch: Cannot use a GCP Resource in an AWS Environment.",
             )
-    elif resource.product.cloud_provider() == CloudProvider.AWS:
+    elif resource.cloud_provider() == CloudProvider.AWS:
         if environment_state.aws_config is None:
             return FailedToPlan(
                 resource=resource,
@@ -801,7 +801,7 @@ async def plan_create_resource(
         if existing_resource_state.product != resource.product:
             exception = exceptions.ResourceProductMismatch(
                 resource=resource,
-                existing_product=existing_resource_state.product.name,
+                existing_product=existing_resource_state.product,
                 new_product=resource.product,
             )
             return FailedToPlan(
@@ -925,13 +925,13 @@ async def plan_create_service(
             error_message=str(e),
         )
 
-    if service.product.cloud_provider() == CloudProvider.GCP:
+    if service.cloud_provider() == CloudProvider.GCP:
         if environment_state.gcp_config is None:
             return FailedToPlan(
                 service=service,
                 error_message="CloudProviderMismatch: Cannot use a GCP Service in an AWS Environment.",
             )
-    elif service.product.cloud_provider() == CloudProvider.AWS:
+    elif service.cloud_provider() == CloudProvider.AWS:
         if environment_state.aws_config is None:
             return FailedToPlan(
                 service=service,
@@ -948,7 +948,7 @@ async def plan_create_service(
         if existing_service.product != service.product:
             exception = exceptions.ServiceProductMismatch(
                 service=service,
-                existing_product=existing_service.product.name,
+                existing_product=existing_service.product,
                 new_product=service.product,
             )
             return FailedToPlan(

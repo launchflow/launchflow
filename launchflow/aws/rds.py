@@ -109,7 +109,7 @@ class RDSPostgres(AWSResource[RDSPostgresOutputs], PostgresClient):
     ```
     """
 
-    product = ResourceProduct.AWS_RDS_POSTGRES
+    product = ResourceProduct.AWS_RDS_POSTGRES.value
 
     def __init__(
         self,

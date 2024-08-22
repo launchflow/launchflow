@@ -32,7 +32,7 @@ class ACMCertificate(AWSResource[ACMCertificateOutputs]):
     ```
     """
 
-    product = ResourceProduct.AWS_ACM_CERTIFICATE
+    product = ResourceProduct.AWS_ACM_CERTIFICATE.value
 
     def __init__(
         self,

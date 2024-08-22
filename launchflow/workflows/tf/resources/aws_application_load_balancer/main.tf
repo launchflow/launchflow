@@ -1,6 +1,6 @@
 provider "aws" {
   allowed_account_ids = [var.aws_account_id]
-  region     = var.aws_region
+  region              = var.aws_region
   default_tags {
     tags = {
       Project     = var.launchflow_project
@@ -23,63 +23,63 @@ data "aws_subnets" "lf_public_vpc_subnets" {
 
 
 resource "aws_security_group" "alb_sg" {
-    vpc_id                      = var.vpc_id
-    name                        = "${var.resource_id}-alb-sg"
-    description                 = "Security group for alb"
-    revoke_rules_on_delete      = true
+  vpc_id                 = var.vpc_id
+  name                   = "${var.resource_id}-alb-sg"
+  description            = "Security group for alb"
+  revoke_rules_on_delete = true
 }
 
 resource "aws_security_group_rule" "alb_http_ingress" {
-    type                        = "ingress"
-    from_port                   = 80
-    to_port                     = 80
-    protocol                    = "TCP"
-    description                 = "Allow http inbound traffic from internet"
-    security_group_id           = aws_security_group.alb_sg.id
-    cidr_blocks                 = ["0.0.0.0/0"] 
+  type              = "ingress"
+  from_port         = 80
+  to_port           = 80
+  protocol          = "TCP"
+  description       = "Allow http inbound traffic from internet"
+  security_group_id = aws_security_group.alb_sg.id
+  cidr_blocks       = ["0.0.0.0/0"]
 }
 
 resource "aws_security_group_rule" "alb_https_ingress" {
-    type                        = "ingress"
-    from_port                   = 443
-    to_port                     = 443
-    protocol                    = "TCP"
-    description                 = "Allow https inbound traffic from internet"
-    security_group_id           = aws_security_group.alb_sg.id
-    cidr_blocks                 = ["0.0.0.0/0"] 
+  type              = "ingress"
+  from_port         = 443
+  to_port           = 443
+  protocol          = "TCP"
+  description       = "Allow https inbound traffic from internet"
+  security_group_id = aws_security_group.alb_sg.id
+  cidr_blocks       = ["0.0.0.0/0"]
 }
 
 resource "aws_security_group_rule" "alb_egress" {
-    type                        = "egress"
-    from_port                   = 0
-    to_port                     = 0
-    protocol                    = "-1"
-    description                 = "Allow outbound traffic from alb"
-    security_group_id           = aws_security_group.alb_sg.id
-    cidr_blocks                 = ["0.0.0.0/0"] 
+  type              = "egress"
+  from_port         = 0
+  to_port           = 0
+  protocol          = "-1"
+  description       = "Allow outbound traffic from alb"
+  security_group_id = aws_security_group.alb_sg.id
+  cidr_blocks       = ["0.0.0.0/0"]
 }
 
 # Create the Application Load Balancer
 resource "aws_alb" "application_load_balancer" {
-  name                      = var.resource_id
-  internal                  = false
-  load_balancer_type        = "application"
-  subnets                   = data.aws_subnets.lf_public_vpc_subnets.ids
-  security_groups           = [aws_security_group.alb_sg.id]
+  name               = var.resource_id
+  internal           = false
+  load_balancer_type = "application"
+  subnets            = data.aws_subnets.lf_public_vpc_subnets.ids
+  security_groups    = [aws_security_group.alb_sg.id]
 
   tags = {
-    Project                 = var.launchflow_project
-    Environment             = var.launchflow_environment
+    Project     = var.launchflow_project
+    Environment = var.launchflow_environment
   }
 }
 
 #Defining the target group and a health check on the application
 resource "aws_lb_target_group" "target_group" {
-  name                      = "test-tg"
-  port                      = var.container_port
-  protocol                  = "HTTP"
-  target_type               = "ip"
-  vpc_id                    = var.vpc_id
+  name        = var.resource_id
+  port        = var.container_port
+  protocol    = "HTTP"
+  target_type = "ip"
+  vpc_id      = var.vpc_id
 
   # TODO: Expose more options for health checking
   dynamic "health_check" {
@@ -98,32 +98,32 @@ resource "aws_lb_target_group" "target_group" {
 }
 
 data "aws_acm_certificate" "issued" {
-  count = var.domain_name != null ? 1 : 0
-  domain   = var.domain_name
+  count  = var.domain_name != null ? 1 : 0
+  domain = var.domain_name
 }
 
 data "aws_route53_zone" "selected" {
   count = var.domain_name != null ? 1 : 0
-  name = var.domain_name
+  name  = var.domain_name
 }
 
 #Defines an ALB listener
 resource "aws_lb_listener" "listener" {
-  load_balancer_arn         = aws_alb.application_load_balancer.arn
-  port                      = var.domain_name != null ? 443 : 80
-  protocol                  = var.domain_name != null ? "HTTPS" : "HTTP"
-  ssl_policy                = var.domain_name != null ? "ELBSecurityPolicy-2016-08" : null
-  certificate_arn           = var.domain_name != null ? data.aws_acm_certificate.issued[0].arn : null
+  load_balancer_arn = aws_alb.application_load_balancer.arn
+  port              = var.domain_name != null ? 443 : 80
+  protocol          = var.domain_name != null ? "HTTPS" : "HTTP"
+  ssl_policy        = var.domain_name != null ? "ELBSecurityPolicy-2016-08" : null
+  certificate_arn   = var.domain_name != null ? data.aws_acm_certificate.issued[0].arn : null
 
   default_action {
-    type                    = "forward"
-    target_group_arn        = aws_lb_target_group.target_group.arn
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.target_group.arn
   }
 }
 
 
 resource "aws_route53_record" "alias_route53_record" {
-  count   = var.domain_name != null ? 1 : 0
+  count = var.domain_name != null ? 1 : 0
 
   zone_id = data.aws_route53_zone.selected[0].zone_id
   name    = var.domain_name
