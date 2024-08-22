@@ -56,7 +56,7 @@ class ECSFargate(AWSService):
     - An [Elastic Container Registry](https://aws.amazon.com/ecr) repository to store the service's Docker image.
     """
 
-    product = ServiceProduct.AWS_ECS_FARGATE
+    product = ServiceProduct.AWS_ECS_FARGATE.value
 
     # TODO: Add better support for custom domains + write up a guide for different domain providers
     def __init__(

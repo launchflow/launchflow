@@ -6,9 +6,7 @@ from launchflow.workflows.utils import run_tofu
 
 
 async def delete_tofu_resource(inputs: DestroyResourceTofuInputs):
-    state_prefix = inputs.launchflow_uri.tf_state_prefix(
-        module=inputs.resource.product.value
-    )
+    state_prefix = inputs.launchflow_uri.tf_state_prefix(module=inputs.resource.product)
 
     tf_vars = {}
     if inputs.gcp_env_config:
@@ -25,7 +23,7 @@ async def delete_tofu_resource(inputs: DestroyResourceTofuInputs):
         tf_vars=tf_vars,
         logs_file=inputs.logs_file,
         launchflow_state_url=inputs.launchflow_uri.launchflow_tofu_state_url(
-            inputs.lock_id, module=inputs.resource.product.value
+            inputs.lock_id, module=inputs.resource.product
         ),
     )
 

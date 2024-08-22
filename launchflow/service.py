@@ -20,7 +20,7 @@ class ServiceOutputs(Outputs):
 
 
 class Service(Node[ServiceOutputs]):
-    product = ServiceProduct.UNKNOWN
+    product = ServiceProduct.UNKNOWN.value
 
     def __init__(
         self,

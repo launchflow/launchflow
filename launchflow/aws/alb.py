@@ -38,7 +38,7 @@ class ApplicationLoadBalancer(AWSResource[ApplicationLoadBalancerOutputs]):
     ```
     """
 
-    product = ResourceProduct.AWS_ALB
+    product = ResourceProduct.AWS_ALB.value
 
     def __init__(
         self,

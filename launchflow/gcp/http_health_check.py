@@ -61,7 +61,7 @@ class HttpHealthCheck(GCPResource[HealthCheckOutputs]):
     ```
     """
 
-    product = ResourceProduct.GCP_COMPUTE_HTTP_HEALTH_CHECK
+    product = ResourceProduct.GCP_COMPUTE_HTTP_HEALTH_CHECK.value
 
     def __init__(
         self,

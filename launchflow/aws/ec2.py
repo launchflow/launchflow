@@ -174,7 +174,7 @@ class EC2(AWSResource[T]):
     ```
     """
 
-    product = ResourceProduct.AWS_EC2
+    product = ResourceProduct.AWS_EC2.value
 
     def __init__(self, name: str, vm_config: Optional[VMConfig]) -> None:
         """Create a new EC2 resource.

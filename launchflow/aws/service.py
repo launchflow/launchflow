@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from launchflow.models.enums import CloudProvider
 from launchflow.service import Service, ServiceOutputs
 
 
@@ -11,3 +12,6 @@ class AWSServiceOutputs(ServiceOutputs):
 class AWSService(Service):
     def outputs(self) -> AWSServiceOutputs:
         raise NotImplementedError
+
+    def cloud_provider(self) -> CloudProvider:
+        return CloudProvider.AWS

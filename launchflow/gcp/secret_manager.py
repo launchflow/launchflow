@@ -39,7 +39,7 @@ class SecretManagerSecret(GCPResource[SecretManagerOutputs]):
     ```
     """
 
-    product = ResourceProduct.GCP_SECRET_MANAGER_SECRET
+    product = ResourceProduct.GCP_SECRET_MANAGER_SECRET.value
 
     def __init__(self, name: str) -> None:
         """Create a new Secret Manager secret resource.

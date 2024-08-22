@@ -48,7 +48,7 @@ class CustomDomainMapping(GCPResource[CustomDomainMappingOutputs]):
     ```
     """
 
-    product = ResourceProduct.GCP_CUSTOM_DOMAIN_MAPPING
+    product = ResourceProduct.GCP_CUSTOM_DOMAIN_MAPPING.value
 
     def __init__(
         self,

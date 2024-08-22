@@ -111,10 +111,10 @@ MODULE_TO_PAGE = {
 def add_to_module_to_page(mapping, prefix, module_to_page):
     sorted_mapping = dict(sorted(mapping.items(), key=lambda item: item[0]))
     for product, resource in sorted_mapping.items():
-        if product.value == "unknown":
+        if product == "unknown":
             continue
 
-        cloud_provider = product.cloud_provider()
+        cloud_provider = resource.cloud_provider()
         if cloud_provider is None:
             print("Skipping generating docs for", resource.__name__)
             continue

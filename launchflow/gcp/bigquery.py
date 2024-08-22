@@ -67,7 +67,7 @@ class BigQueryDataset(GCPResource[BigQueryDatasetOutputs]):
     ```
     """
 
-    product = ResourceProduct.GCP_BIGQUERY_DATASET
+    product = ResourceProduct.GCP_BIGQUERY_DATASET.value
 
     def __init__(
         self, name: str, *, location="US", allow_nonempty_delete: bool = False

@@ -37,7 +37,7 @@ class CloudRun(GCPService):
     - An [Artifact Registry](https://cloud.google.com/artifact-registry) repository to store the service's Docker image.
     """
 
-    product = ServiceProduct.GCP_CLOUD_RUN
+    product = ServiceProduct.GCP_CLOUD_RUN.value
 
     def __init__(
         self,

@@ -46,7 +46,7 @@ class CloudTasksQueue(GCPResource[CloudTasksQueueOutputs]):
     ```
     """
 
-    product = ResourceProduct.GCP_CLOUD_TASKS_QUEUE
+    product = ResourceProduct.GCP_CLOUD_TASKS_QUEUE.value
 
     def __init__(self, name: str, location: Optional[str] = None) -> None:
         """Create a new CloudTasksQueue.

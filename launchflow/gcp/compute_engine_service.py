@@ -82,7 +82,7 @@ class ComputeEngineService(GCPService):
     ```
     """
 
-    product = ServiceProduct.GCP_COMPUTE_ENGINE
+    product = ServiceProduct.GCP_COMPUTE_ENGINE.value
 
     def __init__(
         self,

@@ -30,13 +30,13 @@ async def set(
         resource_name=resource_name,
     )
     resource = await rm.load_resource()
-    if resource.product == ResourceProduct.GCP_SECRET_MANAGER_SECRET:
+    if resource.product == ResourceProduct.GCP_SECRET_MANAGER_SECRET.value:
 
         async def add_version_fn():
             secret = SecretManagerSecret(name=resource_name)
             secret.add_version(secret_value.encode("utf-8"))
 
-    elif resource.product == ResourceProduct.AWS_SECRETS_MANAGER_SECRET:
+    elif resource.product == ResourceProduct.AWS_SECRETS_MANAGER_SECRET.value:
 
         async def add_version_fn():
             secret = SecretsManagerSecret(name=resource_name)
