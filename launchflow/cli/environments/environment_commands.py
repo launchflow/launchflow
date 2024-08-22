@@ -94,16 +94,21 @@ async def create(
         environment_name=name,  # type: ignore
         backend=config.launchflow_yaml.backend,
     )
-    environment = await create_environment(
-        env_type,
-        cloud_provider=cloud_provider,
-        manager=environment_manager,
-        gcp_project_id=gcp_project_id,
-        gcs_artifact_bucket=gcs_artifact_bucket,
-        gcp_organization_name=gcp_organization_name,
-        environment_service_account_email=gcp_service_account_email,
-        prompt=not auto_approve,
-    )
+    try:
+        environment = await create_environment(
+            env_type,
+            cloud_provider=cloud_provider,
+            manager=environment_manager,
+            gcp_project_id=gcp_project_id,
+            gcs_artifact_bucket=gcs_artifact_bucket,
+            gcp_organization_name=gcp_organization_name,
+            environment_service_account_email=gcp_service_account_email,
+            prompt=not auto_approve,
+        )
+    except Exception as e:
+        logging.debug("Exception occurred: %s", e, exc_info=True)
+        rich.print(f"[red]{e}[/red]")
+        raise typer.Exit(1)
 
     if environment is not None:
         print_response(
