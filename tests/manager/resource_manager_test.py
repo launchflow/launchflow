@@ -40,7 +40,7 @@ class ResourceManagerTest(unittest.IsolatedAsyncioTestCase):
                 created_at=datetime.datetime(2021, 1, 1),
                 updated_at=datetime.datetime(2021, 1, 1),
                 name="resource",
-                product=ResourceProduct.GCP_STORAGE_BUCKET,
+                product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                 status=ResourceStatus.READY,
                 cloud_provider=CloudProvider.GCP,
             )
@@ -64,7 +64,7 @@ class ResourceManagerTest(unittest.IsolatedAsyncioTestCase):
                 created_at=datetime.datetime(2021, 1, 1),
                 updated_at=datetime.datetime(2021, 1, 1),
                 name="resource",
-                product=ResourceProduct.GCP_STORAGE_BUCKET,
+                product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                 status=ResourceStatus.READY,
                 cloud_provider=CloudProvider.GCP,
             )
@@ -105,7 +105,7 @@ class ResourceManagerTest(unittest.IsolatedAsyncioTestCase):
             created_at=datetime.datetime(2021, 1, 1),
             updated_at=datetime.datetime(2021, 1, 1),
             name="resource",
-            product=ResourceProduct.GCP_STORAGE_BUCKET,
+            product=ResourceProduct.GCP_STORAGE_BUCKET.value,
             status=ResourceStatus.READY,
             cloud_provider=CloudProvider.GCP,
         )
@@ -125,7 +125,7 @@ class ResourceManagerTest(unittest.IsolatedAsyncioTestCase):
             created_at=datetime.datetime(2021, 1, 1),
             updated_at=datetime.datetime(2021, 1, 1),
             name="resource",
-            product=ResourceProduct.GCP_STORAGE_BUCKET,
+            product=ResourceProduct.GCP_STORAGE_BUCKET.value,
             status=ResourceStatus.READY,
             cloud_provider=CloudProvider.GCP,
         )
@@ -232,7 +232,7 @@ class ResourceManagerTest(unittest.IsolatedAsyncioTestCase):
             created_at=datetime.datetime(2021, 1, 1),
             updated_at=datetime.datetime(2021, 1, 1),
             name="resource",
-            product=ResourceProduct.GCP_STORAGE_BUCKET,
+            product=ResourceProduct.GCP_STORAGE_BUCKET.value,
             status=ResourceStatus.READY,
             cloud_provider=CloudProvider.GCP,
         )
@@ -255,7 +255,7 @@ class ResourceManagerTest(unittest.IsolatedAsyncioTestCase):
             created_at=datetime.datetime(2021, 1, 1),
             updated_at=datetime.datetime(2021, 1, 1),
             name="resource",
-            product=ResourceProduct.GCP_STORAGE_BUCKET,
+            product=ResourceProduct.GCP_STORAGE_BUCKET.value,
             status=ResourceStatus.READY,
             cloud_provider=CloudProvider.GCP,
         )

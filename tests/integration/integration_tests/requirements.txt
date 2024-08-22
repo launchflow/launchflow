@@ -1,4 +1,0 @@
-fastapi
-gunicorn
-launchflow[gcp]
-uvicorn

@@ -9,7 +9,7 @@ WORKDIR /build
 
 # Install system dependencies required for Python packages to build
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends gcc libpq-dev \
+    && apt-get install -y --no-install-recommends gcc libpq-dev git \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir -U pip setuptools wheel \
     && pip install --pre --no-cache-dir --target=/install -r requirements.txt
 
 # Build Stage 2: Build a final slim image for running the application
-FROM python:3.11-slim
+FROM public.ecr.aws/docker/library/python:3.11-slim
 
 # Create a non-root user for security purposes
 RUN useradd --create-home appuser

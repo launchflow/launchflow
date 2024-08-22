@@ -496,6 +496,13 @@ class NoAWSRegionError(Exception):
         )
 
 
+class NoAWSRegionEvironmentCreationError(Exception):
+    def __init__(self) -> None:
+        super().__init__(
+            "No AWS region found. Set the AWS region with `aws configure` or by setting the AWS_REGION environment variable. Or run without the -y flag to be prompted to choose one"
+        )
+
+
 class FileNotFoundError(Exception):
     def __init__(self, file_path: str) -> None:
         super().__init__(f"File: `{file_path}` was not found.")

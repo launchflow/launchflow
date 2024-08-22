@@ -25,8 +25,8 @@ def deduplicate_services(services: Tuple[Service]) -> List[Service]:
             if existing_resource.product != service.product:
                 raise exceptions.DuplicateServiceProductMismatch(
                     service_name=service.name,
-                    existing_product=existing_resource.product.name,
-                    new_product=service.product.name,
+                    existing_product=existing_resource.product,
+                    new_product=service.product,
                 )
         service_dict[service.name] = service
 

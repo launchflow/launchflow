@@ -34,7 +34,7 @@ class ECRRepository(AWSResource[ECRRepositoryOutputs]):
     ```
     """
 
-    product = ResourceProduct.AWS_ECR_REPOSITORY
+    product = ResourceProduct.AWS_ECR_REPOSITORY.value
 
     def __init__(
         self,

@@ -657,7 +657,7 @@ async def run(
             build_cache_key(
                 project=launchflow.project,
                 environment=environment,
-                product=resource.product.value,
+                product=resource.product,
                 resource=resource.name,
             ): outputs.to_dict()
             for resource, outputs in zip(remote_resources, resource_outputs)

@@ -473,6 +473,8 @@ async def create_environment(
                         raise typer.Exit(1)
                     region = sorted_regions[region_index]
                     rich.print(f"[pink1]>[/pink1] {region}")
+                elif region is None:
+                    raise exceptions.NoAWSRegionEvironmentCreationError()
 
             aws_environment_info = await create_aws_environment(
                 inputs=AWSEnvironmentCreationInputs(

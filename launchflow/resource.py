@@ -25,8 +25,9 @@ class ResourceInputs(Inputs):
 class _ResourceURI:
     project_name: str
     environment_name: str
-    product: ResourceProduct
+    product: str
     resource_name: str
+    cloud_provider: CloudProvider
 
 
 def _to_output_type(outputs: Dict[str, Any], init_fn: Callable):
@@ -70,7 +71,7 @@ def _load_outputs_from_cache(resource_uri: _ResourceURI):
     resource_outputs = cache.get_resource_outputs(
         resource_uri.project_name,
         resource_uri.environment_name,
-        resource_uri.product.value,
+        resource_uri.product,
         resource_uri.resource_name,
     )
     if resource_outputs is not None:
@@ -93,18 +94,18 @@ def _get_artifact_bucket_path_from_local(resource_uri: _ResourceURI):
         resource_outputs_bucket_path = cache.get_resource_outputs_bucket_path(
             resource_uri.project_name,
             resource_uri.environment_name,
-            resource_uri.product.value,
+            resource_uri.product,
             resource_uri.resource_name,
         )
     return resource_outputs_bucket_path
 
 
 def _resource_path_from_env(resource_uri: _ResourceURI, env: EnvironmentState) -> str:
-    if resource_uri.product.cloud_provider() == CloudProvider.GCP:
+    if resource_uri.cloud_provider == CloudProvider.GCP:
         if env.gcp_config is None:
             raise exceptions.GCPConfigNotFound(resource_uri.environment_name)
         bucket_url = f"gs://{env.gcp_config.artifact_bucket}"
-    elif resource_uri.product.cloud_provider() == CloudProvider.AWS:
+    elif resource_uri.cloud_provider == CloudProvider.AWS:
         if env.aws_config is None:
             raise exceptions.AWSConfigNotFound(resource_uri.environment_name)
         bucket_url = f"s3://{env.aws_config.artifact_bucket}"
@@ -144,7 +145,7 @@ def _load_outputs_from_remote_bucket(
 
 
 class Resource(Node[T]):
-    product = ResourceProduct.UNKNOWN
+    product = ResourceProduct.UNKNOWN.value
 
     def __init__(
         self,
@@ -201,7 +202,11 @@ class Resource(Node[T]):
         if project_name is None or environment_name is None:
             raise exceptions.ProjectOrEnvironmentNotSet(project_name, environment_name)
         resource_uri = _ResourceURI(
-            project_name, environment_name, self.product, self.name
+            project_name,
+            environment_name,
+            self.product,
+            self.name,
+            self.cloud_provider(),
         )
         # Load outputs from mounted volume
         resource_outputs = _load_outputs_from_mounted_volume(resource_uri)
@@ -228,7 +233,7 @@ class Resource(Node[T]):
         cache.set_resource_outputs(
             resource_uri.project_name,
             resource_uri.environment_name,
-            resource_uri.product.value,
+            resource_uri.product,
             resource_uri.resource_name,
             resource_outputs,
         )
@@ -242,7 +247,11 @@ class Resource(Node[T]):
         project_name = launchflow.project
         environment_name = launchflow.environment
         resource_uri = _ResourceURI(
-            project_name, environment_name, self.product, self.name
+            project_name,
+            environment_name,
+            self.product,
+            self.name,
+            self.cloud_provider(),
         )
         # Load outputs from mounted volume
         resource_outputs = _load_outputs_from_mounted_volume(resource_uri)
@@ -271,7 +280,7 @@ class Resource(Node[T]):
         cache.set_resource_outputs(
             resource_uri.project_name,
             resource_uri.environment_name,
-            resource_uri.product.value,
+            resource_uri.product,
             resource_uri.resource_name,
             resource_outputs,
         )

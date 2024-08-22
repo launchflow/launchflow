@@ -31,9 +31,9 @@ class SQSQueueInputs(ResourceInputs):
     fifo_queue: bool
     content_based_deduplication: bool = False
     deduplication_scope: Optional[Literal["queue", "message_group"]] = None
-    fifo_throughput_limit: Optional[
-        Literal["perQueue", "perMessageGroupId"]
-    ] = "perQueue"
+    fifo_throughput_limit: Optional[Literal["perQueue", "perMessageGroupId"]] = (
+        "perQueue"
+    )
 
 
 class SQSQueue(AWSResource[SQSQueueOutputs]):
@@ -69,7 +69,7 @@ class SQSQueue(AWSResource[SQSQueueOutputs]):
     ```
     """
 
-    product = ResourceProduct.AWS_SQS_QUEUE
+    product = ResourceProduct.AWS_SQS_QUEUE.value
 
     def __init__(
         self,

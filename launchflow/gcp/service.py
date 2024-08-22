@@ -1,5 +1,7 @@
+from launchflow.models.enums import CloudProvider
 from launchflow.service import Service
 
 
 class GCPService(Service):
-    pass
+    def cloud_provider(self) -> CloudProvider:
+        return CloudProvider.GCP

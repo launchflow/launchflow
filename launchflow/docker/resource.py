@@ -4,13 +4,13 @@ import launchflow
 from launchflow import exceptions
 from launchflow.clients.docker_client import DockerClient
 from launchflow.managers.docker_resource_manager import base64_to_dict
-from launchflow.models.enums import ResourceProduct
+from launchflow.models.enums import CloudProvider, ResourceProduct
 from launchflow.node import Inputs
 from launchflow.resource import Resource, T
 
 
 class DockerResource(Resource[T]):
-    product = ResourceProduct.LOCAL_DOCKER
+    product = ResourceProduct.LOCAL_DOCKER.value
 
     def __init__(
         self,
@@ -28,6 +28,9 @@ class DockerResource(Resource[T]):
 
         self.ports = ports or {}
         self.running_container_id = running_container_id
+
+    def cloud_provider(self) -> CloudProvider:
+        return CloudProvider.UNKNOWN
 
     def _lazy_load_container_info(self) -> None:
         """Lazy-load the information about the running container."""

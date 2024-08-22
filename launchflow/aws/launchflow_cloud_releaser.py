@@ -61,7 +61,7 @@ class LaunchFlowCloudReleaser(AWSResource[LaunchFlowCloudReleaserOutputs]):
     Connecting your environment with `lf cloud connect ${ENV_NAME}` will automatically create this resource.
     """
 
-    product = ResourceProduct.AWS_LAUNCHFLOW_CLOUD_RELEASER
+    product = ResourceProduct.AWS_LAUNCHFLOW_CLOUD_RELEASER.value
 
     def __init__(self, name: str = "launchflow-releaser") -> None:
         """Create a new LaunchFlowCloudReleaser resource."""
