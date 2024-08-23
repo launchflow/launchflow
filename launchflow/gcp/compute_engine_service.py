@@ -1,6 +1,7 @@
 import dataclasses
 from datetime import timedelta
-from typing import Any, List, Literal, Union, Optional
+from typing import Any, List, Literal, Optional, Union
+
 from launchflow import exceptions
 from launchflow.gcp.artifact_registry_repository import (
     ArtifactRegistryRepository,

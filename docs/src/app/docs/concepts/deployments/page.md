@@ -40,6 +40,9 @@ def index():
     return f"Hello from {lf.environment}"
 
 api = lf.gcp.CloudRun("my-service", region="us-central1")
+
+if __name__ == "__main__":
+    api.run(f"uvicorn {__name__}:app --port {api.port}")
 ```
 
 Or you might use a Service to host your React app:
@@ -48,6 +51,9 @@ Or you might use a Service to host your React app:
 import launchflow as lf
 
 app = lf.gcp.CloudRun("my-web-app", build_directory="./react-app")
+
+if __name__ == "__main__":
+    app.run(f"serve -s build -l {app.port}")
 ```
 
 ### Workers
@@ -56,7 +62,6 @@ Workers are long-running applications that process tasks and events.
 For example, you might create a worker to subscribe to a PubSub topic and process messages as they're published:
 
 ```python
-import asyncio
 import launchflow as lf
 
 worker = lf.gcp.ComputeEngineWorker("my-worker", machine_type="f1-micro")
@@ -70,7 +75,7 @@ async def main():
         await asyncio.sleep(5)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    worker.run_async(main)
 ```
 
 
@@ -80,7 +85,6 @@ Jobs are one-off tasks or workflows that run to completion.
 For example, you might schedule a job to run every day at noon:
 
 ```python
-import asyncio
 import launchflow as lf
 
 job = lf.gcp.CloudRunJob("my-worker", cron="0 12 * * *", machine_type="f1-micro")
@@ -91,7 +95,7 @@ async def main():
     print("Job complete.")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    job.run_async(main())
 ```
 
 <!-- {% tabProvider defaultLabel="GCP" %}

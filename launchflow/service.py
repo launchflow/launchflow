@@ -1,25 +1,17 @@
 from dataclasses import dataclass
 from typing import List, Optional
 
+from launchflow.deployment import Deployment, DeploymentOutputs, T
 from launchflow.models.enums import ServiceProduct
-from launchflow.node import Node, NodeType, Outputs
-from launchflow.resource import Resource
+from launchflow.node import Outputs
 
 
 @dataclass
-class DNSOutputs(Outputs):
-    domain: str
-    ip_address: str
-
-
-@dataclass
-class ServiceOutputs(Outputs):
+class ServiceOutputs(DeploymentOutputs):
     service_url: str
-    docker_repository: str
-    dns_outputs: Optional[DNSOutputs]
 
 
-class Service(Node[ServiceOutputs]):
+class Service(Deployment[T]):
     product = ServiceProduct.UNKNOWN
 
     def __init__(
@@ -29,7 +21,7 @@ class Service(Node[ServiceOutputs]):
         build_directory: str = ".",
         build_ignore: List[str] = [],  # type: ignore
     ) -> None:
-        super().__init__(name, NodeType.SERVICE)
+        super().__init__(name)
 
         self.name = name
         self.dockerfile = dockerfile
@@ -42,12 +34,6 @@ class Service(Node[ServiceOutputs]):
     async def outputs_async(self) -> ServiceOutputs:
         raise NotImplementedError
 
-    def resources(self) -> List[Resource]:
-        raise NotImplementedError
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}({self.name})"
-
     def __eq__(self, value) -> bool:
         return (
             isinstance(value, Service)
@@ -58,3 +44,53 @@ class Service(Node[ServiceOutputs]):
             and value.build_directory == self.build_directory
             and value.build_ignore == self.build_ignore
         )
+
+
+# TODO: Determine if we can remove the Outputs inheritance for DNSOutputs
+@dataclass
+class DNSOutputs(Outputs):
+    domain: str
+    ip_address: str
+
+
+@dataclass
+class DockerServiceOutputs(ServiceOutputs):
+    docker_repository: str
+    dns_outputs: Optional[DNSOutputs]
+
+
+class DockerService(Service[T]):
+    def __init__(
+        self,
+        name: str,
+        *,
+        dockerfile: str = "Dockerfile",
+        build_directory: str = ".",
+        build_ignore: List[str] = [],  # type: ignore
+    ) -> None:
+        super().__init__(name)
+
+        self.name = name
+        self.dockerfile = dockerfile
+        self.build_directory = build_directory
+        self.build_ignore = build_ignore
+
+
+@dataclass
+class StaticServiceOutputs(ServiceOutputs):
+    dns_outputs: Optional[DNSOutputs]
+
+
+class StaticService(Service[T]):
+    def __init__(
+        self,
+        name: str,
+        static_directory: str,
+        *,
+        static_ignore: List[str] = [],  # type: ignore
+    ) -> None:
+        super().__init__(name)
+
+        self.name = name
+        self.static_directory = static_directory
+        self.static_ignore = static_ignore

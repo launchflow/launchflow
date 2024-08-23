@@ -892,9 +892,9 @@ async def plan_create_resources(
                     dependency_plan
                 )
                 if isinstance(resolved_dependency_plan, FailedToPlan):
-                    resource_name_to_plan[resource_dependency.name] = (
-                        resolved_dependency_plan
-                    )
+                    resource_name_to_plan[
+                        resource_dependency.name
+                    ] = resolved_dependency_plan
                     return FailedToPlan(
                         resource=plan.resource,
                         error_message=f"DependencyFailedToPlan: {ResourceRef(plan.resource)} depends on {ResourceRef(resource_dependency)} which failed to plan.",

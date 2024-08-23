@@ -76,6 +76,36 @@ class ServiceProduct(str, Enum):
             return CloudProvider.AWS
 
 
+class WorkerProduct(str, Enum):
+    UNKNOWN = "unknown"
+    # GCP product types
+    GCP_CLOUD_RUN = "gcp_cloud_run"
+    GCP_COMPUTE_ENGINE = "gcp_compute_engine"
+    # AWS product types
+    AWS_ECS_FARGATE = "aws_ecs_fargate"
+
+    def cloud_provider(self):
+        if self.name.startswith("GCP"):
+            return CloudProvider.GCP
+        elif self.name.startswith("AWS"):
+            return CloudProvider.AWS
+
+
+class JobProduct(str, Enum):
+    UNKNOWN = "unknown"
+    # GCP product types
+    GCP_CLOUD_RUN = "gcp_cloud_run"
+    GCP_COMPUTE_ENGINE = "gcp_compute_engine"
+    # AWS product types
+    AWS_ECS_FARGATE = "aws_ecs_fargate"
+
+    def cloud_provider(self):
+        if self.name.startswith("GCP"):
+            return CloudProvider.GCP
+        elif self.name.startswith("AWS"):
+            return CloudProvider.AWS
+
+
 class EnvironmentType(str, Enum):
     UNKNOWN = "unknown"
     DEVELOPMENT = "development"

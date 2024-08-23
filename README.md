@@ -188,13 +188,13 @@ lf deploy
 6. Deploy your FastAPI app to the new ECS Fargate service
 7. Output the URL & DNS settings of your new FastAPI app
 
-### Step 4. Add more resources and deployments to your Python file:
+### Step 4. Add a Resource type to your Python file:
 
 ```python
 from fastapi import FastAPI
 import launchflow as lf
 
-# Security settings are automatically configured for you
+# Resource permissions are automatically configured for you
 bucket = lf.gcp.S3Bucket("my-bucket")
 
 app = FastAPI()

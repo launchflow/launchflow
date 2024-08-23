@@ -106,7 +106,7 @@ def mode(mode):
 
 class NodeType(Enum):
     RESOURCE = "resource"
-    SERVICE = "service"
+    DEPLOYMENT = "service"
 
 
 T = TypeVar("T", bound=Outputs)
@@ -171,5 +171,5 @@ class Node(Generic[T]):
     def is_resource(self) -> bool:
         return self._node_type == NodeType.RESOURCE
 
-    def is_service(self) -> bool:
-        return self._node_type == NodeType.SERVICE
+    def is_deployment(self) -> bool:
+        return self._node_type == NodeType.DEPLOYMENT

@@ -20,8 +20,8 @@ from launchflow.gcp.bigquery import BigQueryDataset
 from launchflow.gcp.cloud_run import CloudRun, CloudRunServiceContainer
 from launchflow.gcp.cloud_tasks import CloudTasksQueue
 from launchflow.gcp.cloudsql import CloudSQLDatabase, CloudSQLPostgres, CloudSQLUser
-from launchflow.gcp.compute_engine_service import ComputeEngineService
 from launchflow.gcp.compute_engine import ComputeEngine
+from launchflow.gcp.compute_engine_service import ComputeEngineService
 from launchflow.gcp.custom_domain_mapping import CustomDomainMapping
 from launchflow.gcp.gcs import GCSBucket
 from launchflow.gcp.http_health_check import HttpHealthCheck
