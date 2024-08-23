@@ -66,7 +66,7 @@ class ElasticacheRedis(AWSResource[ElasticacheRedisOutputs], RedisClient):
     ```
     """
 
-    product = ResourceProduct.AWS_ELASTICACHE_REDIS
+    product = ResourceProduct.AWS_ELASTICACHE_REDIS.value
 
     def __init__(
         self,

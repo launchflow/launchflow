@@ -30,8 +30,8 @@ def deduplicate_resources(resources: Tuple[Resource]) -> List[Resource]:
             if existing_resource.product != resource.product:
                 raise exceptions.DuplicateResourceProductMismatch(
                     resource_name=resource.name,
-                    existing_product=existing_resource.product.name,
-                    new_product=resource.product.name,
+                    existing_product=existing_resource.product,
+                    new_product=resource.product,
                 )
         resource_dict[resource.name] = resource
 

@@ -120,7 +120,7 @@ class RegionalManagedInstanceGroup(GCPResource[RegionalManagedInstanceGroupOutpu
     ```
     """
 
-    product = ResourceProduct.GCP_REGIONAL_MANAGED_INSTANCE_GROUP
+    product = ResourceProduct.GCP_REGIONAL_MANAGED_INSTANCE_GROUP.value
 
     def __init__(
         self,

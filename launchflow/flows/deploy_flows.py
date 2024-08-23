@@ -645,7 +645,7 @@ async def plan_deploy_service(
     if existing_service is not None and existing_service.product != service.product:
         exception = exceptions.ServiceProductMismatch(
             service=service,
-            existing_product=existing_service.product.name,
+            existing_product=existing_service.product,
             new_product=service.product,
         )
         return FailedToPlan(
@@ -1740,7 +1740,7 @@ async def plan_promote_service(
     ):
         exception = exceptions.ServiceProductMismatch(
             service=service,
-            existing_product=existing_to_service.product.name,
+            existing_product=existing_to_service.product,
             new_product=service.product,
         )
         return FailedToPlan(
@@ -1760,7 +1760,7 @@ async def plan_promote_service(
     if existing_from_service.product != service.product:
         exception = exceptions.ServiceProductMismatch(
             service=service,
-            existing_product=existing_from_service.product.name,
+            existing_product=existing_from_service.product,
             new_product=service.product,
         )
         return FailedToPlan(

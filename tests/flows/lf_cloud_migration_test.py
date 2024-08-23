@@ -81,7 +81,7 @@ class LFCloudMigrationTest(unittest.IsolatedAsyncioTestCase):
             ),
             name="test-storage-bucket",
             cloud_provider=CloudProvider.GCP,
-            product=ResourceProduct.GCP_STORAGE_BUCKET,
+            product=ResourceProduct.GCP_STORAGE_BUCKET.value,
             gcp_id=None,
             aws_arn=None,
             inputs={"location": "US", "force_destroy": "false"},

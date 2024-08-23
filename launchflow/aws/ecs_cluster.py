@@ -29,7 +29,7 @@ class ECSCluster(AWSResource[ECSClusterOutputs]):
     ```
     """
 
-    product = ResourceProduct.AWS_ECS_CLUSTER
+    product = ResourceProduct.AWS_ECS_CLUSTER.value
 
     def __init__(self, name: str) -> None:
         """Creates a new ECS cluster.

@@ -32,4 +32,4 @@ class TofuResource(Resource[T]):
 
     @property
     def tf_module(self) -> str:
-        return self._tofu_module or self.product.value
+        return self._tofu_module or self.product

@@ -63,7 +63,7 @@ def validate_environment_name(environment_name: str):
         raise ValueError("Environment name cannot contain underscores")
     if not re.match(ENVIRONMENT_PATTERN, environment_name):
         raise ValueError(
-            "Environment name can only contain letters, numbers, and hyphens"
+            "Environment name can only contain lowercase letters, numbers, and hyphens"
         )
     if environment_name in RESERVED_ENVIRONMENT_NAMES:
         raise ValueError(f"Environment name is reserved: {environment_name}")

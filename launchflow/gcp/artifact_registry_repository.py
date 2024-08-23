@@ -62,7 +62,7 @@ class ArtifactRegistryRepository(GCPResource[ArtifactRegistryOutputs]):
     ```
     """
 
-    product = ResourceProduct.GCP_ARTIFACT_REGISTRY_REPOSITORY
+    product = ResourceProduct.GCP_ARTIFACT_REGISTRY_REPOSITORY.value
 
     def __init__(
         self,

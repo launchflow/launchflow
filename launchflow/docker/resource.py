@@ -10,7 +10,7 @@ from launchflow.resource import Resource, T
 
 
 class DockerResource(Resource[T]):
-    product = ResourceProduct.LOCAL_DOCKER
+    product = ResourceProduct.LOCAL_DOCKER.value
 
     def __init__(
         self,
@@ -28,6 +28,9 @@ class DockerResource(Resource[T]):
 
         self.ports = ports or {}
         self.running_container_id = running_container_id
+
+    def cloud_provider(self) -> CloudProvider:
+        return CloudProvider.UNKNOWN
 
     def _lazy_load_container_info(self) -> None:
         """Lazy-load the information about the running container."""

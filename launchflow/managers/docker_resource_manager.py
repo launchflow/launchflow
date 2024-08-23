@@ -88,7 +88,7 @@ class DockerResourceManager(BaseManager):
         # Update failed status triggers a resource re-create
         return ResourceState(
             name=self.resource_name,
-            product=ResourceProduct.LOCAL_DOCKER,
+            product=ResourceProduct.LOCAL_DOCKER.value,
             cloud_provider=None,
             created_at=container.attrs["Created"],
             updated_at=container.attrs["Created"],

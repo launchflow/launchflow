@@ -77,7 +77,7 @@ class PubsubTopic(GCPResource[PubsubTopicOutputs]):
     ```
     """
 
-    product = ResourceProduct.GCP_PUBSUB_TOPIC
+    product = ResourceProduct.GCP_PUBSUB_TOPIC.value
 
     def __init__(
         self, name: str, message_retention_duration: Optional[datetime.timedelta] = None
@@ -239,7 +239,7 @@ class PubsubSubscription(GCPResource[PubsubSubscriptionOutputs]):
     ```
     """
 
-    product = ResourceProduct.GCP_PUBSUB_SUBSCRIPTION
+    product = ResourceProduct.GCP_PUBSUB_SUBSCRIPTION.value
 
     # TODO: Add optional arguments for subscription settings
     def __init__(

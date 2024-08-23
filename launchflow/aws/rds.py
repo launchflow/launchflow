@@ -109,7 +109,7 @@ class RDSPostgres(AWSResource[RDSPostgresOutputs], PostgresClient):
     ```
     """
 
-    product = ResourceProduct.AWS_RDS_POSTGRES
+    product = ResourceProduct.AWS_RDS_POSTGRES.value
 
     def __init__(
         self,
@@ -131,7 +131,9 @@ class RDSPostgres(AWSResource[RDSPostgresOutputs], PostgresClient):
         - `publicly_accessible (Optionally[bool])`: Whether the database should be publicly accessible. Defaults to `True` for development environments and `False` for production.
         - `postgres_version (PostgresVersion)`: The version of Postgres to use. Defaults to `PostgresVersion.POSTGRES16`.
         """
-        super().__init__(name=name, resource_id=f"{name}-{lf.project}-{lf.environment}")
+        super().__init__(
+            name=name, resource_id=f"{name}-{lf.project}-{lf.environment}".lower()
+        )
         self.allocated_storage_gb = allocated_storage_gb
         self.highly_available = highly_available
         self.instance_class = instance_class

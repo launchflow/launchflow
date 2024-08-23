@@ -169,7 +169,7 @@ class CloudSQLPostgres(
     ```
     """
 
-    product = ResourceProduct.GCP_SQL_POSTGRES
+    product = ResourceProduct.GCP_SQL_POSTGRES.value
 
     def __init__(
         self,
@@ -471,7 +471,7 @@ class CloudSQLUserOutputs(Outputs):
 
 
 class CloudSQLUser(GCPResource[CloudSQLUserOutputs]):
-    product = ResourceProduct.GCP_SQL_USER
+    product = ResourceProduct.GCP_SQL_USER.value
 
     def __init__(
         self,
@@ -538,7 +538,7 @@ class CloudSQLDataBaseOutputs(Outputs):
 
 
 class CloudSQLDatabase(GCPResource[CloudSQLDataBaseOutputs]):
-    product = ResourceProduct.GCP_SQL_DATABASE
+    product = ResourceProduct.GCP_SQL_DATABASE.value
 
     def __init__(self, name: str, cloud_sql_instance: CloudSQLPostgres) -> None:
         """Create a new Cloud SQL Database resource.

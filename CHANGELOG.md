@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.4.7](https://github.com/launchflow/launchflow/compare/v0.4.6...v0.4.7) (2024-08-22)
+
+
+### Bug Fixes
+
+* make resource product and service product a string ([#24](https://github.com/launchflow/launchflow/issues/24)) ([681cda9](https://github.com/launchflow/launchflow/commit/681cda920f5466dbe27d99d031504d46a3bab435))
+
+## [0.4.6](https://github.com/launchflow/launchflow/compare/v0.4.5...v0.4.6) (2024-08-20)
+
+
+### Bug Fixes
+
+* **LF-587:** lowercase resource ids for ECR and RDS ([#17](https://github.com/launchflow/launchflow/issues/17)) ([ea7245b](https://github.com/launchflow/launchflow/commit/ea7245b4b6edb25fb9b6ed422da8b193da36413f))
+
 ## [0.4.5](https://github.com/launchflow/launchflow-client/compare/v0.4.4...v0.4.5) (2024-07-30)
 
 

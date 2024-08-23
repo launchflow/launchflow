@@ -63,7 +63,7 @@ class MemorystoreRedis(GCPResource[MemorystoreRedisOutputs], RedisClient):
     ```
     """
 
-    product = ResourceProduct.GCP_MEMORYSTORE_REDIS
+    product = ResourceProduct.GCP_MEMORYSTORE_REDIS.value
 
     def __init__(
         self,

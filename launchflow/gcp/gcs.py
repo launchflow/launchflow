@@ -53,7 +53,7 @@ class GCSBucket(GCPResource[GCSBucketOutputs]):
     ```
     """
 
-    product = ResourceProduct.GCP_STORAGE_BUCKET
+    product = ResourceProduct.GCP_STORAGE_BUCKET.value
 
     def __init__(
         self, name: str, *, location: str = "US", force_destroy: bool = False

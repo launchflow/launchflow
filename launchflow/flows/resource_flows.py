@@ -163,7 +163,6 @@ async def _organize_destroy_plans(locked_plans: List[Tuple[Lock, DestroyResource
         if plan_node.plan.resource.depends_on:
             for resource_name in plan_node.plan.resource.depends_on:
                 if resource_name not in keyed_plans:
-                    # This is a resource that is not being destroyed, so we can ignore it
                     continue
                 child_plan = keyed_plans[resource_name]
                 if resource_name in root_plan_nodes:
@@ -201,7 +200,7 @@ async def _destroy_resource(
         )
         task = progress.add_task(task_description)
 
-        if plan.resource.product == ResourceProduct.LOCAL_DOCKER:
+        if plan.resource.product == ResourceProduct.LOCAL_DOCKER.value:
             inputs = DestroyResourceDockerInputs(
                 container_id=plan.resource_manager.get_running_container_id(),  # type: ignore
                 logs_file=logs_file,
@@ -401,7 +400,7 @@ async def destroy(
 
         destroy_plans: List[DestroyResourcePlan] = []
         for name, resource in resources.items():
-            if resource.product == ResourceProduct.LOCAL_DOCKER:
+            if resource.product == ResourceProduct.LOCAL_DOCKER.value:
                 resource_manager = environment_manager.create_docker_resource_manager(
                     name
                 )
@@ -514,7 +513,7 @@ async def destroy(
         # bucket if you are only destroying local resources
         if (
             isinstance(plan, DestroyResourcePlan)
-            and plan.resource.product == ResourceProduct.LOCAL_DOCKER
+            and plan.resource.product == ResourceProduct.LOCAL_DOCKER.value
         ):
             lock = await plan.resource_manager.lock_resource(
                 operation=LockOperation(operation_type=OperationType.DESTROY_RESOURCE)

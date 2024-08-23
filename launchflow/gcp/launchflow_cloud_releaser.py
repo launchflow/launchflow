@@ -17,6 +17,7 @@ from launchflow.node import Outputs
 from launchflow.resource import ResourceInputs
 from launchflow.gcp.resource import GCPResource
 
+
 @dataclasses.dataclass
 class LaunchFlowReleaserOutputs(Outputs):
     service_account_email: str
@@ -34,7 +35,7 @@ class LaunchFlowCloudReleaser(GCPResource[LaunchFlowReleaserOutputs]):
     Connecting your environment with `lf cloud connect ${ENV_NAME}` will automatically create this resource.
     """
 
-    product = ResourceProduct.GCP_LAUNCHFLOW_CLOUD_RELEASER
+    product = ResourceProduct.GCP_LAUNCHFLOW_CLOUD_RELEASER.value
 
     def __init__(self, name: str = "launchflow-releaser") -> None:
         """Create a new LaunchFlowCloudReleaser resource.

@@ -25,7 +25,7 @@ class ResourceInputs(Inputs):
 class _ResourceURI:
     project_name: str
     environment_name: str
-    product: ResourceProduct
+    product: str
     resource_name: str
     cloud_provider: CloudProvider
 
@@ -71,7 +71,7 @@ def _load_outputs_from_cache(resource_uri: _ResourceURI):
     resource_outputs = cache.get_resource_outputs(
         resource_uri.project_name,
         resource_uri.environment_name,
-        resource_uri.product.value,
+        resource_uri.product,
         resource_uri.resource_name,
     )
     if resource_outputs is not None:
@@ -94,7 +94,7 @@ def _get_artifact_bucket_path_from_local(resource_uri: _ResourceURI):
         resource_outputs_bucket_path = cache.get_resource_outputs_bucket_path(
             resource_uri.project_name,
             resource_uri.environment_name,
-            resource_uri.product.value,
+            resource_uri.product,
             resource_uri.resource_name,
         )
     return resource_outputs_bucket_path
@@ -145,7 +145,7 @@ def _load_outputs_from_remote_bucket(
 
 
 class Resource(Node[T]):
-    product = ResourceProduct.UNKNOWN
+    product = ResourceProduct.UNKNOWN.value
 
     def __init__(
         self,
@@ -233,7 +233,7 @@ class Resource(Node[T]):
         cache.set_resource_outputs(
             resource_uri.project_name,
             resource_uri.environment_name,
-            resource_uri.product.value,
+            resource_uri.product,
             resource_uri.resource_name,
             resource_outputs,
         )
@@ -280,7 +280,7 @@ class Resource(Node[T]):
         cache.set_resource_outputs(
             resource_uri.project_name,
             resource_uri.environment_name,
-            resource_uri.product.value,
+            resource_uri.product,
             resource_uri.resource_name,
             resource_outputs,
         )

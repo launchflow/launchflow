@@ -19,7 +19,6 @@ from rich.tree import Tree
 
 import launchflow
 from launchflow import exceptions
-from launchflow.aws.resource import AWSResource
 from launchflow.cli.resource_utils import is_secret_resource
 from launchflow.clients.docker_client import docker_service_available
 from launchflow.config import config
@@ -41,7 +40,6 @@ from launchflow.flows.plan import (
     execute_plans,
 )
 from launchflow.flows.plan_utils import lock_plans, print_plans, select_plans
-from launchflow.gcp.resource import GCPResource
 from launchflow.locks import Lock, LockOperation, OperationType, ReleaseReason
 from launchflow.logger import logger
 from launchflow.managers.environment_manager import EnvironmentManager
@@ -57,7 +55,7 @@ from launchflow.models.enums import (
 )
 from launchflow.models.flow_state import EnvironmentState, ResourceState, ServiceState
 from launchflow.models.launchflow_uri import LaunchFlowURI
-from launchflow.node import Depends, Node
+from launchflow.node import Node
 from launchflow.resource import Resource
 from launchflow.service import DNSOutputs, Service
 from launchflow.tofu import TofuResource
@@ -408,7 +406,7 @@ class CreateResourcePlan(ResourcePlan):
             if existing is None:
                 if (
                     refreshed is not None
-                    and refreshed.product != ResourceProduct.UNKNOWN
+                    and refreshed.product != ResourceProduct.UNKNOWN.value
                 ):
                     return True
                 return False
@@ -770,14 +768,13 @@ async def plan_create_resource(
             error_message=str(e),
         )
 
-    # TODO: do we need any prevalidation for k8s resources
-    if isinstance(resource, GCPResource):
+    if resource.cloud_provider() == CloudProvider.GCP:
         if environment_state.gcp_config is None:
             return FailedToPlan(
                 resource=resource,
                 error_message="CloudProviderMismatch: Cannot use a GCP Resource in an AWS Environment.",
             )
-    if isinstance(resource, AWSResource):
+    elif resource.cloud_provider() == CloudProvider.AWS:
         if environment_state.aws_config is None:
             return FailedToPlan(
                 resource=resource,
@@ -805,7 +802,7 @@ async def plan_create_resource(
         if existing_resource_state.product != resource.product:
             exception = exceptions.ResourceProductMismatch(
                 resource=resource,
-                existing_product=existing_resource_state.product.name,
+                existing_product=existing_resource_state.product,
                 new_product=resource.product,
             )
             return FailedToPlan(
@@ -952,7 +949,7 @@ async def plan_create_service(
         if existing_service.product != service.product:
             exception = exceptions.ServiceProductMismatch(
                 service=service,
-                existing_product=existing_service.product.name,
+                existing_product=existing_service.product,
                 new_product=service.product,
             )
             return FailedToPlan(

@@ -56,7 +56,7 @@ class ECSFargate(AWSService):
     - An [Elastic Container Registry](https://aws.amazon.com/ecr) repository to store the service's Docker image.
     """
 
-    product = ServiceProduct.AWS_ECS_FARGATE
+    product = ServiceProduct.AWS_ECS_FARGATE.value
 
     # TODO: Add better support for custom domains + write up a guide for different domain providers
     def __init__(
@@ -101,7 +101,7 @@ class ECSFargate(AWSService):
         self._ecr = ECRRepository(
             f"{name}-ecr", force_delete=True, image_tag_mutability="MUTABLE"
         )
-        self._ecr.resource_id = resource_id_with_launchflow_prefix
+        self._ecr.resource_id = resource_id_with_launchflow_prefix.lower()
 
         # Builds an absolute path to the buildspec.yml file packaged with launchflow
         buildspec_path = pkg_resources.resource_filename(

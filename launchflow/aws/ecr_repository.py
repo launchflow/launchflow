@@ -34,7 +34,7 @@ class ECRRepository(AWSResource[ECRRepositoryOutputs]):
     ```
     """
 
-    product = ResourceProduct.AWS_ECR_REPOSITORY
+    product = ResourceProduct.AWS_ECR_REPOSITORY.value
 
     def __init__(
         self,
@@ -52,7 +52,7 @@ class ECRRepository(AWSResource[ECRRepositoryOutputs]):
         super().__init__(
             name=name,
             replacement_arguments={"format", "location"},
-            resource_id=f"{name}-{lf.project}-{lf.environment}",
+            resource_id=f"{name}-{lf.project}-{lf.environment}".lower(),
         )
         self.force_delete = force_delete
         self.image_tag_mutability = image_tag_mutability

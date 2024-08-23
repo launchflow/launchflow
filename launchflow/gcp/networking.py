@@ -59,7 +59,7 @@ class FirewallAllowRule(GCPResource[FirewallRuleOutputs]):
     ```
     """
 
-    product = ResourceProduct.GCP_FIREWALL_ALLOW_RULE
+    product = ResourceProduct.GCP_FIREWALL_ALLOW_RULE.value
 
     def __init__(
         self,
