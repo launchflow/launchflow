@@ -6,7 +6,6 @@ nextjs:
     description: LaunchFlow Environments
 ---
 
-
 {% mdimage src="/images/environments_light.svg" alt="diagram" className="block dark:hidden" height=250 width=600 /%}
 {% mdimage src="/images/environments_dark.svg" alt="diagram" className="hidden dark:block" height=250 width=600 /%}
 
