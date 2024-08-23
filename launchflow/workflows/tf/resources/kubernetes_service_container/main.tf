@@ -126,7 +126,7 @@ resource "kubernetes_service_v1" "default" {
 }
 
 output "external_ip" {
-  value       = length(kubernetes_service_v1.default.status) > 0 ? kubernetes_service_v1.default.status.0.load_balancer.0.ingress.0.ip : null
+  value       = try(kubernetes_service_v1.default.status[0].load_balancer[0].ingress[0].ip, null)
   description = "The external IP address of the Kubernetes service"
 }
 

@@ -54,7 +54,7 @@ class ServiceContainerInputs(ResourceInputs):
 @dataclasses.dataclass
 class ServiceContainerOutputs(Outputs):
     internal_ip: str
-    external_ip: Optional[str]
+    external_ip: Optional[str] = None
 
 
 class ServiceContainer(KubernetesResource[ServiceContainerOutputs]):

@@ -750,7 +750,7 @@ async def release_docker_image_to_gke(
     cluster = await gcp_client.get_cluster(name=cluster_name)
     k8_config.load_kube_config_from_dict(_get_gke_config(cluster_name, cluster))
 
-    return await update_k8s_service(
+    await update_k8s_service(
         docker_image=docker_image,
         namespace=gke_service.namespace,
         service_name=gke_service.name,
@@ -760,7 +760,10 @@ async def release_docker_image_to_gke(
         artifact_bucket=gcp_environment_config.artifact_bucket,  # type: ignore
         cloud_provider="gcp",
         k8_service_account=gcp_environment_config.service_account_email.split("@")[0],  # type: ignore
+        environment_vars=gke_service.environment_variables,
     )
+    # The service url doesn't change between deployment
+    return gke_service.outputs().service_url
 
 
 async def promote_gcp_service_image(

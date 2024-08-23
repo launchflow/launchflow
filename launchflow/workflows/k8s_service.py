@@ -1,3 +1,4 @@
+from typing import Dict, Literal, Optional
 from kubernetes import client
 import asyncio
 import time
@@ -91,6 +92,7 @@ async def update_k8s_service(
     k8_service_account: str,
     cloud_provider: str,
     deployment_id: str,
+    environment_vars: Optional[Dict[str, str]],
 ):
     app_client = client.AppsV1Api()
     # Get the current deployment
@@ -106,7 +108,7 @@ async def update_k8s_service(
     container.image = docker_image
     template_spec.service_account_name = k8_service_account
 
-    container.env = [
+    env_vars = [
         client.V1EnvVar(
             name="LAUNCHFLOW_ARTIFACT_BUCKET", value=f"gs://{artifact_bucket}"
         ),
@@ -116,20 +118,19 @@ async def update_k8s_service(
         client.V1EnvVar(name="LAUNCHFLOW_DEPLOYMENT_ID", value=deployment_id),
     ]
 
+    if environment_vars is not None:
+        for key, val in environment_vars.items():
+            env_vars.append(client.V1EnvVar(name=key, value=val))
+
+    container.env = env_vars
+
     # Update the deployment
-    revision = app_client.patch_namespaced_deployment(
+    _ = app_client.patch_namespaced_deployment(
         name=service_name, namespace=namespace, body=deployment
     )
 
-    print("DO NOT SUBMIT: ", revision)
-
     # Wait for the rollout to complete
     await _wait_for_deployment_rollout(app_client, service_name, namespace)
-
-    core_client = client.CoreV1Api()
-
-    ip = await _wait_for_ingress_ip(core_client, service_name, namespace)
-    return f"http://{ip}"
 
 
 async def _wait_for_deployment_rollout(
@@ -143,7 +144,6 @@ async def _wait_for_deployment_rollout(
         deployment = k8_client.read_namespaced_deployment_status(
             name=deployment_name, namespace=namespace
         )
-        print("DO NOT SUBMIT: ", deployment)
         if (
             deployment.status.updated_replicas == deployment.spec.replicas
             and deployment.status.replicas == deployment.spec.replicas
