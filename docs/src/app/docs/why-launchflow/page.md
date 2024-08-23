@@ -16,13 +16,13 @@ LaunchFlow provides customizable modules for GCP, AWS, and Docker that are confi
 
 ## The LaunchFlow Toolkit
 
-### Resources, Services, and Environments
+### Resources, Deployments, and Environments
 
 LaunchFlow's abstractions help you manage your infrastructure:
 
 - [Resouces](/docs/concepts/resources) make it easy to provision cloud resources and connect to them in your code, regardless of where it's running from
-- [Services](/docs/concepts/services) decrease the overhead of setting up and managing release pipelines
-- [Environments](/docs/concepts/environments) group resources and services together so you can test, stage, and deploy your code easily
+- [Deployments](/docs/concepts/deployments) decrease the overhead of setting up and managing release pipelines
+- [Environments](/docs/concepts/environments) group resources and deployments together so you can test, stage, and deploy your code easily
 
 ### Tools for Local Development and Collaboration
 

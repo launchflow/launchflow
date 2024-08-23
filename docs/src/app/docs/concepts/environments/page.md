@@ -28,7 +28,7 @@ nextjs:
 <!-- - gcp project -->
 <!-- - vcp network -->
 <!-- - service account and set up it's permissions -->
-Environments group [Resources](/docs/concepts/resources) and [Services](/docs/concepts/services) inside a private network (VPC) on either GCP or AWS. You can create multiple environments for different stages of your workflow (e.g. development, staging, production) and switch between them with a single command.
+Environments group [Deployments](/docs/concepts/deployments) and [Resources](/docs/concepts/resources) inside a private network (VPC) on either GCP or AWS. You can create multiple environments for different stages of your workflow (e.g. development, staging, production) and switch between them with a single command.
 
 ## Environment Types
 
@@ -41,7 +41,7 @@ Development environments are used for testing and development. They auto configu
 Production environments are used for running your application in a secure and scalable way. They auto configure your resources for high availability and security, and ensure no connections are allowed from the public internet. Production environments are SOC 2 compliant by default.
 
 ## Permissions & Roles
-Permissions & roles are managed for you, so you can easily create / connect to infrastructure across multiple environments without compromising security. Services can access any resource in the same environment, but cannot access resources in other environments. Resource clients automatically configure their connection settings based on the environment your code is running in.
+Permissions & roles are managed for you, so you can easily create / connect to infrastructure across multiple environments without compromising security. Deployments can access any resource in the same environment, but cannot access resources in other environments. Resource clients automatically configure their connection settings based on the environment your code is running in.
 
 ## CLI Commands
 

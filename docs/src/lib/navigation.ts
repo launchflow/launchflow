@@ -10,8 +10,8 @@ export const homeNavigation = [
   {
     title: 'Concepts',
     links: [
+      { title: 'Deployments', href: '/docs/concepts/deployments' },
       { title: 'Resources', href: '/docs/concepts/resources' },
-      { title: 'Services', href: '/docs/concepts/services' },
       { title: 'Environments', href: '/docs/concepts/environments' },
     ],
   },
