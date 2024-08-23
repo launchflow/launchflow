@@ -37,6 +37,9 @@ async def delete_tofu_resource(inputs: DestroyResourceTofuInputs):
     ):
         tf_vars["aws_region"] = inputs.aws_env_config.region  # type: ignore
         module_dir = "empty/aws_empty"
+    else:
+        # TODO: validate that this is correct
+        return
 
     tf_apply_command = TFDestroyCommand(
         tf_module_dir=module_dir,

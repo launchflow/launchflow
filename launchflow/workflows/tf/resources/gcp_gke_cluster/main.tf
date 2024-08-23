@@ -14,6 +14,8 @@ data "google_compute_network" "default" {
   name = "default"
 }
 
+
+
 resource "google_compute_subnetwork" "k8_subnetwork" {
   name          = "${var.resource_id}-sub-network"
   network       = data.google_compute_network.default.self_link
@@ -39,28 +41,51 @@ module "gke" {
   regional   = var.regional
   zones      = var.zones
   # TODO: allow these to be configured
-  network                  = "default"
-  subnetwork               = google_compute_subnetwork.k8_subnetwork.name
-  ip_range_pods            = "pods-range"
-  ip_range_services        = "services-range"
-  remove_default_node_pool = true
-  deletion_protection      = var.delete_protection
-
-  # Set a dummy node pool that will never be used / scaled
-  # TODO: find a way to remove this there is a limit on the number of pools
-  # you can have so this is a temporary workaround. We can probably just fork it
-  node_pools = [{
-    name               = "dummy-pool"
-    initial_node_count = 0
-    node_count         = 0
-    machine_type       = "n1-standard-1"
-    min_count          = 0
-    max_count          = 0
-    autoscaling        = false
-  }]
+  network                         = "default"
+  subnetwork                      = google_compute_subnetwork.k8_subnetwork.name
+  ip_range_pods                   = "pods-range"
+  ip_range_services               = "services-range"
+  enable_vertical_pod_autoscaling = true
+  create_service_account          = false
+  service_account                 = var.environment_service_account_email
+  deletion_protection             = var.delete_protection
 }
 
 
 output "gcp_id" {
   value = module.gke.cluster_id
+}
+
+data "google_client_config" "default" {}
+
+
+provider "kubernetes" {
+  host                   = "https://${module.gke.endpoint}"
+  token                  = data.google_client_config.default.access_token
+  cluster_ca_certificate = base64decode(module.gke.ca_certificate)
+
+  ignore_annotations = [
+    "^autopilot\\.gke\\.io\\/.*",
+    "^cloud\\.google\\.com\\/.*"
+  ]
+}
+
+data "google_service_account" "default" {
+  account_id = split("@", var.environment_service_account_email)[0]
+}
+
+resource "kubernetes_service_account" "default" {
+  metadata {
+    name = split("@", var.environment_service_account_email)[0]
+    annotations = {
+      "iam.gke.io/gcp-service-account" = data.google_service_account.default.email
+    }
+  }
+}
+
+resource "google_service_account_iam_member" "default" {
+  service_account_id = data.google_service_account.default.id
+  member             = "serviceAccount:${var.gcp_project_id}.svc.id.goog[${kubernetes_service_account.default.id}]"
+
+  role = "roles/iam.workloadIdentityUser"
 }

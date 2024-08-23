@@ -25,7 +25,7 @@ class GKEInputs(ResourceInputs):
 
 
 class GKECluster(GCPResource[GKEOutputs]):
-    product = ResourceProduct.GCP_GKE_CLUSTER
+    product = ResourceProduct.GCP_GKE_CLUSTER.value
 
     def __init__(
         self,
@@ -36,6 +36,7 @@ class GKECluster(GCPResource[GKEOutputs]):
         regional: Optional[bool] = None,
         region: Optional[str] = None,
         zones: Optional[List[str]] = None,
+        delete_protection: bool = False,
     ):
         """Creates a new GKE Cluster.
 
@@ -47,6 +48,7 @@ class GKECluster(GCPResource[GKEOutputs]):
         - `regional (Optional[bool])`: Whether the cluster is regional or zonal. If not provided will default to True for production environments and False for development environments.
         - `region (Optional[str])`: The region for the cluster. If not provided will default to the default region for the environment.
         - `zones (Optional[List[str]])`: The zones for the cluster. If not provided will default to the default zone for development environments, and remain unset for production environments.
+        - `delete_protection (bool)`: Whether the cluster should have delete protection enabled.
         """
         super().__init__(name)
         self.subnet_ip_cidr_range = subnet_ip_cidr_range
@@ -55,6 +57,7 @@ class GKECluster(GCPResource[GKEOutputs]):
         self.regional = regional
         self.region = region
         self.zones = zones
+        self.delete_protection = delete_protection
 
     def inputs(self, environment_state: EnvironmentState) -> GKEInputs:
         zones = self.zones
@@ -70,7 +73,7 @@ class GKECluster(GCPResource[GKEOutputs]):
                 zones = [environment_state.gcp_config.default_zone]  # type: ignore
         return GKEInputs(
             resource_id=self.resource_id,
-            delete_protection=False,
+            delete_protection=self.delete_protection,
             subnet_ip_cidr_range=self.subnet_ip_cidr_range,
             pod_ip_cidr_range=self.pod_ip_cidr_range,
             service_ip_cidr_range=self.service_cidr_range,
@@ -112,7 +115,7 @@ class NodePoolInputs(ResourceInputs):
 
 
 class NodePool(GCPResource[NodePoolOutputs]):
-    product = ResourceProduct.GCP_GKE_NODE_POOL
+    product = ResourceProduct.GCP_GKE_NODE_POOL.value
 
     def __init__(
         self,

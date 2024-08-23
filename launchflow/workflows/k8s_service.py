@@ -80,13 +80,17 @@ async def deploy_new_k8s_service(
 
     return f"http://{ip}"
 
-    return await _wait_for_ingress_ip(core_client, service_name, namespace)
-
 
 async def update_k8s_service(
     docker_image: str,
     service_name: str,
     namespace: str,
+    artifact_bucket: str,
+    launchflow_project: str,
+    launchflow_environment: str,
+    k8_service_account: str,
+    cloud_provider: str,
+    deployment_id: str,
 ):
     app_client = client.AppsV1Api()
     # Get the current deployment
@@ -95,19 +99,37 @@ async def update_k8s_service(
     )
 
     # Update the container image
-    deployment.spec.template.spec.containers[0].image = docker_image
+    if deployment.spec is None:
+        raise ValueError("Deployment spec is None")
+    template_spec = deployment.spec.template.spec
+    container = template_spec.containers[0]
+    container.image = docker_image
+    template_spec.service_account_name = k8_service_account
+
+    container.env = [
+        client.V1EnvVar(
+            name="LAUNCHFLOW_ARTIFACT_BUCKET", value=f"gs://{artifact_bucket}"
+        ),
+        client.V1EnvVar(name="LAUNCHFLOW_PROJECT", value=launchflow_project),
+        client.V1EnvVar(name="LAUNCHFLOW_ENVIRONMENT", value=launchflow_environment),
+        client.V1EnvVar(name="LAUNCHFLOW_CLOUD_PROVIDER", value=cloud_provider),
+        client.V1EnvVar(name="LAUNCHFLOW_DEPLOYMENT_ID", value=deployment_id),
+    ]
 
     # Update the deployment
-    app_client.patch_namespaced_deployment(
+    revision = app_client.patch_namespaced_deployment(
         name=service_name, namespace=namespace, body=deployment
     )
+
+    print("DO NOT SUBMIT: ", revision)
 
     # Wait for the rollout to complete
     await _wait_for_deployment_rollout(app_client, service_name, namespace)
 
     core_client = client.CoreV1Api()
 
-    return await _wait_for_ingress_ip(core_client, service_name, namespace)
+    ip = await _wait_for_ingress_ip(core_client, service_name, namespace)
+    return f"http://{ip}"
 
 
 async def _wait_for_deployment_rollout(
@@ -121,6 +143,7 @@ async def _wait_for_deployment_rollout(
         deployment = k8_client.read_namespaced_deployment_status(
             name=deployment_name, namespace=namespace
         )
+        print("DO NOT SUBMIT: ", deployment)
         if (
             deployment.status.updated_replicas == deployment.spec.replicas
             and deployment.status.replicas == deployment.spec.replicas

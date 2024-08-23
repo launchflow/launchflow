@@ -1,13 +1,39 @@
 import dataclasses
-from typing import Literal, Optional
-from typing_extensions import override
+from typing import Dict, Literal, Optional
 
 from launchflow.gcp.gke import GKECluster, NodePool
 from launchflow.kubernetes.resource import KubernetesResource
 from launchflow.models.enums import ResourceProduct
 from launchflow.models.flow_state import EnvironmentState
-from launchflow.node import Depends, Outputs
+from launchflow.node import Depends, Inputs, Outputs
 from launchflow.resource import ResourceInputs
+
+
+@dataclasses.dataclass
+class HTTPGet(Inputs):
+    path: str
+    port: int
+
+
+@dataclasses.dataclass
+class StartupProbe(Inputs):
+    http_get: HTTPGet
+    failure_threshold: int
+    period_seconds: int
+
+
+@dataclasses.dataclass
+class LivenessProbe(Inputs):
+    http_get: HTTPGet
+    initial_delay_seconds: int
+    period_seconds: int
+
+
+@dataclasses.dataclass
+class ReadinessProbe(Inputs):
+    http_get: HTTPGet
+    initial_delay_seconds: int
+    period_seconds: int
 
 
 @dataclasses.dataclass
@@ -18,7 +44,11 @@ class ServiceContainerInputs(ResourceInputs):
     node_pool_id: Optional[str]
     image: str
     container_port: int
-    host_port: int
+    host_port: Optional[int]
+    startup_probe: Optional[StartupProbe]
+    liveness_probe: Optional[LivenessProbe]
+    readiness_probe: Optional[ReadinessProbe]
+    service_type: Literal["ClusterIP", "NodePort", "LoadBalancer"]
 
 
 @dataclasses.dataclass
@@ -28,7 +58,7 @@ class ServiceContainerOutputs(Outputs):
 
 
 class ServiceContainer(KubernetesResource[ServiceContainerOutputs]):
-    product = ResourceProduct.KUBERNETES_SERVICE_CONTAINER
+    product = ResourceProduct.KUBERNETES_SERVICE_CONTAINER.value
 
     def __init__(
         self,
@@ -39,7 +69,11 @@ class ServiceContainer(KubernetesResource[ServiceContainerOutputs]):
         node_pool: Optional[NodePool] = None,
         image: str = "httpd",
         container_port: int = 80,
-        host_port: int = 80,
+        host_port: Optional[int] = None,
+        startup_probe: Optional[StartupProbe] = None,
+        liveness_probe: Optional[LivenessProbe] = None,
+        readiness_probe: Optional[ReadinessProbe] = None,
+        service_type: Literal["ClusterIP", "NodePort", "LoadBalancer"] = "LoadBalancer",
     ):
         super().__init__(name, cluster)
         self.namespace = namespace
@@ -47,6 +81,10 @@ class ServiceContainer(KubernetesResource[ServiceContainerOutputs]):
         self.image = image
         self.container_port = container_port
         self.host_port = host_port
+        self.startup_probe = startup_probe
+        self.liveness_probe = liveness_probe
+        self.readiness_probe = readiness_probe
+        self.service_type = service_type
 
     def inputs(self, environment_state: EnvironmentState) -> ServiceContainerInputs:
         cluster_id = None
@@ -73,4 +111,8 @@ class ServiceContainer(KubernetesResource[ServiceContainerOutputs]):
             image=self.image,
             container_port=self.container_port,
             host_port=self.host_port,
+            startup_probe=self.startup_probe,
+            liveness_probe=self.liveness_probe,
+            readiness_probe=self.readiness_probe,
+            service_type=self.service_type,  # type: ignore
         )

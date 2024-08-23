@@ -29,8 +29,15 @@ provider "kubernetes" {
   ]
 }
 
-# TODO: add life cycle ignore aroud the container and anything else we change in the update flow
 resource "kubernetes_deployment_v1" "default" {
+  lifecycle {
+    ignore_changes = [
+      # These are handled by the deploy step
+      spec[0].template[0].spec[0].container[0].image,
+      spec[0].template[0].spec[0].container[0].env,
+      spec[0].template[0].spec[0].service_account_name
+    ]
+  }
   metadata {
     name      = var.resource_id
     namespace = var.namespace
@@ -58,7 +65,42 @@ resource "kubernetes_deployment_v1" "default" {
           port {
             container_port = var.container_port
             host_port      = var.host_port
+          }
+          dynamic "liveness_probe" {
 
+            for_each = var.liveness_probe != null ? [1] : []
+            content {
+              http_get {
+                path = var.liveness_probe.http_get.path
+                port = var.liveness_probe.http_get.port
+              }
+              initial_delay_seconds = var.liveness_probe.initial_delay_seconds
+              period_seconds        = var.liveness_probe.period_seconds
+            }
+          }
+
+          dynamic "readiness_probe" {
+            for_each = var.readiness_probe != null ? [1] : []
+            content {
+              http_get {
+                path = var.readiness_probe.http_get.path
+                port = var.readiness_probe.http_get.port
+              }
+              initial_delay_seconds = var.readiness_probe.initial_delay_seconds
+              period_seconds        = var.readiness_probe.period_seconds
+            }
+          }
+
+          dynamic "startup_probe" {
+            for_each = var.startup_probe != null ? [1] : []
+            content {
+              http_get {
+                path = var.startup_probe.http_get.path
+                port = var.startup_probe.http_get.port
+              }
+              failure_threshold = var.startup_probe.failure_threshold
+              period_seconds    = var.startup_probe.period_seconds
+            }
           }
         }
       }
@@ -76,10 +118,10 @@ resource "kubernetes_service_v1" "default" {
       app = var.resource_id
     }
     port {
-      port        = var.host_port
-      target_port = var.host_port
+      port        = 80
+      target_port = var.container_port
     }
-    type = "LoadBalancer"
+    type = var.service_type
   }
 }
 

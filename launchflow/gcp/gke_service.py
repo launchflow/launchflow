@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from launchflow.gcp.artifact_registry_repository import (
     ArtifactRegistryRepository,
@@ -7,7 +7,12 @@ from launchflow.gcp.artifact_registry_repository import (
 )
 from launchflow.gcp.gke import GKECluster, NodePool
 from launchflow.gcp.service import GCPService
-from launchflow.kubernetes.service_container import ServiceContainer
+from launchflow.kubernetes.service_container import (
+    LivenessProbe,
+    ReadinessProbe,
+    ServiceContainer,
+    StartupProbe,
+)
 from launchflow.models.enums import ServiceProduct
 from launchflow.node import Inputs
 from launchflow.resource import Resource
@@ -16,11 +21,11 @@ from launchflow.service import ServiceOutputs
 
 @dataclasses.dataclass
 class GKEServiceInputs(Inputs):
-    pass
+    environment_variables: Optional[Dict[str, str]]
 
 
 class GKEService(GCPService):
-    product = ServiceProduct.GCP_GKE
+    product = ServiceProduct.GCP_GKE.value
 
     def __init__(
         self,
@@ -32,18 +37,16 @@ class GKEService(GCPService):
         build_ignore: List[str] = [],
         node_pool: Optional[NodePool] = None,
         container_port: int = 8080,
-        target_port: int = 80,
+        host_port: Optional[int] = None,
         namespace: str = "default",
+        service_type: Literal["ClusterIP", "NodePort", "LoadBalancer"] = "LoadBalancer",
+        startup_probe: Optional[StartupProbe] = None,
+        liveness_probe: Optional[LivenessProbe] = None,
+        readiness_probe: Optional[ReadinessProbe] = None,
+        environment_variables: Optional[Dict[str, str]] = None,
     ) -> None:
         super().__init__(name, dockerfile, build_directory, build_ignore)
-        # TODO: I think we should leave this none cause k8s will let it run in any node pool
-        # if you don't specify
-        if node_pool is None:
-            self.node_bool_managed = True
-            self.node_pool = NodePool(f"{name}-node-pool", cluster=cluster)
-        else:
-            self.node_pool = node_pool
-            self.node_pool_managed = False
+
         self._artifact_registry = ArtifactRegistryRepository(
             f"{name}-repository", format=RegistryFormat.DOCKER
         )
@@ -51,22 +54,24 @@ class GKEService(GCPService):
             name,
             cluster=cluster,
             namespace=namespace,
-            node_pool=self.node_pool,
+            node_pool=node_pool,
             container_port=container_port,
-            host_port=target_port,
+            host_port=host_port,
+            startup_probe=startup_probe,
+            liveness_probe=liveness_probe,
+            readiness_probe=readiness_probe,
+            service_type=service_type,
         )
         self.cluster = cluster
         self.namespace = namespace
+        self.environment_variables = environment_variables
 
     def inputs(self, *args, **kwargs) -> GKEServiceInputs:
         # TODO: this should have a dependency on the resource but right now services can't depend on resources
-        return GKEServiceInputs()
+        return GKEServiceInputs(self.environment_variables)
 
     def resources(self) -> List[Resource[Any]]:
-        resources = [self._artifact_registry, self.container]
-        if self.node_pool_managed:
-            resources.append(self.node_pool)
-        return resources
+        return [self._artifact_registry, self.container]
 
     def outputs(self) -> ServiceOutputs:
         repo_outputs = self._artifact_registry.outputs()

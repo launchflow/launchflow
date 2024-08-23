@@ -754,6 +754,12 @@ async def release_docker_image_to_gke(
         docker_image=docker_image,
         namespace=gke_service.namespace,
         service_name=gke_service.name,
+        deployment_id=deployment_id,
+        launchflow_environment=service_manager.environment_name,
+        launchflow_project=service_manager.project_name,
+        artifact_bucket=gcp_environment_config.artifact_bucket,  # type: ignore
+        cloud_provider="gcp",
+        k8_service_account=gcp_environment_config.service_account_email.split("@")[0],  # type: ignore
     )
 
 
