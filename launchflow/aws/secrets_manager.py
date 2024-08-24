@@ -46,7 +46,7 @@ class SecretsManagerSecret(AWSResource[SecretsManagerSecretOutputs]):
     ```
     """
 
-    product = ResourceProduct.AWS_SECRETS_MANAGER_SECRET
+    product = ResourceProduct.AWS_SECRETS_MANAGER_SECRET.value
 
     def __init__(self, name: str, *, recovery_window_in_days: int = 30) -> None:
         """Create a new Secrets Manager Secret resource.

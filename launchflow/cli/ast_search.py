@@ -4,8 +4,8 @@ import logging
 import os
 from typing import Dict, List, Literal
 
+from launchflow.deployment import Deployment
 from launchflow.resource import Resource
-from launchflow.service import Service
 
 # TODO: add primitive ones here.
 # NOTE: We do this to ensure we don't trigger imports in files we don't need to.
@@ -53,23 +53,23 @@ def _is_launchflow_resource(import_path: str) -> bool:
     return False
 
 
-def _is_launchflow_service(import_path: str) -> bool:
+def _is_launchflow_deployment(import_path: str) -> bool:
     if not _is_launchflow_entity(import_path):
         return False
     split_path = import_path.split(".")
-    service_name = split_path[-1]
+    deployment_name = split_path[-1]
     module = ".".join(split_path[:-1])
     module_type = importlib.import_module(module)
 
-    if hasattr(module_type, service_name) and issubclass(
-        getattr(module_type, service_name), Service
+    if hasattr(module_type, deployment_name) and issubclass(
+        getattr(module_type, deployment_name), Deployment
     ):
         return True
     return False
 
 
 class LaunchFlowAssignmentVisitor(ast.NodeVisitor):
-    def __init__(self, scan_type: Literal["resources", "services"]):
+    def __init__(self, scan_type: Literal["resources", "deployments"]):
         super().__init__()
         self.launchflow_imported_names: Dict[str, str] = {}
         self.launchflow_vars: List[str] = []
@@ -134,7 +134,9 @@ class LaunchFlowAssignmentVisitor(ast.NodeVisitor):
         if call_name:
             if (
                 self.scan_type == "resources" and _is_launchflow_resource(call_name)
-            ) or (self.scan_type == "services" and _is_launchflow_service(call_name)):
+            ) or (
+                self.scan_type == "deployments" and _is_launchflow_deployment(call_name)
+            ):
                 if self.nesting_level != 0:
                     resource_name = "UNKNOWN"
                     if len(node.value.args) != 0:
@@ -188,7 +190,9 @@ def find_launchflow_resources(
     return _scan_for(to_scan, root=directory, scan_type="resources")
 
 
-def find_launchflow_services(directory: str, ignore_roots: List[str] = []) -> List[str]:
+def find_launchflow_deployments(
+    directory: str, ignore_roots: List[str] = []
+) -> List[str]:
     roots_to_ignore = set(ignore_roots)
     to_scan = []
     for root, dirs, files in os.walk(directory):
@@ -200,10 +204,12 @@ def find_launchflow_services(directory: str, ignore_roots: List[str] = []) -> Li
         for file in files:
             if file.endswith(".py"):
                 to_scan.append(os.path.join(root, file))
-    return _scan_for(to_scan, root=directory, scan_type="services")
+    return _scan_for(to_scan, root=directory, scan_type="deployments")
 
 
-def _scan_for(files: List[str], root: str, scan_type: Literal["resources", "services"]):
+def _scan_for(
+    files: List[str], root: str, scan_type: Literal["resources", "deployments"]
+):
     entity_imports = []
     for file_path in files:
         with open(file_path, "r") as f:

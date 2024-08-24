@@ -172,7 +172,7 @@ class ComputeEngine(GCPResource[T]):
     ```
     """
 
-    product = ResourceProduct.GCP_COMPUTE_ENGINE
+    product = ResourceProduct.GCP_COMPUTE_ENGINE.value
 
     def __init__(self, name: str, vm_config: Optional[VMConfig]) -> None:
         """Create a Compute Engine resource.

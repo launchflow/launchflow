@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from typing import List
 
 from launchflow.deployment import Deployment, DeploymentOutputs
-from launchflow.models.enums import WorkerProduct
 
 
 @dataclass
@@ -11,8 +10,6 @@ class WorkerOutputs(DeploymentOutputs):
 
 
 class Worker(Deployment[WorkerOutputs]):
-    product = WorkerProduct.UNKNOWN
-
     def __init__(
         self,
         name: str,

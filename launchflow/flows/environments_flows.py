@@ -4,12 +4,17 @@ import os
 import time
 from typing import Optional, Tuple
 
+from launchflow.config import config
 import beaupy  # type: ignore
+import httpx
 import rich
 import typer
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from launchflow import exceptions
+from launchflow.backend import LaunchFlowBackend
+from launchflow.clients.projects_client import ProjectsAsyncClient
+from launchflow.flows.project_flows import create_project
 from launchflow.locks import LockOperation, OperationType
 from launchflow.managers.environment_manager import EnvironmentManager
 from launchflow.managers.project_manager import ProjectManager
@@ -247,6 +252,31 @@ async def create_environment(
     prompt: bool = True,
 ) -> Optional[EnvironmentState]:
     """Create a new environment in a project."""
+    if isinstance(manager.backend, LaunchFlowBackend):
+        # If we're using the launchflow backend verify that the project exists
+        async with httpx.AsyncClient(timeout=60) as client:
+            proj_client = ProjectsAsyncClient(
+                client,
+                manager.backend.lf_cloud_url,
+                config.get_account_id(),
+            )
+            try:
+                _ = await proj_client.get(manager.project_name)
+            except exceptions.ProjectNotFound:
+                rich.print(
+                    f"[red]✗[/red] Project `{manager.project_name}` does not exist."
+                )
+                if prompt:
+                    project = await create_project(
+                        proj_client,
+                        manager.project_name,
+                        config.get_account_id(),
+                    )
+                    if project is None:
+                        raise
+                    print()
+                else:
+                    raise
     async with await manager.lock_environment(
         operation=LockOperation(operation_type=OperationType.CREATE_ENVIRONMENT)
     ) as lock:
@@ -476,6 +506,8 @@ async def create_environment(
                         raise typer.Exit(1)
                     region = sorted_regions[region_index]
                     rich.print(f"[pink1]>[/pink1] {region}")
+                elif region is None:
+                    raise exceptions.NoAWSRegionEvironmentCreationError()
 
             aws_environment_info = await create_aws_environment(
                 inputs=AWSEnvironmentCreationInputs(

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
-from launchflow.service import Service, ServiceOutputs
+from launchflow.models.enums import CloudProvider
+from launchflow.service import DockerService, Service, ServiceOutputs, StaticService, T
 
 
 @dataclass
@@ -8,6 +9,17 @@ class AWSServiceOutputs(ServiceOutputs):
     code_build_project_name: str
 
 
-class AWSService(Service):
+class AWSService(Service[T]):
     def outputs(self) -> AWSServiceOutputs:
         raise NotImplementedError
+
+    def cloud_provider(self) -> CloudProvider:
+        return CloudProvider.AWS
+
+
+class AWSDockerService(DockerService[T], AWSService[T]):
+    pass
+
+
+class AWSStaticService(StaticService[T], AWSService[T]):
+    pass

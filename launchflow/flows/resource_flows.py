@@ -29,10 +29,10 @@ from launchflow.managers.environment_manager import EnvironmentManager
 from launchflow.managers.resource_manager import ResourceManager
 from launchflow.managers.service_manager import ServiceManager
 from launchflow.models.enums import (
+    DeploymentProduct,
+    DeploymentStatus,
     ResourceProduct,
     ResourceStatus,
-    ServiceProduct,
-    ServiceStatus,
 )
 from launchflow.models.flow_state import (
     AWSEnvironmentConfig,
@@ -157,6 +157,8 @@ async def _organize_destroy_plans(locked_plans: List[Tuple[Lock, DestroyResource
     for plan_node in keyed_plans.values():
         if plan_node.plan.resource.depends_on:
             for resource_name in plan_node.plan.resource.depends_on:
+                if resource_name not in keyed_plans:
+                    continue
                 child_plan = keyed_plans[resource_name]
                 if resource_name in root_plan_nodes:
                     del root_plan_nodes[resource_name]
@@ -193,7 +195,7 @@ async def _destroy_resource(
         )
         task = progress.add_task(task_description)
 
-        if plan.resource.product == ResourceProduct.LOCAL_DOCKER:
+        if plan.resource.product == ResourceProduct.LOCAL_DOCKER.value:
             inputs = DestroyResourceDockerInputs(
                 container_id=plan.resource_manager.get_running_container_id(),  # type: ignore
                 logs_file=logs_file,
@@ -264,7 +266,7 @@ async def _destroy_service(lock: Lock, plan: DestroyServicePlan, progress: Progr
             f"\n  > View detailed logs with: [bold]tail -f {logs_file}[/bold]"
         )
         task = progress.add_task(task_description)
-        plan.existing_service.status = ServiceStatus.DESTROYING
+        plan.existing_service.status = DeploymentStatus.DESTROYING
         await plan.service_manager.save_service(
             plan.existing_service, lock_info.lock_id
         )
@@ -279,7 +281,7 @@ async def _destroy_service(lock: Lock, plan: DestroyServicePlan, progress: Progr
             with open(logs_file, "a") as f:
                 f.write(f"[red]✗[/red] {plan.ref} failed to delete\n")
             progress.console.print(f"[red]✗[/red] {plan.ref} failed to delete")
-            plan.existing_service.status = ServiceStatus.DELETE_FAILED
+            plan.existing_service.status = DeploymentStatus.DELETE_FAILED
             await plan.service_manager.save_service(
                 plan.existing_service, lock_info.lock_id
             )
@@ -393,7 +395,7 @@ async def destroy(
 
         destroy_plans: List[DestroyResourcePlan] = []
         for name, resource in resources.items():
-            if resource.product == ResourceProduct.LOCAL_DOCKER:
+            if resource.product == ResourceProduct.LOCAL_DOCKER.value:
                 resource_manager = environment_manager.create_docker_resource_manager(
                     name
                 )
@@ -409,8 +411,8 @@ async def destroy(
         for name, service in services.items():
             service_manager = environment_manager.create_service_manager(name)
             if (
-                service.product == ServiceProduct.GCP_CLOUD_RUN
-                or service.product == ServiceProduct.GCP_COMPUTE_ENGINE
+                service.product == DeploymentProduct.GCP_CLOUD_RUN
+                or service.product == DeploymentProduct.GCP_COMPUTE_ENGINE
             ):
                 if environment.gcp_config is None:  # type: ignore
                     raise exceptions.GCPConfigNotFound(
@@ -424,7 +426,7 @@ async def destroy(
                         gcp_environment_config=environment.gcp_config,  # type: ignore
                     )
                 )
-            elif service.product == ServiceProduct.AWS_ECS_FARGATE:
+            elif service.product == DeploymentProduct.AWS_ECS_FARGATE:
                 if environment.aws_config is None:  # type: ignore
                     raise exceptions.AWSConfigNotFound(
                         environment_name=environment_name
@@ -437,7 +439,7 @@ async def destroy(
                         aws_environment_config=environment.aws_config,  # type: ignore
                     )
                 )
-            elif service.product == ServiceProduct.UNKNOWN:
+            elif service.product == DeploymentProduct.UNKNOWN:
                 destroy_plans.append(
                     DestroyUnknownServicePlan(  # type: ignore
                         service_name=name,
@@ -505,7 +507,7 @@ async def destroy(
         # bucket if you are only destroying local resources
         if (
             isinstance(plan, DestroyResourcePlan)
-            and plan.resource.product == ResourceProduct.LOCAL_DOCKER
+            and plan.resource.product == ResourceProduct.LOCAL_DOCKER.value
         ):
             lock = await plan.resource_manager.lock_resource(
                 operation=LockOperation(operation_type=OperationType.DESTROY_RESOURCE)
@@ -704,7 +706,7 @@ async def _run_import_plans(
     new_resource_state = ResourceState(
         name=plan.resource.name,
         product=plan.resource.product,
-        cloud_provider=plan.resource.product.cloud_provider(),
+        cloud_provider=plan.resource.cloud_provider(),
         created_at=created_time,
         updated_at=updated_time,
         status=status,

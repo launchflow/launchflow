@@ -20,7 +20,7 @@ from launchflow.aws.ecr_repository import ECRRepository
 from launchflow.aws.ecs_cluster import ECSCluster
 from launchflow.aws.ecs_fargate_container import ECSFargateServiceContainer
 from launchflow.aws.service import AWSService, AWSServiceOutputs
-from launchflow.models.enums import ServiceProduct
+from launchflow.models.enums import DeploymentProduct
 from launchflow.node import Inputs
 from launchflow.resource import Resource
 
@@ -56,7 +56,7 @@ class ECSFargate(AWSService):
     - An [Elastic Container Registry](https://aws.amazon.com/ecr) repository to store the service's Docker image.
     """
 
-    product = ServiceProduct.AWS_ECS_FARGATE
+    product = DeploymentProduct.AWS_ECS_FARGATE.value
 
     # TODO: Add better support for custom domains + write up a guide for different domain providers
     def __init__(

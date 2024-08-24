@@ -13,12 +13,12 @@ from launchflow.flows.lf_cloud_migration import migrate
 from launchflow.managers.project_manager import ProjectManager
 from launchflow.models.enums import (
     CloudProvider,
+    DeploymentProduct,
+    DeploymentStatus,
     EnvironmentStatus,
     EnvironmentType,
     ResourceProduct,
     ResourceStatus,
-    ServiceProduct,
-    ServiceStatus,
 )
 from launchflow.models.flow_state import (
     AWSEnvironmentConfig,
@@ -81,7 +81,7 @@ class LFCloudMigrationTest(unittest.IsolatedAsyncioTestCase):
             ),
             name="test-storage-bucket",
             cloud_provider=CloudProvider.GCP,
-            product=ResourceProduct.GCP_STORAGE_BUCKET,
+            product=ResourceProduct.GCP_STORAGE_BUCKET.value,
             gcp_id=None,
             aws_arn=None,
             inputs={"location": "US", "force_destroy": "false"},
@@ -95,8 +95,8 @@ class LFCloudMigrationTest(unittest.IsolatedAsyncioTestCase):
             created_at=datetime.datetime(2022, 1, 1, tzinfo=datetime.timezone.utc),
             updated_at=datetime.datetime(2022, 1, 1, tzinfo=datetime.timezone.utc),
             cloud_provider=CloudProvider.AWS,
-            product=ServiceProduct.AWS_ECS_FARGATE,
-            status=ServiceStatus.READY,
+            product=DeploymentProduct.AWS_ECS_FARGATE,
+            status=DeploymentStatus.READY,
         )
         await self.sm.save_service(self.service, "lock")
 

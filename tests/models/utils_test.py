@@ -1,6 +1,6 @@
 import unittest
 
-from launchflow.models.enums import ResourceProduct, ServiceProduct
+from launchflow.models.enums import DeploymentProduct, ResourceProduct
 from launchflow.models.utils import (
     RESOURCE_PRODUCTS_TO_RESOURCES,
     SERVICE_PRODUCTS_TO_SERVICES,
@@ -21,7 +21,9 @@ class ModelUtilsTest(unittest.TestCase):
     def test_service_product_to_service_mapping(self):
         """Make sure that the service product to service mapping is comprehensive and correct."""
 
-        self.assertEqual(set(SERVICE_PRODUCTS_TO_SERVICES.keys()), set(ServiceProduct))
+        self.assertEqual(
+            set(SERVICE_PRODUCTS_TO_SERVICES.keys()), set(DeploymentProduct)
+        )
 
         for product, service_cls in SERVICE_PRODUCTS_TO_SERVICES.items():
             self.assertEqual(product, service_cls.product)

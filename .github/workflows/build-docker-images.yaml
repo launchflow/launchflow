@@ -47,7 +47,7 @@ jobs:
       - name: Find Launchflow Version
         id: find_version
         run: |
-          export LAUNCHFLOW_VERSION=$(cat launchflow/__init__.py | grep __version__ | cut -d '"' -f 2)
+          export LAUNCHFLOW_VERSION=$(cat launchflow/version.py | grep __version__ | cut -d '"' -f 2)
           echo "launchflow-version=$LAUNCHFLOW_VERSION" >> $GITHUB_OUTPUT
 
       - name: Docker Login

@@ -2,18 +2,14 @@ from dataclasses import dataclass
 from typing import List
 
 from launchflow.deployment import Deployment, DeploymentOutputs
-from launchflow.models.enums import JobProduct
 
 
 @dataclass
 class JobOutputs(DeploymentOutputs):
-    cron_schedule: str
     docker_repository: str
 
 
-class Worker(Deployment[JobOutputs]):
-    product = JobProduct.UNKNOWN
-
+class Job(Deployment[JobOutputs]):
     def __init__(
         self,
         name: str,
@@ -39,7 +35,7 @@ class Worker(Deployment[JobOutputs]):
 
     def __eq__(self, value) -> bool:
         return (
-            isinstance(value, Worker)
+            isinstance(value, Job)
             and value.name == self.name
             and value.product == self.product
             and value.inputs() == self.inputs()

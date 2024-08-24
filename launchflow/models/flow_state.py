@@ -6,12 +6,10 @@ from pydantic import BaseModel, Field
 
 from launchflow.models.enums import (
     CloudProvider,
+    DeploymentStatus,
     EnvironmentStatus,
     EnvironmentType,
-    ResourceProduct,
     ResourceStatus,
-    ServiceProduct,
-    ServiceStatus,
 )
 
 
@@ -41,7 +39,7 @@ class AWSEnvironmentConfig(BaseModel):
 class ResourceState(_Entity):
     name: str
     cloud_provider: Optional[CloudProvider]
-    product: ResourceProduct
+    product: str
     status: ResourceStatus
     gcp_id: Optional[str] = None
     aws_arn: Optional[str] = None
@@ -49,16 +47,14 @@ class ResourceState(_Entity):
     depends_on: List[str] = Field(default_factory=list)
 
     def to_dict(self):
-        return self.model_dump(
-            mode="json", exclude_defaults=True, exclude=["environments"]
-        )
+        return self.model_dump(mode="json", exclude_defaults=True)
 
 
 class ServiceState(_Entity):
     name: str
     cloud_provider: CloudProvider
-    product: ServiceProduct
-    status: ServiceStatus
+    product: str
+    status: DeploymentStatus
     gcp_id: Optional[str] = None
     aws_arn: Optional[str] = None
     inputs: Optional[Dict[str, Any]] = None
@@ -77,9 +73,7 @@ class EnvironmentState(_Entity):
     status: EnvironmentStatus = EnvironmentStatus.READY
 
     def to_dict(self):
-        return self.model_dump(
-            mode="json", exclude_defaults=True, exclude=["resources", "services"]
-        )
+        return self.model_dump(mode="json", exclude_defaults=True)
 
 
 class ProjectState(_Entity):

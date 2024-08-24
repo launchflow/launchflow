@@ -1,16 +1,19 @@
 from dataclasses import dataclass
 from typing import List
 
+from launchflow.models.enums import DeploymentProduct
 from launchflow.node import Node, NodeType, Outputs, T
 from launchflow.resource import Resource
 
 
 @dataclass
 class DeploymentOutputs(Outputs):
-    deployment_id: str
+    pass
 
 
 class Deployment(Node[T]):
+    product = DeploymentProduct.UNKNOWN.value
+
     def __init__(self, name: str) -> None:
         super().__init__(name, NodeType.DEPLOYMENT)
 

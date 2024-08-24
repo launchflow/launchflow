@@ -48,7 +48,7 @@ class CloudRunServiceContainer(GCPResource[CloudRunServiceContainerOutputs]):
     ```
     """
 
-    product = ResourceProduct.GCP_CLOUD_RUN_SERVICE_CONTAINER
+    product = ResourceProduct.GCP_CLOUD_RUN_SERVICE_CONTAINER.value
 
     def __init__(
         self,

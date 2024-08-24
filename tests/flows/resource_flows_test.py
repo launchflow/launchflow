@@ -9,18 +9,18 @@ from launchflow import exceptions
 from launchflow.docker.postgres import DockerPostgres
 from launchflow.flows import create_flows, resource_flows
 from launchflow.gcp import GCSBucket
-from launchflow.gcp.cloud_run import CloudRun
+from launchflow.gcp.cloud_run_service import CloudRunService
 from launchflow.locks import LockOperation, OperationType
 from launchflow.managers.docker_resource_manager import dict_to_base64
 from launchflow.managers.environment_manager import EnvironmentManager
 from launchflow.models.enums import (
     CloudProvider,
+    DeploymentProduct,
+    DeploymentStatus,
     EnvironmentStatus,
     EnvironmentType,
     ResourceProduct,
     ResourceStatus,
-    ServiceProduct,
-    ServiceStatus,
 )
 from launchflow.models.flow_state import (
     AWSEnvironmentConfig,
@@ -129,7 +129,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                 ),
                 name="test-storage-bucket",
                 cloud_provider=CloudProvider.GCP,
-                product=ResourceProduct.GCP_STORAGE_BUCKET,
+                product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                 inputs={
                     "location": "US",
                     "force_destroy": "false",
@@ -168,7 +168,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                 ),
                 name="test-storage-bucket",
                 cloud_provider=CloudProvider.GCP,
-                product=ResourceProduct.GCP_STORAGE_BUCKET,
+                product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                 inputs=None,
                 status=ResourceStatus.CREATE_FAILED,
                 gcp_id=None,
@@ -208,7 +208,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                 ),
                 name="test-storage-bucket",
                 cloud_provider=CloudProvider.GCP,
-                product=ResourceProduct.GCP_STORAGE_BUCKET,
+                product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                 inputs={
                     "location": "US",
                     "force_destroy": "false",
@@ -251,7 +251,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                 ),
                 name="test-storage-bucket",
                 cloud_provider=CloudProvider.GCP,
-                product=ResourceProduct.GCP_STORAGE_BUCKET,
+                product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                 inputs={"location": "US", "force_destroy": "false"},
                 status=ResourceStatus.READY,
                 aws_arn="arn",
@@ -289,7 +289,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                 ),
                 name="test-storage-bucket",
                 cloud_provider=CloudProvider.GCP,
-                product=ResourceProduct.GCP_STORAGE_BUCKET,
+                product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                 inputs={
                     "resource_id": "test-storage-bucket",
                     "location": "EU",
@@ -385,7 +385,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                 ),
                 name="test-storage-bucket",
                 cloud_provider=CloudProvider.GCP,
-                product=ResourceProduct.GCP_STORAGE_BUCKET,
+                product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                 inputs={"location": "US", "force_destroy": "false"},
                 status=ResourceStatus.READY,
                 aws_arn="arn",
@@ -416,7 +416,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                     ),
                     name="test-storage-bucket",
                     cloud_provider=CloudProvider.GCP,
-                    product=ResourceProduct.GCP_STORAGE_BUCKET,
+                    product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                     gcp_id="bucket",
                     aws_arn="arn",
                     inputs={"location": "US", "force_destroy": "false"},
@@ -448,7 +448,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                 ),
                 name="test-storage-bucket",
                 cloud_provider=CloudProvider.GCP,
-                product=ResourceProduct.GCP_STORAGE_BUCKET,
+                product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                 inputs={"location": "US", "force_destroy": "false"},
                 status=ResourceStatus.READY,
                 aws_arn="arn",
@@ -514,7 +514,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                     ),
                     name=name,
                     cloud_provider=CloudProvider.GCP,
-                    product=ResourceProduct.GCP_STORAGE_BUCKET,
+                    product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                     inputs={"location": "US", "force_destroy": "false"},
                     status=ResourceStatus.READY,
                     aws_arn="arn",
@@ -558,7 +558,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                     ),
                     name=name,
                     cloud_provider=CloudProvider.GCP,
-                    product=ResourceProduct.GCP_STORAGE_BUCKET,
+                    product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                     inputs={"location": "US", "force_destroy": "false"},
                     status=ResourceStatus.READY,
                     aws_arn="arn",
@@ -582,9 +582,9 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                     ),
                     name=name,
                     cloud_provider=CloudProvider.GCP,
-                    product=ServiceProduct.GCP_CLOUD_RUN,
+                    product=DeploymentProduct.GCP_CLOUD_RUN,
                     inputs={},
-                    status=ServiceStatus.READY,
+                    status=DeploymentStatus.READY,
                     aws_arn="arn",
                     gcp_id="bucket",
                     docker_image="gcr.io/project/image",
@@ -593,7 +593,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                 "test",
             )
 
-            services.append(CloudRun(name))
+            services.append(CloudRunService(name))
 
         await resource_flows.destroy(
             "dev", resources_to_destroy=set([resources[0].name]), prompt=False
@@ -608,7 +608,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
         service = await self.environment_manager.create_service_manager(
             services[0].name
         ).load_service()
-        self.assertEqual(service.product, ServiceProduct.GCP_CLOUD_RUN)
+        self.assertEqual(service.product, DeploymentProduct.GCP_CLOUD_RUN)
 
         resource1_state = await self.environment_manager.create_resource_manager(
             resources[1].name
@@ -632,9 +632,9 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                     ),
                     name=name,
                     cloud_provider=CloudProvider.GCP,
-                    product=ServiceProduct.GCP_CLOUD_RUN,
+                    product=DeploymentProduct.GCP_CLOUD_RUN,
                     inputs={},
-                    status=ServiceStatus.READY,
+                    status=DeploymentStatus.READY,
                     aws_arn=None,
                     gcp_id="service-id",
                     docker_image="gcr.io/project/image",
@@ -643,7 +643,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                 "test",
             )
 
-            services.append(CloudRun(name))
+            services.append(CloudRunService(name))
 
         await resource_flows.destroy(
             "dev", services_to_destroy=set([services[0].name]), prompt=False
@@ -657,7 +657,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
         service1_state = await self.environment_manager.create_service_manager(
             services[1].name
         ).load_service()
-        self.assertEqual(service1_state.status, ServiceStatus.READY)
+        self.assertEqual(service1_state.status, DeploymentStatus.READY)
 
     @mock.patch("launchflow.flows.resource_flows.delete_tofu_resource")
     async def test_destroy_with_node_and_resource_and_service_filter(
@@ -681,9 +681,9 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                     ),
                     name=service_name,
                     cloud_provider=CloudProvider.GCP,
-                    product=ServiceProduct.GCP_CLOUD_RUN,
+                    product=DeploymentProduct.GCP_CLOUD_RUN,
                     inputs={},
-                    status=ServiceStatus.READY,
+                    status=DeploymentStatus.READY,
                     aws_arn=None,
                     gcp_id="service-id",
                     docker_image="gcr.io/project/image",
@@ -691,7 +691,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                 ),
                 "test",
             )
-            services.append(CloudRun(service_name))
+            services.append(CloudRunService(service_name))
 
             resource_name = f"test-bucket{ind}"
             rm = self.environment_manager.create_resource_manager(resource_name)
@@ -705,7 +705,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                     ),
                     name=resource_name,
                     cloud_provider=CloudProvider.GCP,
-                    product=ResourceProduct.GCP_STORAGE_BUCKET,
+                    product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                     inputs={"location": "US", "force_destroy": "false"},
                     status=ResourceStatus.READY,
                     aws_arn="arn",
@@ -754,11 +754,11 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
         service1_state = await self.environment_manager.create_service_manager(
             services[1].name
         ).load_service()
-        self.assertEqual(service1_state.status, ServiceStatus.READY)
+        self.assertEqual(service1_state.status, DeploymentStatus.READY)
         service2_state = await self.environment_manager.create_service_manager(
             services[2].name
         ).load_service()
-        self.assertEqual(service2_state.status, ServiceStatus.READY)
+        self.assertEqual(service2_state.status, DeploymentStatus.READY)
 
     async def test_destroy_nonexistant_resource(self):
         """Test that destroying a non-existant resource raises an exception."""
@@ -778,9 +778,9 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                 ),
                 name="gcp-service",
                 cloud_provider=CloudProvider.GCP,
-                product=ServiceProduct.GCP_CLOUD_RUN,
+                product=DeploymentProduct.GCP_CLOUD_RUN,
                 inputs={},
-                status=ServiceStatus.READY,
+                status=DeploymentStatus.READY,
                 aws_arn=None,
                 service_url="https://service-url",
                 docker_image="gcr.io/project/image",
@@ -807,9 +807,9 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                 ),
                 name="aws-service",
                 cloud_provider=CloudProvider.AWS,
-                product=ServiceProduct.AWS_ECS_FARGATE,
+                product=DeploymentProduct.AWS_ECS_FARGATE,
                 inputs={},
-                status=ServiceStatus.READY,
+                status=DeploymentStatus.READY,
                 gcp_id=None,
                 service_url="https://service-url",
                 docker_image="ecr.io/project/image",
@@ -833,7 +833,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                 updated_at=datetime.datetime(2021, 1, 1),
                 name="test-bucket",
                 cloud_provider=CloudProvider.GCP,
-                product=ResourceProduct.GCP_STORAGE_BUCKET,
+                product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                 inputs={
                     "location": "US",
                     "force_destroy": "false",
@@ -868,7 +868,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                 updated_at=datetime.datetime(2021, 1, 1),
                 name="test-bucket",
                 cloud_provider=CloudProvider.GCP,
-                product=ResourceProduct.GCP_STORAGE_BUCKET,
+                product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                 inputs={"location": "US", "force_destroy": "false"},
                 status=ResourceStatus.READY,
                 aws_arn="arn",
@@ -954,7 +954,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                 ),
                 name="test-storage-bucket2",
                 cloud_provider=CloudProvider.GCP,
-                product=ResourceProduct.GCP_STORAGE_BUCKET,
+                product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                 inputs={
                     "location": "US",
                     "force_destroy": "false",
@@ -1087,7 +1087,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                 ),
                 name="test-storage-bucket1",
                 cloud_provider=CloudProvider.GCP,
-                product=ResourceProduct.GCP_STORAGE_BUCKET,
+                product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                 inputs={
                     "location": "US",
                     "force_destroy": "false",
@@ -1148,7 +1148,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                 ),
                 name="test-storage-bucket1",
                 cloud_provider=CloudProvider.GCP,
-                product=ResourceProduct.GCP_STORAGE_BUCKET,
+                product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                 inputs={
                     "location": "US",
                     "force_destroy": "false",
@@ -1390,7 +1390,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                 ),
                 name="test-storage-bucket",
                 cloud_provider=CloudProvider.GCP,
-                product=ResourceProduct.GCP_STORAGE_BUCKET,
+                product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                 inputs={"location": "US", "force_destroy": "false"},
                 status=ResourceStatus.READY,
                 aws_arn="arn",
@@ -1409,7 +1409,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                 ),
                 name="test-storage-bucket2",
                 cloud_provider=CloudProvider.GCP,
-                product=ResourceProduct.GCP_STORAGE_BUCKET,
+                product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                 inputs={"location": "US", "force_destroy": "false"},
                 status=ResourceStatus.READY,
                 aws_arn="arn",
@@ -1443,7 +1443,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                             ),
                             name="test-storage-bucket2",
                             cloud_provider=CloudProvider.GCP,
-                            product=ResourceProduct.GCP_STORAGE_BUCKET,
+                            product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                             gcp_id="bucket",
                             aws_arn="arn",
                             inputs={"location": "US", "force_destroy": "false"},
@@ -1474,7 +1474,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                             ),
                             name="test-storage-bucket",
                             cloud_provider=CloudProvider.GCP,
-                            product=ResourceProduct.GCP_STORAGE_BUCKET,
+                            product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                             gcp_id="bucket",
                             aws_arn="arn",
                             inputs={"location": "US", "force_destroy": "false"},
@@ -1510,7 +1510,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                 ),
                 name="test-storage-bucket",
                 cloud_provider=CloudProvider.GCP,
-                product=ResourceProduct.GCP_STORAGE_BUCKET,
+                product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                 inputs={"location": "US", "force_destroy": "false"},
                 status=ResourceStatus.READY,
                 aws_arn="arn",
@@ -1529,7 +1529,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                 ),
                 name="test-storage-bucket2",
                 cloud_provider=CloudProvider.GCP,
-                product=ResourceProduct.GCP_STORAGE_BUCKET,
+                product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                 inputs={"location": "US", "force_destroy": "false"},
                 status=ResourceStatus.READY,
                 aws_arn="arn",
@@ -1548,7 +1548,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                 ),
                 name="test-storage-bucket3",
                 cloud_provider=CloudProvider.GCP,
-                product=ResourceProduct.GCP_STORAGE_BUCKET,
+                product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                 inputs={"location": "US", "force_destroy": "false"},
                 status=ResourceStatus.READY,
                 aws_arn="arn",
@@ -1582,7 +1582,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                             ),
                             name="test-storage-bucket3",
                             cloud_provider=CloudProvider.GCP,
-                            product=ResourceProduct.GCP_STORAGE_BUCKET,
+                            product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                             gcp_id="bucket",
                             aws_arn="arn",
                             inputs={"location": "US", "force_destroy": "false"},
@@ -1613,7 +1613,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                             ),
                             name="test-storage-bucket",
                             cloud_provider=CloudProvider.GCP,
-                            product=ResourceProduct.GCP_STORAGE_BUCKET,
+                            product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                             gcp_id="bucket",
                             aws_arn="arn",
                             inputs={"location": "US", "force_destroy": "false"},
@@ -1643,7 +1643,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                             ),
                             name="test-storage-bucket2",
                             cloud_provider=CloudProvider.GCP,
-                            product=ResourceProduct.GCP_STORAGE_BUCKET,
+                            product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                             gcp_id="bucket",
                             aws_arn="arn",
                             inputs={"location": "US", "force_destroy": "false"},
@@ -1681,7 +1681,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                 ),
                 name="test-storage-bucket",
                 cloud_provider=CloudProvider.GCP,
-                product=ResourceProduct.GCP_STORAGE_BUCKET,
+                product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                 inputs={"location": "US", "force_destroy": "false"},
                 status=ResourceStatus.READY,
                 aws_arn="arn",
@@ -1700,7 +1700,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                 ),
                 name="test-storage-bucket2",
                 cloud_provider=CloudProvider.GCP,
-                product=ResourceProduct.GCP_STORAGE_BUCKET,
+                product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                 inputs={"location": "US", "force_destroy": "false"},
                 status=ResourceStatus.READY,
                 aws_arn="arn",
@@ -1720,7 +1720,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                 ),
                 name="test-storage-bucket3",
                 cloud_provider=CloudProvider.GCP,
-                product=ResourceProduct.GCP_STORAGE_BUCKET,
+                product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                 inputs={"location": "US", "force_destroy": "false"},
                 status=ResourceStatus.READY,
                 aws_arn="arn",
@@ -1754,7 +1754,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                             ),
                             name="test-storage-bucket3",
                             cloud_provider=CloudProvider.GCP,
-                            product=ResourceProduct.GCP_STORAGE_BUCKET,
+                            product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                             gcp_id="bucket",
                             aws_arn="arn",
                             inputs={"location": "US", "force_destroy": "false"},
@@ -1785,7 +1785,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                             ),
                             name="test-storage-bucket2",
                             cloud_provider=CloudProvider.GCP,
-                            product=ResourceProduct.GCP_STORAGE_BUCKET,
+                            product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                             gcp_id="bucket",
                             aws_arn="arn",
                             inputs={"location": "US", "force_destroy": "false"},
@@ -1816,7 +1816,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                             ),
                             name="test-storage-bucket",
                             cloud_provider=CloudProvider.GCP,
-                            product=ResourceProduct.GCP_STORAGE_BUCKET,
+                            product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                             gcp_id="bucket",
                             aws_arn="arn",
                             inputs={"location": "US", "force_destroy": "false"},

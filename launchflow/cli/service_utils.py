@@ -4,45 +4,47 @@ from typing import Dict, List, Tuple
 
 from launchflow import exceptions
 from launchflow.cli.utils import import_from_string
-from launchflow.service import Service
+from launchflow.deployment import Deployment
 
 
-def deduplicate_services(services: Tuple[Service]) -> List[Service]:
+def deduplicate_deployments(deployments: Tuple[Deployment]) -> List[Deployment]:
     """
-    Deduplicate services based on matching name and product name.
+    Deduplicate deployments based on matching name and product name.
 
     Args:
-    - `services`: The services to deduplicate.
+    - `deployments`: The deployments to deduplicate.
 
     Returns:
-    - The deduplicated resources.
+    - The deduplicated deployments.
     """
-    service_dict: Dict[str, Service] = {}
+    deployment_dict: Dict[str, Deployment] = {}
 
-    for service in services:
-        if service.name in service_dict:
-            existing_resource = service_dict[service.name]
-            if existing_resource.product != service.product:
-                raise exceptions.DuplicateServiceProductMismatch(
-                    service_name=service.name,
-                    existing_product=existing_resource.product.name,
-                    new_product=service.product.name,
+    for deployment in deployments:
+        if deployment.name in deployment_dict:
+            existing_resource = deployment_dict[deployment.name]
+            if existing_resource.product != deployment.product:
+                raise exceptions.DuplicateDeploymentProductMismatch(
+                    deployment_name=deployment.name,
+                    existing_product=existing_resource.product,
+                    new_product=deployment.product,
                 )
-        service_dict[service.name] = service
+        deployment_dict[deployment.name] = deployment
 
-    return list(service_dict.values())
+    return list(deployment_dict.values())
 
 
-def import_services(service_import_strs: List[str]) -> List[Service]:
+def import_deployments(deployment_import_strs: List[str]) -> List[Deployment]:
     sys.path.insert(0, "")
-    services: List[Service] = []
-    for service_str in service_import_strs:
+    deployments: List[Deployment] = []
+    for deployment_str in deployment_import_strs:
         try:
-            imported_service = import_from_string(service_str)
+            imported_deployment = import_from_string(deployment_str)
         except AttributeError:
-            logging.debug("Failed to import resource %s", service_str)
+            logging.debug("Failed to import resource %s", deployment_str)
             continue
-        if not isinstance(imported_service, Service):
-            raise ValueError(f"Service {imported_service} is not a valid Service")
-        services.append(imported_service)
-    return services
+        if not isinstance(imported_deployment, Deployment):
+            raise ValueError(
+                f"Deployment {imported_deployment} is not a valid Deployment"
+            )
+        deployments.append(imported_deployment)
+    return deployments

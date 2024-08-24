@@ -39,7 +39,7 @@ class ECSFargateServiceContainer(AWSResource[ECSFargateServiceContainerOutputs])
     ```
     """
 
-    product = ResourceProduct.AWS_ECS_FARGATE_SERVICE_CONTAINER
+    product = ResourceProduct.AWS_ECS_FARGATE_SERVICE_CONTAINER.value
 
     def __init__(
         self,

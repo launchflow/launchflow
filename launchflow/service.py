@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import List, Optional
 
 from launchflow.deployment import Deployment, DeploymentOutputs, T
-from launchflow.models.enums import ServiceProduct
+from launchflow.models.enums import DeploymentProduct
 from launchflow.node import Outputs
 
 
@@ -12,7 +12,7 @@ class ServiceOutputs(DeploymentOutputs):
 
 
 class Service(Deployment[T]):
-    product = ServiceProduct.UNKNOWN
+    product = DeploymentProduct.UNKNOWN.value
 
     def __init__(
         self,
@@ -75,6 +75,12 @@ class DockerService(Service[T]):
         self.build_directory = build_directory
         self.build_ignore = build_ignore
 
+    def outputs(self) -> DockerServiceOutputs:
+        raise NotImplementedError
+
+    async def outputs_async(self) -> DockerServiceOutputs:
+        raise NotImplementedError
+
 
 @dataclass
 class StaticServiceOutputs(ServiceOutputs):
@@ -94,3 +100,9 @@ class StaticService(Service[T]):
         self.name = name
         self.static_directory = static_directory
         self.static_ignore = static_ignore
+
+    def outputs(self) -> StaticServiceOutputs:
+        raise NotImplementedError
+
+    async def outputs_async(self) -> StaticServiceOutputs:
+        raise NotImplementedError

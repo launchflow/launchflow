@@ -22,7 +22,7 @@ from launchflow.locks import (
     OperationType,
 )
 from launchflow.managers.service_manager import ServiceManager
-from launchflow.models.enums import ServiceProduct, ServiceStatus
+from launchflow.models.enums import DeploymentProduct, DeploymentStatus
 from launchflow.models.flow_state import ServiceState
 
 
@@ -40,8 +40,8 @@ class ServiceManagerTest(unittest.IsolatedAsyncioTestCase):
                 created_at=datetime.datetime(2021, 1, 1),
                 updated_at=datetime.datetime(2021, 1, 1),
                 name="service",
-                product=ServiceProduct.GCP_CLOUD_RUN,
-                status=ServiceStatus.READY,
+                product=DeploymentProduct.GCP_CLOUD_RUN,
+                status=DeploymentStatus.READY,
                 cloud_provider=CloudProvider.GCP,
             )
             await manager.save_service(service, "lock_id")
@@ -64,8 +64,8 @@ class ServiceManagerTest(unittest.IsolatedAsyncioTestCase):
                 created_at=datetime.datetime(2021, 1, 1),
                 updated_at=datetime.datetime(2021, 1, 1),
                 name="service",
-                product=ServiceProduct.GCP_CLOUD_RUN,
-                status=ServiceStatus.READY,
+                product=DeploymentProduct.GCP_CLOUD_RUN,
+                status=DeploymentStatus.READY,
                 cloud_provider=CloudProvider.GCP,
             )
             await manager.save_service(service, "lock_id")
@@ -105,8 +105,8 @@ class ServiceManagerTest(unittest.IsolatedAsyncioTestCase):
             created_at=datetime.datetime(2021, 1, 1),
             updated_at=datetime.datetime(2021, 1, 1),
             name="service",
-            product=ServiceProduct.GCP_CLOUD_RUN,
-            status=ServiceStatus.READY,
+            product=DeploymentProduct.GCP_CLOUD_RUN,
+            status=DeploymentStatus.READY,
             cloud_provider=CloudProvider.GCP,
         )
         await manager.save_service(service, "lock_id")
@@ -125,8 +125,8 @@ class ServiceManagerTest(unittest.IsolatedAsyncioTestCase):
             created_at=datetime.datetime(2021, 1, 1),
             updated_at=datetime.datetime(2021, 1, 1),
             name="service",
-            product=ServiceProduct.GCP_CLOUD_RUN,
-            status=ServiceStatus.READY,
+            product=DeploymentProduct.GCP_CLOUD_RUN,
+            status=DeploymentStatus.READY,
             cloud_provider=CloudProvider.GCP,
         )
         client_mock = mock.MagicMock()
@@ -232,8 +232,8 @@ class ServiceManagerTest(unittest.IsolatedAsyncioTestCase):
             created_at=datetime.datetime(2021, 1, 1),
             updated_at=datetime.datetime(2021, 1, 1),
             name="service",
-            product=ServiceProduct.GCP_CLOUD_RUN,
-            status=ServiceStatus.READY,
+            product=DeploymentProduct.GCP_CLOUD_RUN,
+            status=DeploymentStatus.READY,
             cloud_provider=CloudProvider.GCP,
         )
         backend = LaunchFlowBackend(
@@ -255,8 +255,8 @@ class ServiceManagerTest(unittest.IsolatedAsyncioTestCase):
             created_at=datetime.datetime(2021, 1, 1),
             updated_at=datetime.datetime(2021, 1, 1),
             name="service",
-            product=ServiceProduct.GCP_CLOUD_RUN,
-            status=ServiceStatus.READY,
+            product=DeploymentProduct.GCP_CLOUD_RUN,
+            status=DeploymentStatus.READY,
             cloud_provider=CloudProvider.GCP,
         )
         backend = LaunchFlowBackend(

@@ -20,8 +20,8 @@ from launchflow.cache.launchflow_tmp import (
 from launchflow.cli import project_gen
 from launchflow.cli.accounts import account_commands
 from launchflow.cli.ast_search import (
+    find_launchflow_deployments,
     find_launchflow_resources,
-    find_launchflow_services,
 )
 from launchflow.cli.cloud import cloud_commands
 from launchflow.cli.constants import (
@@ -40,7 +40,7 @@ from launchflow.cli.resource_utils import (
 )
 from launchflow.cli.resources import resource_commands
 from launchflow.cli.secrets import secret_commands
-from launchflow.cli.service_utils import deduplicate_services, import_services
+from launchflow.cli.service_utils import deduplicate_deployments, import_deployments
 from launchflow.cli.services import service_commands
 from launchflow.cli.utyper import UTyper
 from launchflow.clients import async_launchflow_client_ctx
@@ -215,7 +215,7 @@ async def _handle_no_launchflow_yaml_found(auto_approve: bool):
 
 async def _create_resources(
     resources_to_create: Set[str],
-    services_to_create: Set[str],
+    deployments_to_create: Set[str],
     environment: str,
     scan_directory: str,
     auto_approve: bool,
@@ -238,15 +238,17 @@ async def _create_resources(
             resource for resource in resources if resource.name in resources_to_create
         ]
 
-    service_refs = find_launchflow_services(
+    deployment_refs = find_launchflow_deployments(
         scan_directory, ignore_roots=config.ignore_roots
     )
-    services = import_services(service_refs)
-    services = deduplicate_services(services)  # type: ignore
+    deployments = import_deployments(deployment_refs)
+    deployments = deduplicate_deployments(deployments)  # type: ignore
 
-    if services_to_create:
-        services = [
-            service for service in services if service.name in services_to_create
+    if deployments_to_create:
+        deployments = [
+            deployment
+            for deployment in deployments
+            if deployment.name in deployments_to_create
         ]
 
     if local_only:
@@ -259,7 +261,7 @@ async def _create_resources(
     try:
         success = await create_resources(
             *resources,  # type: ignore
-            *services,  # type: ignore
+            *deployments,  # type: ignore
             environment=environment,
             prompt=not auto_approve,
             verbose=verbose,
@@ -316,7 +318,7 @@ async def create(
 
     await _create_resources(
         resources_to_create=set(resource),
-        services_to_create=set(service),
+        deployments_to_create=set(service),
         environment=environment,
         scan_directory=scan_directory,
         auto_approve=auto_approve,
@@ -441,23 +443,23 @@ async def deploy(
     resources = import_resources(resource_refs)
     resources = deduplicate_resources(resources)  # type: ignore
 
-    service_refs = find_launchflow_services(
+    deployment_refs = find_launchflow_deployments(
         scan_directory, ignore_roots=config.ignore_roots
     )
-    services = import_services(service_refs)
-    services = deduplicate_services(services)  # type: ignore
+    deployments = import_deployments(deployment_refs)
+    deployments = deduplicate_deployments(deployments)  # type: ignore
 
     service_set = set(service)
     if service_set:
-        services = [s for s in services if s.name in service_set]
+        deployments = [s for s in deployments if s.name in service_set]
 
-    if not services:
+    if not deployments:
         typer.echo("No services found. Nothing to deploy.")
         raise typer.Exit(1)
 
     result = await deploy_services(
         *resources,  # type: ignore
-        *services,  # type: ignore
+        *deployments,  # type: ignore
         environment=environment,
         prompt=not auto_approve,
         verbose=verbose,
@@ -498,10 +500,10 @@ async def promote(
         config.set_api_key(launchflow_api_key)
     _set_global_project_and_environment(None, to_environment)
 
-    service_refs = find_launchflow_services(
+    service_refs = find_launchflow_deployments(
         scan_directory, ignore_roots=config.ignore_roots
     )
-    services = import_services(service_refs)
+    services = import_deployments(service_refs)
 
     service_set = set(service)
     if service_set:
@@ -567,16 +569,16 @@ async def import_resource_cmd(
         resource_refs = find_launchflow_resources(
             scan_directory, ignore_roots=config.ignore_roots
         )
-        service_refs = find_launchflow_services(
+        deployment_refs = find_launchflow_deployments(
             scan_directory, ignore_roots=config.ignore_roots
         )
     else:
         resource_refs = [resource]
-        service_refs = []
+        deployment_refs = []
     resources = import_resources(resource_refs)
-    services = import_services(service_refs)
-    for service in services:
-        resources.extend(service.resources())
+    deployments = import_deployments(deployment_refs)
+    for deployment in deployments:
+        resources.extend(deployment.resources())
 
     success = await import_existing_resources(environment, *resources)  # type: ignore
     if not success:
@@ -657,7 +659,7 @@ async def run(
             build_cache_key(
                 project=launchflow.project,
                 environment=environment,
-                product=resource.product.value,
+                product=resource.product,
                 resource=resource.name,
             ): outputs.to_dict()
             for resource, outputs in zip(remote_resources, resource_outputs)

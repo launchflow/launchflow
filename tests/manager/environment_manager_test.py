@@ -95,7 +95,7 @@ class EnvironmentManagerTest(unittest.IsolatedAsyncioTestCase):
                 updated_at=datetime.datetime(2021, 1, 1),
                 name="resource",
                 cloud_provider=CloudProvider.GCP,
-                product=ResourceProduct.GCP_STORAGE_BUCKET,
+                product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                 status=ResourceStatus.READY,
             )
             resource_manager = manager.create_resource_manager("resource")
@@ -275,7 +275,7 @@ class EnvironmentManagerTest(unittest.IsolatedAsyncioTestCase):
                 updated_at=datetime.datetime(2021, 1, 1),
                 name="resource",
                 cloud_provider=CloudProvider.GCP,
-                product=ResourceProduct.GCP_STORAGE_BUCKET,
+                product=ResourceProduct.GCP_STORAGE_BUCKET.value,
                 status=ResourceStatus.READY,
             ),
             "lock_id",

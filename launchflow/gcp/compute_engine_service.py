@@ -21,8 +21,8 @@ from launchflow.gcp.regional_managed_instance_group import (
     RegionalManagedInstanceGroup,
     UpdatePolicy,
 )
-from launchflow.gcp.service import GCPService
-from launchflow.models.enums import ServiceProduct
+from launchflow.gcp.service import GCPDockerService
+from launchflow.models.enums import DeploymentProduct
 from launchflow.node import Inputs
 from launchflow.resource import Resource
 from launchflow.service import DNSOutputs, ServiceOutputs
@@ -35,7 +35,7 @@ class ComputeEngineServiceInputs(Inputs):
     deploy_timeout_sec: float
 
 
-class ComputeEngineService(GCPService):
+class ComputeEngineService(GCPDockerService):
     """A service hosted on a managed instance group on GCP Compute Engine.
 
     Like all [Services](/docs/concepts/services), this class configures itself across multiple [Environments](/docs/concepts/environments).
@@ -83,7 +83,7 @@ class ComputeEngineService(GCPService):
     ```
     """
 
-    product = ServiceProduct.GCP_COMPUTE_ENGINE
+    product = DeploymentProduct.GCP_COMPUTE_ENGINE_SERVICE.value
 
     def __init__(
         self,

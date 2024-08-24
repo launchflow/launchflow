@@ -47,11 +47,11 @@ from launchflow.managers.resource_manager import ResourceManager
 from launchflow.managers.service_manager import ServiceManager
 from launchflow.models.enums import (
     CloudProvider,
+    DeploymentProduct,
+    DeploymentStatus,
     EnvironmentStatus,
     ResourceProduct,
     ResourceStatus,
-    ServiceProduct,
-    ServiceStatus,
 )
 from launchflow.models.flow_state import EnvironmentState, ResourceState, ServiceState
 from launchflow.models.launchflow_uri import LaunchFlowURI
@@ -192,7 +192,7 @@ class CreateResourcePlan(ResourcePlan):
             new_resource_state = ResourceState(
                 name=self.resource.name,
                 product=self.resource.product,
-                cloud_provider=self.resource.product.cloud_provider(),
+                cloud_provider=self.resource.cloud_provider(),
                 created_at=created_time,
                 updated_at=updated_time,
                 status=status,
@@ -405,7 +405,7 @@ class CreateResourcePlan(ResourcePlan):
             if existing is None:
                 if (
                     refreshed is not None
-                    and refreshed.product != ResourceProduct.UNKNOWN
+                    and refreshed.product != ResourceProduct.UNKNOWN.value
                 ):
                     return True
                 return False
@@ -448,7 +448,7 @@ class CreateServicePlan(ServicePlan):
         operation_type = "noop"
         if (
             self.existing_service_state is None
-            or self.existing_service_state.status == ServiceStatus.CREATE_FAILED
+            or self.existing_service_state.status == DeploymentStatus.CREATE_FAILED
         ):
             return "create"
         for resource_plan in self.create_resource_plans:
@@ -506,14 +506,14 @@ class CreateServicePlan(ServicePlan):
                 docker_image = None
 
             if self.operation_type == "update":
-                status = ServiceStatus.UPDATING
+                status = DeploymentStatus.UPDATING
             else:
-                status = ServiceStatus.CREATING
+                status = DeploymentStatus.CREATING
 
             new_service_state = ServiceState(
                 name=self.service.name,
                 product=self.service.product,
-                cloud_provider=self.service.product.cloud_provider(),
+                cloud_provider=self.service.cloud_provider(),
                 created_at=created_time,
                 updated_at=updated_time,
                 status=status,
@@ -552,17 +552,17 @@ class CreateServicePlan(ServicePlan):
                     # NOTE: This will fetch outputs from the underlying resources we
                     # just created
                     service_outputs = self.service.outputs()
-                    new_service_state.status = ServiceStatus.READY
+                    new_service_state.status = DeploymentStatus.READY
                     new_service_state.aws_arn = service_outputs.aws_arn
                     new_service_state.gcp_id = service_outputs.gcp_id
                     new_service_state.service_url = service_outputs.service_url
                     # NOTE: We save the inputs only if the create was successful
                     new_service_state.inputs = self.service.inputs().to_dict()
                 else:
-                    if new_service_state.status == ServiceStatus.CREATING:
-                        new_service_state.status = ServiceStatus.CREATE_FAILED
+                    if new_service_state.status == DeploymentStatus.CREATING:
+                        new_service_state.status = DeploymentStatus.CREATE_FAILED
                     else:
-                        new_service_state.status = ServiceStatus.UPDATE_FAILED
+                        new_service_state.status = DeploymentStatus.UPDATE_FAILED
 
                 await self.service_manager.save_service(
                     new_service_state, lock_info.lock_id
@@ -588,10 +588,10 @@ class CreateServicePlan(ServicePlan):
                     exc_info=True,
                 )
                 # If an exception occurs we save the service state with a failed status
-                if new_service_state.status == ServiceStatus.CREATING:
-                    new_service_state.status = ServiceStatus.CREATE_FAILED
+                if new_service_state.status == DeploymentStatus.CREATING:
+                    new_service_state.status = DeploymentStatus.CREATE_FAILED
                 else:
-                    new_service_state.status = ServiceStatus.UPDATE_FAILED
+                    new_service_state.status = DeploymentStatus.UPDATE_FAILED
                 await self.service_manager.save_service(
                     new_service_state, lock_info.lock_id
                 )
@@ -620,7 +620,7 @@ class CreateServicePlan(ServicePlan):
     ):
         left_padding_str = " " * left_padding
         if self.existing_service_state is None or (
-            self.existing_service_state.status == ServiceStatus.CREATE_FAILED
+            self.existing_service_state.status == DeploymentStatus.CREATE_FAILED
         ):
             all_noop_plans = all(
                 resource_plan.operation_type == "noop"
@@ -706,7 +706,7 @@ class CreateServicePlan(ServicePlan):
             if existing is None:
                 if (
                     refreshed is not None
-                    and refreshed.product != ServiceProduct.UNKNOWN
+                    and refreshed.product != DeploymentProduct.UNKNOWN
                 ):
                     return True
                 return False
@@ -767,13 +767,13 @@ async def plan_create_resource(
             error_message=str(e),
         )
 
-    if resource.product.cloud_provider() == CloudProvider.GCP:
+    if resource.cloud_provider() == CloudProvider.GCP:
         if environment_state.gcp_config is None:
             return FailedToPlan(
                 resource=resource,
                 error_message="CloudProviderMismatch: Cannot use a GCP Resource in an AWS Environment.",
             )
-    elif resource.product.cloud_provider() == CloudProvider.AWS:
+    elif resource.cloud_provider() == CloudProvider.AWS:
         if environment_state.aws_config is None:
             return FailedToPlan(
                 resource=resource,
@@ -801,7 +801,7 @@ async def plan_create_resource(
         if existing_resource_state.product != resource.product:
             exception = exceptions.ResourceProductMismatch(
                 resource=resource,
-                existing_product=existing_resource_state.product.name,
+                existing_product=existing_resource_state.product,
                 new_product=resource.product,
             )
             return FailedToPlan(
@@ -925,13 +925,13 @@ async def plan_create_service(
             error_message=str(e),
         )
 
-    if service.product.cloud_provider() == CloudProvider.GCP:
+    if service.cloud_provider() == CloudProvider.GCP:
         if environment_state.gcp_config is None:
             return FailedToPlan(
                 service=service,
                 error_message="CloudProviderMismatch: Cannot use a GCP Service in an AWS Environment.",
             )
-    elif service.product.cloud_provider() == CloudProvider.AWS:
+    elif service.cloud_provider() == CloudProvider.AWS:
         if environment_state.aws_config is None:
             return FailedToPlan(
                 service=service,
@@ -948,7 +948,7 @@ async def plan_create_service(
         if existing_service.product != service.product:
             exception = exceptions.ServiceProductMismatch(
                 service=service,
-                existing_product=existing_service.product.name,
+                existing_product=existing_service.product,
                 new_product=service.product,
             )
             return FailedToPlan(

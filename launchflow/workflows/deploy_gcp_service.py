@@ -9,9 +9,9 @@ from docker.errors import APIError, BuildError
 
 from launchflow import exceptions
 from launchflow.config import config
-from launchflow.gcp.cloud_run import CloudRun
+from launchflow.gcp.cloud_run_service import CloudRunService
 from launchflow.gcp.compute_engine_service import ComputeEngineService
-from launchflow.gcp.service import GCPService
+from launchflow.gcp.service import GCPDockerService
 from launchflow.managers.service_manager import ServiceManager
 from launchflow.models.flow_state import GCPEnvironmentConfig, ServiceState
 from launchflow.workflows.utils import tar_source_in_memory
@@ -341,7 +341,7 @@ async def _promote_docker_image_local(
 
 
 async def build_and_push_gcp_service(
-    gcp_service: GCPService,
+    gcp_service: GCPDockerService,
     service_manager: ServiceManager,
     gcp_environment_config: GCPEnvironmentConfig,
     deployment_id: str,
@@ -362,7 +362,7 @@ async def build_and_push_gcp_service(
 
 
 async def build_docker_image_on_cloud_build(
-    gcp_service: GCPService,
+    gcp_service: GCPDockerService,
     service_manager: ServiceManager,
     gcp_environment_config: GCPEnvironmentConfig,
     deployment_id: str,
@@ -399,7 +399,7 @@ async def build_docker_image_on_cloud_build(
 
 
 async def build_gcp_service_locally(
-    gcp_service: GCPService,
+    gcp_service: GCPDockerService,
     service_manager: ServiceManager,
     deployment_id: str,
 ) -> Tuple[str, str]:
@@ -436,7 +436,7 @@ async def release_docker_image_to_cloud_run(
     docker_image: str,
     service_manager: ServiceManager,
     gcp_environment_config: GCPEnvironmentConfig,
-    cloud_run_service: CloudRun,
+    cloud_run_service: CloudRunService,
     deployment_id: str,
 ) -> str:
     try:
@@ -665,7 +665,7 @@ async def release_docker_image_to_compute_engine(
 
 # TODO: add a way to promote the docker image without cloud build
 async def promote_gcp_service_image(
-    gcp_service: GCPService,
+    gcp_service: GCPDockerService,
     from_service_state: ServiceState,
     from_gcp_environment_config: GCPEnvironmentConfig,
     to_gcp_environment_config: GCPEnvironmentConfig,

@@ -52,7 +52,7 @@ class S3Bucket(AWSResource[S3BucketOutputs]):
     ```
     """
 
-    product = ResourceProduct.AWS_S3_BUCKET
+    product = ResourceProduct.AWS_S3_BUCKET.value
 
     def __init__(self, name: str, *, force_destroy: bool = False) -> None:
         """Create a new S3 bucket resource.

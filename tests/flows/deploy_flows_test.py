@@ -8,7 +8,7 @@ import pytest
 from launchflow import exceptions
 from launchflow.aws.ecs_fargate import ECSFargate
 from launchflow.flows import deploy_flows
-from launchflow.gcp.cloud_run import CloudRun
+from launchflow.gcp.cloud_run_service import CloudRunService
 from launchflow.locks import LockOperation, OperationType
 from launchflow.managers.environment_manager import EnvironmentManager
 from launchflow.models import enums, flow_state
@@ -80,7 +80,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_deploy_gcp_service_no_environment(self):
-        service = CloudRun("my-gcp-service")
+        service = CloudRunService("my-gcp-service")
         with pytest.raises(exceptions.EnvironmentNotFound):
             await deploy_flows.deploy(
                 service, environment="does-not-exist", prompt=False
@@ -94,7 +94,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
             )
 
     async def test_deploy_gcp_service_no_gcp_config(self):
-        service = CloudRun("my-gcp-service")
+        service = CloudRunService("my-gcp-service")
         manager = EnvironmentManager(
             project_name="unittest",
             environment_name="no-gcp-config",
@@ -171,7 +171,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
             with open(f"{tmpdirname}/Dockerfile", "w") as f:
                 f.write("FROM python:3.11\n")
             # Call the deploy service flow with the build_local flag on and verify the inputs / outputs
-            service = CloudRun("my-gcp-service", build_directory=tmpdirname)
+            service = CloudRunService("my-gcp-service", build_directory=tmpdirname)
             service.outputs = mock.Mock(return_value=service_outputs)
             result = await deploy_flows.deploy(
                 service,
@@ -195,12 +195,12 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
 
         # Ensure the correct service info was saved in the flow.state
         got_service = await service_manager.load_service()
-        self.assertEqual(got_service.product, enums.ServiceProduct.GCP_CLOUD_RUN)
+        self.assertEqual(got_service.product, enums.DeploymentProduct.GCP_CLOUD_RUN)
         self.assertEqual(got_service.inputs, service.inputs().to_dict())
         self.assertEqual(got_service.docker_image, "gcr.io/project/service:latest")
         self.assertEqual(got_service.service_url, "https://service-1234-uc.a.run.app")
         self.assertEqual(got_service.gcp_id, "service-1234")
-        self.assertEqual(got_service.status, enums.ServiceStatus.READY)
+        self.assertEqual(got_service.status, enums.DeploymentStatus.READY)
 
     @mock.patch("launchflow.flows.create_flows.create_tofu_resource")
     @mock.patch("launchflow.flows.deploy_flows.build_and_push_gcp_service")
@@ -233,7 +233,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
             with open(f"{tmpdirname}/Dockerfile", "w") as f:
                 f.write("FROM python:3.11\n")
             # Call the deploy service flow with the build_local flag on and verify the inputs / outputs
-            service = CloudRun("my-gcp-service", build_directory=tmpdirname)
+            service = CloudRunService("my-gcp-service", build_directory=tmpdirname)
             service.outputs = mock.Mock(return_value=service_outputs)
             result = await deploy_flows.deploy(
                 service,
@@ -284,12 +284,12 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
                 updated_at=datetime.datetime(2021, 1, 1),
                 name=service_name,
                 cloud_provider=enums.CloudProvider.GCP,
-                product=enums.ServiceProduct.GCP_CLOUD_RUN,
+                product=enums.DeploymentProduct.GCP_CLOUD_RUN,
                 inputs={},
                 docker_image="gcr.io/project/service:latest",
                 service_url="https://service-1234-uc.a.run.app",
                 gcp_id="service-1234",
-                status=enums.ServiceStatus.READY,
+                status=enums.DeploymentStatus.READY,
             ),
             lock_id="lock",
         )
@@ -298,7 +298,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
             with open(f"{tmpdirname}/Dockerfile", "w") as f:
                 f.write("FROM python:3.11\n")
             # Call the deploy service flow with the build_local flag on and verify the inputs / outputs
-            service = CloudRun("my-gcp-service", build_directory=tmpdirname)
+            service = CloudRunService("my-gcp-service", build_directory=tmpdirname)
             service.outputs = mock.Mock(return_value=service_outputs)
             result = await deploy_flows.deploy(
                 service,
@@ -380,7 +380,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
 
         # Ensure the correct service info was saved in the flow.state
         got_service = await service_manager.load_service()
-        self.assertEqual(got_service.product, enums.ServiceProduct.AWS_ECS_FARGATE)
+        self.assertEqual(got_service.product, enums.DeploymentProduct.AWS_ECS_FARGATE)
         self.assertEqual(got_service.inputs, service.inputs().to_dict())
         self.assertEqual(got_service.docker_image, "ecr.io/project/service:latest")
         self.assertEqual(
@@ -388,7 +388,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
             "http://service-1234-alb.us-east-1.elb.amazonaws.com",
         )
         self.assertEqual(got_service.aws_arn, "service-1234")
-        self.assertEqual(got_service.status, enums.ServiceStatus.READY)
+        self.assertEqual(got_service.status, enums.DeploymentStatus.READY)
 
     # TODO: Add a test that mocks out steps in the workflow, to handle branching logic between deploy and promote
     @mock.patch("launchflow.flows.create_flows.create_tofu_resource")
@@ -421,7 +421,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
         with tempfile.TemporaryDirectory() as tmpdirname:
             with open(f"{tmpdirname}/Dockerfile", "w") as f:
                 f.write("FROM python:3.11\n")
-            service = CloudRun(
+            service = CloudRunService(
                 "my-gcp-service", build_directory=tmpdirname, dockerfile="Dockerfile"
             )
             service.outputs = mock.Mock(return_value=service_outputs)
@@ -438,13 +438,13 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
             service.name
         )
         got_service = await service_manager.load_service()
-        self.assertEqual(got_service.product, enums.ServiceProduct.GCP_CLOUD_RUN)
+        self.assertEqual(got_service.product, enums.DeploymentProduct.GCP_CLOUD_RUN)
         self.assertEqual(got_service.inputs, service.inputs().to_dict())
         self.assertEqual(got_service.gcp_id, "service-1234")
         # NOTE: only docker image and service url are None since the create step was successful
         self.assertEqual(got_service.docker_image, None)
         self.assertEqual(got_service.service_url, None)
-        self.assertEqual(got_service.status, enums.ServiceStatus.DEPLOY_FAILED)
+        self.assertEqual(got_service.status, enums.DeploymentStatus.DEPLOY_FAILED)
 
     @mock.patch("launchflow.flows.create_flows.create_tofu_resource")
     @mock.patch("launchflow.flows.deploy_flows.build_and_push_aws_service")
@@ -494,13 +494,13 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
             service.name
         )
         got_service = await service_manager.load_service()
-        self.assertEqual(got_service.product, enums.ServiceProduct.AWS_ECS_FARGATE)
+        self.assertEqual(got_service.product, enums.DeploymentProduct.AWS_ECS_FARGATE)
         self.assertEqual(got_service.inputs, service.inputs().to_dict())
         self.assertEqual(got_service.aws_arn, "service-1234")
         # NOTE: only docker image and service url are None since the create step was successful
         self.assertEqual(got_service.docker_image, None)
         self.assertEqual(got_service.service_url, None)
-        self.assertEqual(got_service.status, enums.ServiceStatus.DEPLOY_FAILED)
+        self.assertEqual(got_service.status, enums.DeploymentStatus.DEPLOY_FAILED)
 
     @mock.patch("uuid.uuid4", return_value="lock")
     @mock.patch("time.time", return_value=1640995200.0)
@@ -509,7 +509,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
         time_mock,
         uuid_mock,
     ):
-        service = CloudRun("my-gcp-service")
+        service = CloudRunService("my-gcp-service")
         result = await deploy_flows.promote(
             service,
             from_environment=self.dev_environment_manager.environment_name,
@@ -530,7 +530,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
     ):
         # Tests the case where the new service definition in code / yaml doesnt match
         # the existing service in the source environment
-        from_service = CloudRun("my-service")
+        from_service = CloudRunService("my-service")
         to_service = ECSFargate("my-service")
 
         from_service_manager = self.dev_environment_manager.create_service_manager(
@@ -542,12 +542,12 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
                 updated_at=datetime.datetime(2021, 1, 1),
                 name=from_service.name,
                 cloud_provider=enums.CloudProvider.GCP,
-                product=enums.ServiceProduct.GCP_CLOUD_RUN,
+                product=enums.DeploymentProduct.GCP_CLOUD_RUN,
                 inputs=from_service.inputs().to_dict(),
                 docker_image="gcr.io/project/service:latest",
                 service_url="https://service-1234-uc.a.run.app",
                 gcp_id="service-1234",
-                status=enums.ServiceStatus.READY,
+                status=enums.DeploymentStatus.READY,
             ),
             lock_id="lock",
         )
@@ -575,8 +575,8 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
     ):
         # Tests the case where the new service definition doesnt match
         # what's currently deployed in the target environment
-        from_service = CloudRun("my-service")
-        existing_to_service = CloudRun("my-service")
+        from_service = CloudRunService("my-service")
+        existing_to_service = CloudRunService("my-service")
         new_to_service = ECSFargate("my-service")
 
         from_service_manager = self.dev_environment_manager.create_service_manager(
@@ -588,12 +588,12 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
                 updated_at=datetime.datetime(2021, 1, 1),
                 name=from_service.name,
                 cloud_provider=enums.CloudProvider.GCP,
-                product=enums.ServiceProduct.GCP_CLOUD_RUN,
+                product=enums.DeploymentProduct.GCP_CLOUD_RUN,
                 inputs=from_service.inputs().to_dict(),
                 docker_image="gcr.io/project/service:latest",
                 service_url="https://service-1234-uc.a.run.app",
                 gcp_id="service-1234",
-                status=enums.ServiceStatus.READY,
+                status=enums.DeploymentStatus.READY,
             ),
             lock_id="lock",
         )
@@ -607,12 +607,12 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
                 updated_at=datetime.datetime(2021, 1, 1),
                 name=existing_to_service.name,
                 cloud_provider=enums.CloudProvider.GCP,
-                product=enums.ServiceProduct.GCP_CLOUD_RUN,
+                product=enums.DeploymentProduct.GCP_CLOUD_RUN,
                 inputs=existing_to_service.inputs().to_dict(),
                 docker_image="gcr.io/project/service:latest",
                 service_url="https://service-1234-uc.a.run.app",
                 gcp_id="service-1234",
-                status=enums.ServiceStatus.READY,
+                status=enums.DeploymentStatus.READY,
             ),
             lock_id="lock",
         )
@@ -644,7 +644,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
         mock_promote_gcp_service.side_effect = exceptions.MissingGCPDependency()
 
         # Create a dev service to promote to prod
-        service = CloudRun("my-gcp-service")
+        service = CloudRunService("my-gcp-service")
         service_outputs = ServiceOutputs(
             service_url="https://service-1234-uc.a.run.app",
             docker_repository="gcr.io/project/service",
@@ -661,12 +661,12 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
                 updated_at=datetime.datetime(2021, 1, 1),
                 name=service.name,
                 cloud_provider=enums.CloudProvider.GCP,
-                product=enums.ServiceProduct.GCP_CLOUD_RUN,
+                product=enums.DeploymentProduct.GCP_CLOUD_RUN,
                 inputs=service.inputs().to_dict(),
                 docker_image="gcr.io/project/service:latest",
                 service_url="https://service-1234-uc.a.run.app",
                 gcp_id="service-1234",
-                status=enums.ServiceStatus.READY,
+                status=enums.DeploymentStatus.READY,
             ),
             lock_id="lock",
         )
@@ -691,12 +691,12 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
             service.name
         )
         got_service = await service_manager.load_service()
-        self.assertEqual(got_service.product, enums.ServiceProduct.GCP_CLOUD_RUN)
+        self.assertEqual(got_service.product, enums.DeploymentProduct.GCP_CLOUD_RUN)
         self.assertEqual(got_service.inputs, None)
         self.assertEqual(got_service.docker_image, None)
         self.assertEqual(got_service.service_url, None)
         self.assertEqual(got_service.gcp_id, None)
-        self.assertEqual(got_service.status, enums.ServiceStatus.PROMOTE_FAILED)
+        self.assertEqual(got_service.status, enums.DeploymentStatus.PROMOTE_FAILED)
 
     @mock.patch("launchflow.flows.deploy_flows.promote_gcp_service_image")
     @mock.patch("launchflow.flows.deploy_flows.release_docker_image_to_cloud_run")
@@ -720,7 +720,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
         )
 
         # Create a dev service to promote to prod
-        service = CloudRun("my-gcp-service")
+        service = CloudRunService("my-gcp-service")
         service_outputs = ServiceOutputs(
             service_url="https://service-1234-uc.a.run.app",
             docker_repository="gcr.io/project/service",
@@ -740,12 +740,12 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
                 updated_at=datetime.datetime(2021, 1, 1),
                 name=service.name,
                 cloud_provider=enums.CloudProvider.GCP,
-                product=enums.ServiceProduct.GCP_CLOUD_RUN,
+                product=enums.DeploymentProduct.GCP_CLOUD_RUN,
                 inputs=service.inputs().to_dict(),
                 docker_image="gcr.io/project/service:latest",
                 service_url="https://service-1234-uc.a.run.app",
                 gcp_id="service-1234",
-                status=enums.ServiceStatus.READY,
+                status=enums.DeploymentStatus.READY,
             ),
             lock_id="lock",
         )
@@ -755,9 +755,9 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
                 updated_at=datetime.datetime(2021, 1, 1),
                 name=service.name,
                 cloud_provider=enums.CloudProvider.GCP,
-                product=enums.ServiceProduct.GCP_CLOUD_RUN,
+                product=enums.DeploymentProduct.GCP_CLOUD_RUN,
                 gcp_id="prod-service-1234",
-                status=enums.ServiceStatus.READY,
+                status=enums.DeploymentStatus.READY,
                 inputs=None,
                 docker_image=None,
                 service_url=None,
@@ -787,14 +787,14 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
 
         # Ensure the correct service info was saved in the flow.state
         got_service = await prod_service_manager.load_service()
-        self.assertEqual(got_service.product, enums.ServiceProduct.GCP_CLOUD_RUN)
+        self.assertEqual(got_service.product, enums.DeploymentProduct.GCP_CLOUD_RUN)
         self.assertEqual(got_service.inputs, service.inputs().to_dict())
         self.assertEqual(got_service.docker_image, "gcr.io/project/service:promoted")
         self.assertEqual(
             got_service.service_url, "https://prod-service-1234-uc.a.run.app"
         )
         self.assertEqual(got_service.gcp_id, "prod-service-1234")
-        self.assertEqual(got_service.status, enums.ServiceStatus.READY)
+        self.assertEqual(got_service.status, enums.DeploymentStatus.READY)
 
     @mock.patch("launchflow.flows.deploy_flows.promote_aws_service_image")
     @mock.patch("uuid.uuid4", return_value="lock")
@@ -826,12 +826,12 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
                 updated_at=datetime.datetime(2021, 1, 1),
                 name=service.name,
                 cloud_provider=enums.CloudProvider.AWS,
-                product=enums.ServiceProduct.AWS_ECS_FARGATE,
+                product=enums.DeploymentProduct.AWS_ECS_FARGATE,
                 inputs=service.inputs().to_dict(),
                 docker_image="ecr.io/project/service:latest",
                 service_url="http://service-1234-alb.us-east-1.elb.amazonaws.com",
                 aws_arn="service-1234",
-                status=enums.ServiceStatus.READY,
+                status=enums.DeploymentStatus.READY,
             ),
             lock_id="lock",
         )
@@ -856,12 +856,12 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
             service.name
         )
         got_service = await service_manager.load_service()
-        self.assertEqual(got_service.product, enums.ServiceProduct.AWS_ECS_FARGATE)
+        self.assertEqual(got_service.product, enums.DeploymentProduct.AWS_ECS_FARGATE)
         self.assertEqual(got_service.inputs, None)
         self.assertEqual(got_service.docker_image, None)
         self.assertEqual(got_service.service_url, None)
         self.assertEqual(got_service.gcp_id, None)
-        self.assertEqual(got_service.status, enums.ServiceStatus.PROMOTE_FAILED)
+        self.assertEqual(got_service.status, enums.DeploymentStatus.PROMOTE_FAILED)
 
     @mock.patch("launchflow.flows.deploy_flows.promote_aws_service_image")
     @mock.patch("launchflow.flows.deploy_flows.release_docker_image_to_ecs_fargate")
@@ -905,12 +905,12 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
                 updated_at=datetime.datetime(2021, 1, 1),
                 name=service.name,
                 cloud_provider=enums.CloudProvider.AWS,
-                product=enums.ServiceProduct.AWS_ECS_FARGATE,
+                product=enums.DeploymentProduct.AWS_ECS_FARGATE,
                 inputs=service.inputs().to_dict(),
                 docker_image="ecr.io/project/service:latest",
                 service_url="http://service-1234-alb.us-east-1.elb.amazonaws.com",
                 aws_arn="service-1234",
-                status=enums.ServiceStatus.READY,
+                status=enums.DeploymentStatus.READY,
             ),
             lock_id="lock",
         )
@@ -919,9 +919,9 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
                 created_at=datetime.datetime(2021, 1, 1),
                 updated_at=datetime.datetime(2021, 1, 1),
                 name=service.name,
-                status=enums.ServiceStatus.READY,
+                status=enums.DeploymentStatus.READY,
                 cloud_provider=enums.CloudProvider.AWS,
-                product=enums.ServiceProduct.AWS_ECS_FARGATE,
+                product=enums.DeploymentProduct.AWS_ECS_FARGATE,
                 inputs=None,
                 docker_image=None,
                 service_url=None,
@@ -952,7 +952,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
 
         # Ensure the correct service info was saved in the flow.state
         got_service = await prod_service_manager.load_service()
-        self.assertEqual(got_service.product, enums.ServiceProduct.AWS_ECS_FARGATE)
+        self.assertEqual(got_service.product, enums.DeploymentProduct.AWS_ECS_FARGATE)
         self.assertEqual(got_service.inputs, service.inputs().to_dict())
         self.assertEqual(got_service.docker_image, "ecr.io/project/service:promoted")
         self.assertEqual(
@@ -960,7 +960,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
             "http://service-1234-alb.us-east-1.elb.amazonaws.com",
         )
         self.assertEqual(got_service.aws_arn, "prod-service-1234")
-        self.assertEqual(got_service.status, enums.ServiceStatus.READY)
+        self.assertEqual(got_service.status, enums.DeploymentStatus.READY)
 
     async def test_force_unlock_service_success(self):
         service_manager = self.dev_environment_manager.create_service_manager(

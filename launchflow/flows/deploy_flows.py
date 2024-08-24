@@ -47,13 +47,13 @@ from launchflow.flows.plan import (
     execute_plans,
 )
 from launchflow.flows.plan_utils import lock_plans, print_plans, select_plans
-from launchflow.gcp.cloud_run import CloudRun
+from launchflow.gcp.cloud_run_service import CloudRunService
 from launchflow.gcp.compute_engine_service import ComputeEngineService
 from launchflow.gcp.service import GCPService
 from launchflow.locks import Lock, LockOperation, OperationType, ReleaseReason
 from launchflow.managers.environment_manager import EnvironmentManager
 from launchflow.managers.service_manager import ServiceManager
-from launchflow.models.enums import CloudProvider, EnvironmentStatus, ServiceStatus
+from launchflow.models.enums import CloudProvider, DeploymentStatus, EnvironmentStatus
 from launchflow.models.flow_state import (
     AWSEnvironmentConfig,
     EnvironmentState,
@@ -287,7 +287,7 @@ class ReleaseServicePlan(ServicePlan):
                 result.error_message = "Service does not yet have a docker image. Ensure you have run `lf deploy` first."
                 return result
         # TODO: refactor this so that the service "owns" the release step so its not hardcoded to individual service types
-        if isinstance(self.service, CloudRun):
+        if isinstance(self.service, CloudRunService):
             service_url = await release_docker_image_to_cloud_run(
                 docker_image=docker_image,
                 service_manager=self.service_manager,
@@ -434,10 +434,10 @@ class DeployServicePlan(ServicePlan):
             new_service_state = ServiceState(
                 name=self.service.name,
                 product=self.service.product,
-                cloud_provider=self.service.product.cloud_provider(),
+                cloud_provider=self.service.cloud_provider(),
                 created_at=created_time,
                 updated_at=updated_time,
-                status=ServiceStatus.DEPLOYING,
+                status=DeploymentStatus.DEPLOYING,
                 inputs=inputs,
                 gcp_id=gcp_id,
                 aws_arn=aws_arn,
@@ -471,11 +471,11 @@ class DeployServicePlan(ServicePlan):
                     new_service_state.docker_image = build_service_result.docker_image
                 new_service_state.service_url = release_service_result.service_url
                 if deploy_successful:
-                    new_service_state.status = ServiceStatus.READY
+                    new_service_state.status = DeploymentStatus.READY
                     # NOTE: We dont save the inputs until the deploy is successful
                     new_service_state.inputs = self.service.inputs().to_dict()
                 else:
-                    new_service_state.status = ServiceStatus.DEPLOY_FAILED
+                    new_service_state.status = DeploymentStatus.DEPLOY_FAILED
 
                 await self.service_manager.save_service(
                     new_service_state, lock_info.lock_id
@@ -496,7 +496,7 @@ class DeployServicePlan(ServicePlan):
                     exc_info=True,
                 )
                 # If an exception occurs we save the service state with a failed status
-                new_service_state.status = ServiceStatus.DEPLOY_FAILED
+                new_service_state.status = DeploymentStatus.DEPLOY_FAILED
                 await self.service_manager.save_service(
                     new_service_state, lock_info.lock_id
                 )
@@ -613,13 +613,13 @@ async def plan_deploy_service(
             error_message=str(e),
         )
 
-    if service.product.cloud_provider() == CloudProvider.GCP:
+    if service.cloud_provider() == CloudProvider.GCP:
         if environment_state.gcp_config is None:
             return FailedToPlan(
                 service=service,
                 error_message="CloudProviderMismatch: Cannot use a GCP Service in an AWS Environment.",
             )
-    elif service.product.cloud_provider() == CloudProvider.AWS:
+    elif service.cloud_provider() == CloudProvider.AWS:
         if environment_state.aws_config is None:
             return FailedToPlan(
                 service=service,
@@ -635,7 +635,7 @@ async def plan_deploy_service(
     if existing_service is not None and existing_service.product != service.product:
         exception = exceptions.ServiceProductMismatch(
             service=service,
-            existing_product=existing_service.product.name,
+            existing_product=existing_service.product,
             new_product=service.product,
         )
         return FailedToPlan(
@@ -1522,10 +1522,10 @@ class PromoteServicePlan(ServicePlan):
             new_to_service_state = ServiceState(
                 name=self.service.name,
                 product=self.service.product,
-                cloud_provider=self.service.product.cloud_provider(),
+                cloud_provider=self.service.cloud_provider(),
                 created_at=created_time,
                 updated_at=updated_time,
-                status=ServiceStatus.PROMOTING,
+                status=DeploymentStatus.PROMOTING,
                 inputs=inputs,
                 gcp_id=gcp_id,
                 aws_arn=aws_arn,
@@ -1563,11 +1563,11 @@ class PromoteServicePlan(ServicePlan):
                 )
                 new_to_service_state.service_url = release_service_result.service_url  # type: ignore
                 if deploy_successful:
-                    new_to_service_state.status = ServiceStatus.READY
+                    new_to_service_state.status = DeploymentStatus.READY
                     # NOTE: We dont save the inputs until the deploy is successful
                     new_to_service_state.inputs = self.service.inputs().to_dict()
                 else:
-                    new_to_service_state.status = ServiceStatus.PROMOTE_FAILED
+                    new_to_service_state.status = DeploymentStatus.PROMOTE_FAILED
 
                 await self.to_service_manager.save_service(
                     new_to_service_state, lock_info.lock_id
@@ -1588,7 +1588,7 @@ class PromoteServicePlan(ServicePlan):
                     exc_info=True,
                 )
                 # If an exception occurs we save the service state with a failed status
-                new_to_service_state.status = ServiceStatus.PROMOTE_FAILED
+                new_to_service_state.status = DeploymentStatus.PROMOTE_FAILED
                 await self.to_service_manager.save_service(
                     new_to_service_state, lock_info.lock_id
                 )
@@ -1705,13 +1705,13 @@ async def plan_promote_service(
             error_message=str(e),
         )
 
-    if service.product.cloud_provider() == CloudProvider.GCP:
+    if service.cloud_provider() == CloudProvider.GCP:
         if to_environment_state.gcp_config is None:
             return FailedToPlan(
                 service=service,
                 error_message="CloudProviderMismatch: Cannot use a GCP Service in an AWS Environment.",
             )
-    elif service.product.cloud_provider() == CloudProvider.AWS:
+    elif service.cloud_provider() == CloudProvider.AWS:
         if to_environment_state.aws_config is None:
             return FailedToPlan(
                 service=service,
@@ -1730,7 +1730,7 @@ async def plan_promote_service(
     ):
         exception = exceptions.ServiceProductMismatch(
             service=service,
-            existing_product=existing_to_service.product.name,
+            existing_product=existing_to_service.product,
             new_product=service.product,
         )
         return FailedToPlan(
@@ -1750,7 +1750,7 @@ async def plan_promote_service(
     if existing_from_service.product != service.product:
         exception = exceptions.ServiceProductMismatch(
             service=service,
-            existing_product=existing_from_service.product.name,
+            existing_product=existing_from_service.product,
             new_product=service.product,
         )
         return FailedToPlan(

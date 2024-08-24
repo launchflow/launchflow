@@ -8,19 +8,21 @@ from launchflow.gcp.artifact_registry_repository import (
 )
 from launchflow.gcp.cloud_run_container import CloudRunServiceContainer
 from launchflow.gcp.custom_domain_mapping import CustomDomainMapping
-from launchflow.gcp.service import GCPService
-from launchflow.models.enums import ServiceProduct
+from launchflow.gcp.service import GCPDockerService
+from launchflow.models.enums import DeploymentProduct
 from launchflow.node import Inputs
 from launchflow.resource import Resource
 from launchflow.service import DNSOutputs, ServiceOutputs
 
 
 @dataclass
-class CloudRunInputs(Inputs):
+class CloudRunServiceInputs(Inputs):
     pass
 
 
-class CloudRun(GCPService):
+# TODO: Set the default inputs on the CloudRunService class so the user has visibility into what the defaults are
+# Just seeing Nones is not helpful
+class CloudRunService(GCPDockerService):
     """A service hosted on GCP Cloud Run.
 
     ### Example Usage
@@ -37,7 +39,7 @@ class CloudRun(GCPService):
     - An [Artifact Registry](https://cloud.google.com/artifact-registry) repository to store the service's Docker image.
     """
 
-    product = ServiceProduct.GCP_CLOUD_RUN
+    product = DeploymentProduct.GCP_CLOUD_RUN_SERVICE.value
 
     def __init__(
         self,
@@ -137,8 +139,8 @@ class CloudRun(GCPService):
             )
             self._custom_domain_mapping.resource_id = name
 
-    def inputs(self) -> CloudRunInputs:
-        return CloudRunInputs()
+    def inputs(self) -> CloudRunServiceInputs:
+        return CloudRunServiceInputs()
 
     def resources(self) -> List[Resource]:
         to_return: List[Resource] = [

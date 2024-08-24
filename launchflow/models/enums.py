@@ -61,13 +61,18 @@ class ResourceProduct(str, Enum):
             )
 
 
-class ServiceProduct(str, Enum):
+class DeploymentProduct(str, Enum):
     UNKNOWN = "unknown"
-    # GCP product types
-    GCP_CLOUD_RUN = "gcp_cloud_run"
-    GCP_COMPUTE_ENGINE = "gcp_compute_engine"
-    # AWS product types
-    AWS_ECS_FARGATE = "aws_ecs_fargate"
+    # Service product types
+    GCP_CLOUD_RUN_SERVICE = "gcp_cloud_run_service"
+    GCP_COMPUTE_ENGINE_SERVICE = "gcp_compute_engine_service"
+    AWS_ECS_FARGATE_SERVICE = "aws_ecs_fargate_service"
+    # Worker product types
+    GCP_CLOUD_RUN_WORKER = "gcp_cloud_run_worker"
+    AWS_ECS_FARGATE_WORKER = "aws_ecs_fargate_worker"
+    # Job product types
+    GCP_CLOUD_RUN_JOB = "gcp_cloud_run_job"
+    AWS_ECS_FARGATE_JOB = "aws_ecs_fargate_job"
 
     def cloud_provider(self):
         if self.name.startswith("GCP"):
@@ -75,35 +80,14 @@ class ServiceProduct(str, Enum):
         elif self.name.startswith("AWS"):
             return CloudProvider.AWS
 
+    def is_service(self):
+        return self.name.endswith("SERVICE")
 
-class WorkerProduct(str, Enum):
-    UNKNOWN = "unknown"
-    # GCP product types
-    GCP_CLOUD_RUN = "gcp_cloud_run"
-    GCP_COMPUTE_ENGINE = "gcp_compute_engine"
-    # AWS product types
-    AWS_ECS_FARGATE = "aws_ecs_fargate"
+    def is_worker(self):
+        return self.name.endswith("WORKER")
 
-    def cloud_provider(self):
-        if self.name.startswith("GCP"):
-            return CloudProvider.GCP
-        elif self.name.startswith("AWS"):
-            return CloudProvider.AWS
-
-
-class JobProduct(str, Enum):
-    UNKNOWN = "unknown"
-    # GCP product types
-    GCP_CLOUD_RUN = "gcp_cloud_run"
-    GCP_COMPUTE_ENGINE = "gcp_compute_engine"
-    # AWS product types
-    AWS_ECS_FARGATE = "aws_ecs_fargate"
-
-    def cloud_provider(self):
-        if self.name.startswith("GCP"):
-            return CloudProvider.GCP
-        elif self.name.startswith("AWS"):
-            return CloudProvider.AWS
+    def is_job(self):
+        return self.name.endswith("JOB")
 
 
 class EnvironmentType(str, Enum):
@@ -145,7 +129,7 @@ class ResourceStatus(str, Enum):
         ]
 
 
-class ServiceStatus(str, Enum):
+class DeploymentStatus(str, Enum):
     UNKNOWN = "unknown"
     READY = "ready"
     DEPLOY_FAILED = "deploy_failed"
@@ -161,9 +145,9 @@ class ServiceStatus(str, Enum):
 
     def is_pending(self):
         return self in [
-            ServiceStatus.DEPLOYING,
-            ServiceStatus.DESTROYING,
-            ServiceStatus.PROMOTING,
-            ServiceStatus.CREATING,
-            ServiceStatus.UPDATING,
+            DeploymentStatus.DEPLOYING,
+            DeploymentStatus.DESTROYING,
+            DeploymentStatus.PROMOTING,
+            DeploymentStatus.CREATING,
+            DeploymentStatus.UPDATING,
         ]

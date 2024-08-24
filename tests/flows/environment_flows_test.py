@@ -899,8 +899,8 @@ class EnvironmentFlowTest(unittest.IsolatedAsyncioTestCase):
                 created_at=datetime.datetime(2022, 1, 1, tzinfo=datetime.timezone.utc),
                 updated_at=datetime.datetime(2022, 1, 1, tzinfo=datetime.timezone.utc),
                 cloud_provider=enums.CloudProvider.AWS,
-                product=enums.ServiceProduct.AWS_ECS_FARGATE,
-                status=enums.ServiceStatus.READY,
+                product=enums.DeploymentProduct.AWS_ECS_FARGATE,
+                status=enums.DeploymentStatus.READY,
             ),
             lock_id="lock",
         )

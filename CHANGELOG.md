@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.7](https://github.com/launchflow/launchflow/compare/v0.4.6...v0.4.7) (2024-08-22)
+
+
+### Bug Fixes
+
+* make resource product and service product a string ([#24](https://github.com/launchflow/launchflow/issues/24)) ([681cda9](https://github.com/launchflow/launchflow/commit/681cda920f5466dbe27d99d031504d46a3bab435))
+
 ## [0.4.6](https://github.com/launchflow/launchflow/compare/v0.4.5...v0.4.6) (2024-08-20)
 
 

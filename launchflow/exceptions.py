@@ -409,12 +409,12 @@ class DuplicateResourceProductMismatch(Exception):
         )
 
 
-class DuplicateServiceProductMismatch(Exception):
+class DuplicateDeploymentProductMismatch(Exception):
     def __init__(
-        self, service_name: str, existing_product: str, new_product: str
+        self, deployment_name: str, existing_product: str, new_product: str
     ) -> None:
         super().__init__(
-            f"Service `{service_name}` was defined twice as different service types. Existing type: {existing_product}, new type: {new_product}."
+            f"Service `{deployment_name}` was defined twice as different service types. Existing type: {existing_product}, new type: {new_product}."
         )
 
 
@@ -493,6 +493,13 @@ class NoAWSRegionError(Exception):
     def __init__(self) -> None:
         super().__init__(
             "No AWS region found. Set the AWS region with `aws configure` or by setting the AWS_REGION environment variable."
+        )
+
+
+class NoAWSRegionEvironmentCreationError(Exception):
+    def __init__(self) -> None:
+        super().__init__(
+            "No AWS region found. Set the AWS region with `aws configure` or by setting the AWS_REGION environment variable. Or run without the -y flag to be prompted to choose one"
         )
 
 

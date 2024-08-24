@@ -77,7 +77,7 @@ _Click the dropdowns below to see the deployment types that are currently suppor
 
 <details>
 <summary>
-<strong>Jobs</strong> - One-off tasks that run to completion.
+<strong>Jobs</strong> - Individual tasks that run to completion.
 <a href="https://docs.launchflow.com/docs/concepts/deployments#jobs">Jobs Docs</a>
 </summary>
 
@@ -145,7 +145,9 @@ pip install launchflow
 
 ## 🚀 Quickstart
 
-### Step 1. Create a new Python file (e.g. `main.py`) and add the following code:
+### Deploy FastAPI to ECS Fargate on AWS:
+
+#### Step 1. Create a new Python file (e.g. `main.py`) and add the following code:
 
 ```python
 from fastapi import FastAPI
@@ -157,7 +159,7 @@ def index():
     return f'Hello from {lf.environment}!'
 ```
 
-### Step 2. Add a Deployment type to your Python file:
+#### Step 2. Add a Deployment type to your Python file:
 
 ```python
 from fastapi import FastAPI
@@ -173,13 +175,13 @@ def index():
 api = lf.aws.ECSFargate("my-api", domain_name="launchflow.com")
 ```
 
-### Step 3. Run the `lf deploy` command to deploy your infrastructure:
+#### Step 3. Run the `lf deploy` command to deploy your infrastructure:
 
 ```bash
 lf deploy
 ```
 
-### This command will do the following:
+#### This command will do the following:
 1. Generate a Dockerfile and launchflow.yaml file <font size="-1">(if you don't have one)</font>
 2. Create a new VPC (Environment) in your AWS account <font size="-1">(if you don't have one)</font>
 3. Create a new ECS Fargate service and task definition <font size="-1">(if you don't have one)</font>
@@ -188,7 +190,7 @@ lf deploy
 6. Deploy your FastAPI app to the new ECS Fargate service
 7. Output the URL & DNS settings of your new FastAPI app
 
-### Step 4. Add a Resource type to your Python file:
+#### Step 4. Add a Resource type to your Python file:
 
 ```python
 from fastapi import FastAPI
@@ -319,13 +321,47 @@ import launchflow as lf
 
 # Deploy a static React app to a GCS Bucket with a CDN
 bucket = lf.gcp.BackendBucket(
-    "react-app", domain="api.launchflow.com", use_cdn=True
+    "react-app", "./dst" domain=f"{lf.environment}.app.launchflow.com"
 )
-
 
 if __name__ == "__main__":
    # Use Python to easily automate non-Python applications
   print(f"Bucket URL: {bucket.url}")
+```
+
+</details>
+
+<details>
+<summary><b><font size="+1">Full on scripting with Python  (GCP)</font></b></summary>
+
+> [!IMPORTANT]  
+> This example is not yet available in the LaunchFlow Python SDK.
+
+```python
+import launchflow as lf
+
+
+backend = lf.gcp.CloudRun(
+    "fastapi-api", domain_name=f"{lf.environment}.api.launchflow.com"
+)
+
+frontend = lf.gcp.BackendBucket(
+    "react-static-app",
+    static_directory="./dst",
+    domain=f"{lf.environment}.console.launchflow.com",
+    env={
+        "LAUNCHFLOW_API_URL": backend.url
+    }
+)
+
+result = lf.deploy(backend, frontend, environment="dev")
+
+if not result.successful:
+    print(result.error)
+    exit(1)
+
+print(f"Frontend URL: {frontend.url}")
+print(f"Backend URL: {backend.url}")
 ```
 
 </details>

@@ -3,8 +3,8 @@ import os
 import tempfile
 
 from launchflow.cli.ast_search import (
+    find_launchflow_deployments,
     find_launchflow_resources,
-    find_launchflow_services,
 )
 
 SERVICE_PY = """\
@@ -44,7 +44,7 @@ def test_find_launchflow_services(caplog):
         with open(os.path.join(temp_dir, "service.py"), "w") as f:
             f.write(SERVICE_PY)
         with caplog.at_level(logging.ERROR):
-            services = find_launchflow_services(
+            services = find_launchflow_deployments(
                 temp_dir, ignore_roots=["should_ignore"]
             )
 
@@ -55,7 +55,7 @@ def test_find_launchflow_services(caplog):
 def test_ignored_services_and_resources(caplog):
     with caplog.at_level(logging.ERROR):
         resources = find_launchflow_resources(TEST_DIR, ignore_roots=[])
-        services = find_launchflow_services(TEST_DIR, ignore_roots=[])
+        services = find_launchflow_deployments(TEST_DIR, ignore_roots=[])
 
     resources.sort()
     assert resources == [
@@ -73,7 +73,7 @@ def test_ignored_services_and_resources(caplog):
 
     with caplog.at_level(logging.ERROR):
         resources = find_launchflow_resources(TEST_DIR, ignore_roots=["should_ignore"])
-        services = find_launchflow_services(TEST_DIR, ignore_roots=["should_ignore"])
+        services = find_launchflow_deployments(TEST_DIR, ignore_roots=["should_ignore"])
 
     resources.sort()
     # Ignored resources should not be included since ignore_roots is not empty

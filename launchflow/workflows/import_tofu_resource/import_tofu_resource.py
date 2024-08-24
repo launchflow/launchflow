@@ -12,9 +12,7 @@ from launchflow.workflows.import_tofu_resource.schemas import (
 
 
 async def import_tofu_resource(inputs: ImportResourceTofuInputs):
-    state_prefix = inputs.launchflow_uri.tf_state_prefix(
-        module=inputs.resource.product.value
-    )
+    state_prefix = inputs.launchflow_uri.tf_state_prefix(module=inputs.resource.product)
 
     tf_vars = {}
     if inputs.gcp_env_config:
@@ -42,13 +40,13 @@ async def import_tofu_resource(inputs: ImportResourceTofuInputs):
             }
         )
     tf_apply_command = TFApplyCommand(
-        tf_module_dir=f"resources/{inputs.resource.product.value}",
+        tf_module_dir=f"resources/{inputs.resource.product}",
         backend=inputs.backend,
         tf_state_prefix=state_prefix,
         tf_vars=tf_vars,
         logs_file=inputs.logs_file,
         launchflow_state_url=inputs.launchflow_uri.launchflow_tofu_state_url(
-            inputs.lock_id, module=inputs.resource.product.value
+            inputs.lock_id, module=inputs.resource.product
         ),
     )
 
