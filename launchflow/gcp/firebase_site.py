@@ -80,14 +80,14 @@ class FirebaseStaticSite(GCPStaticService):
             raise exceptions.ServiceOutputsNotFound(service_name=self.name)
 
         dns_outputs = None
-        if firebase_hosting_outputs.desired_dns_records:
+        if firebase_hosting_outputs.desired_dns_records and self.domain is not None:
             dns_records = []
             for record in firebase_hosting_outputs.desired_dns_records:
                 dns_type, dns_value = record.split(",", 1)
                 dns_records.append(
                     DNSRecord(
                         dns_record_value=dns_value,
-                        dns_record_type=dns_type,
+                        dns_record_type=dns_type,  # type: ignore
                     ),
                 )
             dns_outputs = DNSOutputs(

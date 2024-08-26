@@ -80,12 +80,11 @@ class StaticSite(GCPStaticService):
             raise exceptions.ServiceOutputsNotFound(service_name=self.name)
 
         service_url = f"http://{backend_bucket_outputs.cdn_ip_address}"
+        dns_outputs = None
+
         if self.domain:
             service_url = f"https://{self.domain}"
-
-        service_outputs = StaticServiceOutputs(
-            service_url=service_url,
-            dns_outputs=DNSOutputs(
+            dns_outputs = DNSOutputs(
                 domain=self.domain,
                 dns_records=[
                     DNSRecord(
@@ -93,7 +92,11 @@ class StaticSite(GCPStaticService):
                         dns_record_type="A",
                     ),
                 ],
-            ),
+            )
+
+        service_outputs = StaticServiceOutputs(
+            service_url=service_url,
+            dns_outputs=dns_outputs,
         )
         service_outputs.gcp_id = backend_bucket_outputs.gcp_id
 

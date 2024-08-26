@@ -65,7 +65,7 @@ class FirebaseHostingSite(GCPResource[FirebaseHostingSiteOutputs]):
         self.custom_domain = custom_domain
 
     def inputs(self, environment_state: EnvironmentState) -> FirebaseHostingSiteInputs:
-        firebase_project_id = Depends(self.firebase_project).gcp_id
+        firebase_project_id = Depends(self.firebase_project).gcp_id  # type: ignore
         return FirebaseHostingSiteInputs(
             resource_id=self.resource_id,
             firebase_project_id=firebase_project_id,

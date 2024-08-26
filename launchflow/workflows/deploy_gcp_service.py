@@ -444,7 +444,7 @@ async def upload_local_files_to_static_site(
     try:
         import google.auth
         import google.auth.transport.requests
-        from google.cloud import storage
+        from google.cloud import storage  # type: ignore
         from googleapiclient.discovery import build
     except ImportError:
         raise exceptions.MissingGCPDependency()
@@ -674,7 +674,7 @@ async def deploy_local_files_to_firebase_static_site(
         raise ValueError(f"Failed to finalize version {VERSION_ID}")
 
     # Step 7: Release the version for deployment
-    release_request_body = {}
+    release_request_body = {}  # type: ignore
 
     # Make the API request to create a release
     _ = (
