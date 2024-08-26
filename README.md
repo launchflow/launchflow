@@ -25,25 +25,25 @@ Fully customizable but configured by default - no messy YAML required.
 
 ## 🧠 Concepts
 
-### Deployments - [Docs](https://docs.launchflow.com/docs/concepts/deployments)
+### Services - [Docs](https://docs.launchflow.com/docs/concepts/services)
 
-Deployments allow you to deploy websites, APIs, background workers and other types of applications to your cloud account with minimal setup. There are 3 deployment types: **Services**, **Workers**, and **Jobs**.
+Services allow you to deploy websites, APIs, background workers and other types of applications to your cloud account with minimal setup.
 
 > [!NOTE]
 > LaunchFlow is not just for deploying Python apps. The Python SDK is used to define your infrastructure in code, but you can deploy any application that runs on a VM, container, or serverless environment.
 >
 > <b>Python is just the language for your DevOps automation.</b>
 
-_Click the dropdowns below to see the deployment types that are currently supported._
+_Click the dropdown below to see the service types that are currently supported._
 <details>
 <summary>
-<strong>Services</strong> - Long-running applications that serve HTTP requests.
-<a href="https://docs.launchflow.com/docs/concepts/deployments#services">Service Docs</a>
+<strong>Services Types</strong>
 </summary>
 
 - Static Websites
-  - [ ] (AWS) S3 Backend - coming soon
-  - [ ] (GCP) GCS Backend - coming soon
+  - [ ] (AWS) S3 Static Site - coming soon
+  - [ ] (GCP) GCS Static Site with Load Balancer - coming soon
+  - [ ] (GCP) Firebase Static Site - coming soon
 - Serverless APIs
   - [ ] (AWS) Lambda Service - coming soon
   - [x] (GCP) Cloud Run Service - [Docs](https://docs.launchflow.com/docs/services/gcp/cloud-run)
@@ -56,42 +56,6 @@ _Click the dropdowns below to see the deployment types that are currently suppor
 
 </details>
 
-<details>
-<summary>
-<strong>Workers</strong> - Background workers that process tasks.
-<a href="https://docs.launchflow.com/docs/concepts/deployments#workers">Worker Docs</a>
-</summary>
-
-- Serverless Workers
-  - [ ] (AWS) Lambda Worker - coming soon
-  - [ ] (GCP) Cloud Run Worker - coming soon
-- Auto-Scaling VMs
-  - [ ] (AWS) EC2 Worker - coming soon
-  - [ ] (GCP) Compute Engine Worker - coming soon
-- Kubernetes Clusters
-  - [ ] (AWS) EKS Worker - coming soon
-  - [ ] (GCP) GKE Worker - coming soon
-
-</details>
-
-
-<details>
-<summary>
-<strong>Jobs</strong> - Individual tasks that run to completion.
-<a href="https://docs.launchflow.com/docs/concepts/deployments#jobs">Jobs Docs</a>
-</summary>
-
-- Serverless Jobs
-  - [ ] (AWS) Lambda Job - coming soon
-  - [ ] (GCP) Cloud Run Job - coming soon
-- Auto-Scaling VMs
-  - [ ] (AWS) EC2 Job - coming soon
-  - [ ] (GCP) Compute Engine Job - coming soon
-- Kubernetes Clusters
-  - [ ] (AWS) EKS Job - coming soon
-  - [ ] (GCP) GKE Job - coming soon
-
-</details>
 
 
 ### Resources - [Docs](https://docs.launchflow.com/docs/concepts/resources)
@@ -133,7 +97,7 @@ _Click the dropdown below to see the resource types that are currently supported
 
 ### Environments - [Docs](https://docs.launchflow.com/docs/concepts/environments)
 
-Environments group **Deployments** and **Resources** inside a private network (VPC) on either GCP or AWS. You can create multiple environments for different stages of your workflow (e.g. development, staging, production) and switch between them with a single command.
+Environments group **Services** and **Resources** inside a private network (VPC) on either GCP or AWS. You can create multiple environments for different stages of your workflow (e.g. development, staging, production) and switch between them with a single command.
 
 </details>
 
@@ -159,7 +123,7 @@ def index():
     return f'Hello from {lf.environment}!'
 ```
 
-#### Step 2. Add a Deployment type to your Python file:
+#### Step 2. Add a Service type to your Python file:
 
 ```python
 from fastapi import FastAPI
@@ -218,7 +182,7 @@ lf deploy
 
 ## 📖 Examples
 
-_Click the dropdowns below to see the deployment types that are currently supported._
+_Click the dropdowns below to see the example's code._
 
 <details open>
 <summary><b><font size="+1">Deploy FastAPI to ECS Fargate (AWS)</font></b></summary>
