@@ -1407,7 +1407,7 @@ class PromoteDockerImagePlan(ServicePlan):
     ) -> PromoteDockerImageResult:
         try:
             logs_file_or_link = None
-            if isinstance(self.service, GCPService):
+            if isinstance(self.service, GCPDockerService):
                 docker_image, logs_file_or_link = await promote_gcp_service_image(
                     self.service,
                     from_service_state=self.from_service_state,
@@ -1419,7 +1419,7 @@ class PromoteDockerImagePlan(ServicePlan):
                 return PromoteDockerImageResult(
                     self, True, docker_image, logs_file_or_link
                 )
-            elif isinstance(self.service, AWSService):
+            elif isinstance(self.service, AWSDockerService):
                 docker_image, logs_file_or_link = await promote_aws_service_image(
                     self.service,
                     from_service_state=self.from_service_state,

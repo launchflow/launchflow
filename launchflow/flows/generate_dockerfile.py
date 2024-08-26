@@ -4,7 +4,7 @@ import beaupy
 from rich.console import Console
 
 from launchflow.flows.flow_utils import ServiceRef
-from launchflow.service import DockerService, Service
+from launchflow.service import DockerService
 
 DOCKERFILE_TEMPLATE = """# TODO(developer): Change the base image to match your Python version
 FROM {base_image}
