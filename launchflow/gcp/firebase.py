@@ -43,7 +43,6 @@ class FirebaseHostingSiteOutputs(Outputs):
 class FirebaseHostingSiteInputs(ResourceInputs):
     firebase_project_id: str
     custom_domain: Optional[str]
-    create_hack: Optional[str]
 
 
 class FirebaseHostingSite(GCPResource[FirebaseHostingSiteOutputs]):
@@ -55,7 +54,6 @@ class FirebaseHostingSite(GCPResource[FirebaseHostingSiteOutputs]):
         *,
         firebase_project: FirebaseProject,
         custom_domain: Optional[str] = None,
-        create_hack: Optional[str] = None,
     ) -> None:
         """Create a new Firebase Hosting Site resource.
         **Args:**
@@ -65,7 +63,6 @@ class FirebaseHostingSite(GCPResource[FirebaseHostingSiteOutputs]):
         # public metadata
         self.firebase_project = firebase_project
         self.custom_domain = custom_domain
-        self.create_hack = create_hack
 
     def inputs(self, environment_state: EnvironmentState) -> FirebaseHostingSiteInputs:
         firebase_project_id = Depends(self.firebase_project).gcp_id
@@ -73,5 +70,4 @@ class FirebaseHostingSite(GCPResource[FirebaseHostingSiteOutputs]):
             resource_id=self.resource_id,
             firebase_project_id=firebase_project_id,
             custom_domain=self.custom_domain,
-            create_hack=self.create_hack,
         )

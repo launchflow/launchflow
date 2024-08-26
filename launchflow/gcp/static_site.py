@@ -35,7 +35,7 @@ class StaticSite(GCPStaticService):
         static_directory: str,
         *,
         static_ignore: List[str] = [],
-        wait_for_cache_invalidation: bool = False,
+        wait_for_cdn_invalidation: bool = False,
         # backend bucket inputs
         region: Optional[str] = None,
         domain: Optional[str] = None,
@@ -56,7 +56,7 @@ class StaticSite(GCPStaticService):
         )
         self.region = region
         self.domain = domain
-        self.wait_for_cache_invalidation = wait_for_cache_invalidation
+        self.wait_for_cdn_invalidation = wait_for_cdn_invalidation
 
         # TODO: make this configurable
         self._backend_bucket = BackendBucket(

@@ -30,8 +30,3 @@ variable "custom_domain" {
   type = string
   default = null
 }
-
-variable "create_hack" {
-  type = string
-  default = "false"
-}

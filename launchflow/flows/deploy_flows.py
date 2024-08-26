@@ -22,43 +22,64 @@ from launchflow.aws.service import AWSDockerService, AWSService
 from launchflow.cli.resource_utils import is_secret_resource
 from launchflow.clients.docker_client import docker_service_available
 from launchflow.config import config
-from launchflow.flows.create_flows import (CreateResourcePlan,
-                                           CreateResourceResult,
-                                           CreateServicePlan,
-                                           CreateServiceResult, plan_create,
-                                           plan_create_service)
-from launchflow.flows.flow_utils import (OP_COLOR, EnvironmentRef, ResourceRef,
-                                         ServiceRef, format_configuration_dict)
+from launchflow.flows.create_flows import (
+    CreateResourcePlan,
+    CreateResourceResult,
+    CreateServicePlan,
+    CreateServiceResult,
+    plan_create,
+    plan_create_service,
+)
+from launchflow.flows.flow_utils import (
+    OP_COLOR,
+    EnvironmentRef,
+    ResourceRef,
+    ServiceRef,
+    format_configuration_dict,
+)
 from launchflow.flows.generate_dockerfile import generate_dockerfile
-from launchflow.flows.plan import (FailedToPlan, FlowResult, Plan, Result,
-                                   ServicePlan, execute_plans)
+from launchflow.flows.plan import (
+    FailedToPlan,
+    FlowResult,
+    Plan,
+    Result,
+    ServicePlan,
+    execute_plans,
+)
 from launchflow.flows.plan_utils import lock_plans, print_plans, select_plans
 from launchflow.gcp.cloud_run import CloudRun
 from launchflow.gcp.compute_engine_service import ComputeEngineService
 from launchflow.gcp.firebase_site import FirebaseStaticSite
-from launchflow.gcp.service import (GCPDockerService, GCPService,
-                                    GCPStaticService)
+from launchflow.gcp.service import GCPDockerService, GCPService, GCPStaticService
 from launchflow.gcp.static_site import StaticSite
 from launchflow.locks import Lock, LockOperation, OperationType, ReleaseReason
 from launchflow.managers.environment_manager import EnvironmentManager
 from launchflow.managers.service_manager import ServiceManager
-from launchflow.models.enums import (CloudProvider, EnvironmentStatus,
-                                     ServiceStatus)
-from launchflow.models.flow_state import (AWSEnvironmentConfig,
-                                          EnvironmentState,
-                                          GCPEnvironmentConfig, ServiceState)
+from launchflow.models.enums import CloudProvider, EnvironmentStatus, ServiceStatus
+from launchflow.models.flow_state import (
+    AWSEnvironmentConfig,
+    EnvironmentState,
+    GCPEnvironmentConfig,
+    ServiceState,
+)
 from launchflow.node import Node
 from launchflow.resource import Resource
 from launchflow.service import DockerService, Service, StaticService
 from launchflow.utils import generate_deployment_id
 from launchflow.validation import validate_service_name
 from launchflow.workflows.deploy_aws_service import (
-    build_and_push_aws_service, promote_aws_service_image,
-    release_docker_image_to_ecs_fargate)
+    build_and_push_aws_service,
+    promote_aws_service_image,
+    release_docker_image_to_ecs_fargate,
+)
 from launchflow.workflows.deploy_gcp_service import (
-    build_and_push_gcp_service, deploy_local_files_to_firebase_static_site,
-    promote_gcp_service_image, release_docker_image_to_cloud_run,
-    release_docker_image_to_compute_engine, upload_local_files_to_static_site)
+    build_and_push_gcp_service,
+    deploy_local_files_to_firebase_static_site,
+    promote_gcp_service_image,
+    release_docker_image_to_cloud_run,
+    release_docker_image_to_compute_engine,
+    upload_local_files_to_static_site,
+)
 
 
 @dataclasses.dataclass

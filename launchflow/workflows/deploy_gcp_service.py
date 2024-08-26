@@ -498,7 +498,7 @@ async def upload_local_files_to_static_site(
         .execute()
     )
 
-    if static_site.wait_for_cache_invalidation:
+    if static_site.wait_for_cdn_invalidation:
         while True:
             result = (
                 compute_service.globalOperations()
@@ -518,6 +518,7 @@ async def upload_local_files_to_static_site(
     return service_url
 
 
+# Followed these docs: https://firebase.google.com/docs/hosting/api-deploy
 async def deploy_local_files_to_firebase_static_site(
     gcp_environment_config: GCPEnvironmentConfig,
     firebase_static_site: FirebaseStaticSite,

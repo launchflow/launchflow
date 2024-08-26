@@ -38,7 +38,6 @@ class FirebaseStaticSite(GCPStaticService):
         # backend bucket inputs
         region: Optional[str] = None,
         domain: Optional[str] = None,
-        create_hack: Optional[str] = None,
     ) -> None:
         """Creates a new Cloud Run service.
 
@@ -63,7 +62,6 @@ class FirebaseStaticSite(GCPStaticService):
             name=f"{name}-firebase-site",
             firebase_project=self._firebase_project,
             custom_domain=domain,
-            create_hack=create_hack,
         )
 
     def inputs(self) -> FirebaseStaticSiteInputs:
