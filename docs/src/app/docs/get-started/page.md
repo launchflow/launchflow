@@ -8,29 +8,32 @@ nextjs:
 
 <!-- TODO use the fence highlighting to show the lines that were modified-->
 <!-- would be nice to modify it to show additions in green and deletions in red -->
-LaunchFlow is an infrastructure toolkit for Python that makes it easy to build, deploy, and manage infrastructure on GCP, AWS, and Docker. For an overview, see the [welcome page](../).
+LaunchFlow is an open source deployment tool that makes it easy to automate your application's infrastructure, secrets, and deployments on Amazon Web Services (AWS) and Google Cloud Platform (GCP). For an overview, see the [welcome page](../).
+
 
 In this walk-through, we'll install LaunchFlow and demonstrate how to create and deploy a small web application with it. See [here](../#core-concepts) an overview of the core concepts.
 
 <!-- TODO: move tab provider so we only have one set of tabs at the top that's sticky like https://docs.stripe.com/checkout/quickstart -->
-{% tabProvider defaultLabel="GCP" %}
+{% tabProvider defaultLabel="AWS" %}
 
 ## 1. Install LaunchFlow
 
 Install the LaunchFlow Python SDK and CLI using `pip`.
 
 {% tabs %}
-{% tab label="GCP" %}
 
-```bash
-pip install "launchflow[gcp]"
-```
-
-{% /tab %}
 {% tab label="AWS" %}
 
 ```bash
 pip install "launchflow[aws]"
+```
+
+{% /tab %}
+
+{% tab label="GCP" %}
+
+```bash
+pip install "launchflow[gcp]"
 ```
 
 {% /tab %}
@@ -61,17 +64,6 @@ You can learn more about it in the [launchflow.yaml docs](/reference/launchflow-
 ### Authenticate with Cloud Providers
 
 {% tabs %}
-{% tab label="GCP" %}
-
-LaunchFlow uses your local GCP credentials to manage and provision resources. We recommend using the [Google Cloud SDK](https://cloud.google.com/sdk/docs/install) to authenticate with your GCP account. Once you have the CLI set up, run the following command to login to your Google Cloud account:
-
-```bash
-gcloud auth application-default login
-```
-
-Your credentials never leave your local machine. LaunchFlow runs everything on your client and encrypts your infrastructure state at rest.
-
-{% /tab %}
 
 {% tab label="AWS" %}
 
@@ -85,10 +77,23 @@ Your credentials never leave your local machine. LaunchFlow runs everything on y
 
 {% /tab %}
 
+{% tab label="GCP" %}
+
+LaunchFlow uses your local GCP credentials to manage and provision resources. We recommend using the [Google Cloud SDK](https://cloud.google.com/sdk/docs/install) to authenticate with your GCP account. Once you have the CLI set up, run the following command to login to your Google Cloud account:
+
+```bash
+gcloud auth application-default login
+```
+
+Your credentials never leave your local machine. LaunchFlow runs everything on your client and encrypts your infrastructure state at rest.
+
+{% /tab %}
+
+
 {% /tabs %}
 
 
-## 3. Create Your Application
+## 3. Launch Your Application
 
 ### Create a FastAPI Application
 
@@ -122,48 +127,7 @@ If everything is set up correctly, sending a GET request to `http://localhost:80
 ### Add a Storage Bucket with LaunchFlow
 
 {% tabs %}
-  {% tab label="GCP" %}
-Import the LaunchFlow GCSBucket resource and create and instance in your Python code:
 
-_main.py_:
-```python,1,4+,10+,11+,12+
-from fastapi import FastAPI
-import launchflow as lf
-
-bucket = lf.gcp.GCSBucket(f"my-get-started-bucket-{lf.environment}")
-
-app = FastAPI()
-
-@app.get("/")
-def index():
-    bucket.upload_from_string("Hello World", "hello_world.txt")
-    contents = bucket.download_file("hello_world.txt")
-    return contents
-```
-
-Before we can run it again, we need to do two things:
-
-1. Create a LaunchFlow [Environment](/docs/concepts/environments), which will group together the infrastructure we're going to create.
-1. Provision the [Resources](/docs/concepts/resources) that our code is using.
-
-We can do both by running one command:
-```bash
-lf create
-```
-
-Follow the prompts to:
-
-1. Select GCP as the cloud provider you want to use and choose an environment name
-1. Confirm that you'd like to create the CloudSQLPostgres resource
-
-If you see `Successfully created 1 resource`, you're ready to run the application again! LaunchFlow resources are uniquely identified by their name and environment, so to run the code locally now, we need to pass through the environment name. This is what the `lf run` command runner is for:
-
-```bash
-lf run {your environment name} -- uvicorn main:app --port 8080
-```
-
-Sending a GET request to `http://localhost:8080/` should return you another `Hello World` response!
-  {% /tab %}
   {% tab label="AWS" %}
 Import the LaunchFlow S3Bucket resource and create and instance in your Python code:
 
@@ -206,16 +170,12 @@ lf run {your environment name} -- uvicorn main:app --port 8080
 
 Sending a GET request to `http://localhost:8080/` should return you another `Hello World` response!
   {% /tab %}
-{% /tabs %}
 
-### Deploy Your Application
-
-Now that we have it all working locally, let's deploy it to the cloud!
-
-{% tabs %}
   {% tab label="GCP" %}
-We can deploy to [Cloud Run](https://cloud.google.com/run). You'll need to provide a Dockerfile that can run your code.
-```python,1,14+
+Import the LaunchFlow GCSBucket resource and create and instance in your Python code:
+
+_main.py_:
+```python,1,4+,10+,11+,12+
 from fastapi import FastAPI
 import launchflow as lf
 
@@ -228,28 +188,40 @@ def index():
     bucket.upload_from_string("Hello World", "hello_world.txt")
     contents = bucket.download_file("hello_world.txt")
     return contents
-
-cloud_run = lf.gcp.CloudRun("my-cloud-run", region="us-central1")
 ```
 
-```Dockerfile
-FROM python:3.11-slim
+Before we can run it again, we need to do two things:
 
-WORKDIR /code
+1. Create a LaunchFlow [Environment](/docs/concepts/environments), which will group together the infrastructure we're going to create.
+1. Provision the [Resources](/docs/concepts/resources) that our code is using.
 
-RUN apt-get update && apt-get install -y --no-install-recommends gcc libpq-dev && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-RUN pip install --no-cache-dir -U pip setuptools wheel && pip install --no-cache-dir launchflow[gcp] fastapi uvicorn
-
-COPY ./main.py /code/main.py
-
-ENV PORT=8080
-
-EXPOSE $PORT
-
-CMD uvicorn main:app --host 0.0.0.0 --port $PORT
+We can do both by running one command:
+```bash
+lf create
 ```
+
+Follow the prompts to:
+
+1. Select GCP as the cloud provider you want to use and choose an environment name
+1. Confirm that you'd like to create the CloudSQLPostgres resource
+
+If you see `Successfully created 1 resource`, you're ready to run the application again! LaunchFlow resources are uniquely identified by their name and environment, so to run the code locally now, we need to pass through the environment name. This is what the `lf run` command runner is for:
+
+```bash
+lf run {your environment name} -- uvicorn main:app --port 8080
+```
+
+Sending a GET request to `http://localhost:8080/` should return you another `Hello World` response!
   {% /tab %}
+
+{% /tabs %}
+
+### Deploy Your Application
+
+Now that we have it all working locally, let's deploy it to the cloud!
+
+{% tabs %}
+
   {% tab label="AWS" %}
 We can deploy to [ECS Fargate](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate.html) with minimal setup. You'll need to provide a Dockerfile that can run your code.
 ```python,1,14+
@@ -287,6 +259,45 @@ EXPOSE $PORT
 CMD uvicorn main:app --host 0.0.0.0 --port $PORT
 ```
   {% /tab %}
+
+  {% tab label="GCP" %}
+We can deploy to [Cloud Run](https://cloud.google.com/run). You'll need to provide a Dockerfile that can run your code.
+```python,1,14+
+from fastapi import FastAPI
+import launchflow as lf
+
+bucket = lf.gcp.GCSBucket(f"my-get-started-bucket-{lf.environment}")
+
+app = FastAPI()
+
+@app.get("/")
+def index():
+    bucket.upload_from_string("Hello World", "hello_world.txt")
+    contents = bucket.download_file("hello_world.txt")
+    return contents
+
+cloud_run = lf.gcp.CloudRun("my-cloud-run", region="us-central1")
+```
+
+```Dockerfile
+FROM python:3.11-slim
+
+WORKDIR /code
+
+RUN apt-get update && apt-get install -y --no-install-recommends gcc libpq-dev && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir -U pip setuptools wheel && pip install --no-cache-dir launchflow[gcp] fastapi uvicorn
+
+COPY ./main.py /code/main.py
+
+ENV PORT=8080
+
+EXPOSE $PORT
+
+CMD uvicorn main:app --host 0.0.0.0 --port $PORT
+```
+  {% /tab %}
+
 {% /tabs %}
 
 

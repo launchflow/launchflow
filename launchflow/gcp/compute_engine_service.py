@@ -1,6 +1,7 @@
 import dataclasses
 from datetime import timedelta
-from typing import Any, List, Literal, Union, Optional
+from typing import Any, List, Literal, Optional, Union
+
 from launchflow import exceptions
 from launchflow.gcp.artifact_registry_repository import (
     ArtifactRegistryRepository,
@@ -20,11 +21,11 @@ from launchflow.gcp.regional_managed_instance_group import (
     RegionalManagedInstanceGroup,
     UpdatePolicy,
 )
-from launchflow.gcp.service import GCPService
+from launchflow.gcp.service import GCPDockerService
 from launchflow.models.enums import ServiceProduct
 from launchflow.node import Inputs
 from launchflow.resource import Resource
-from launchflow.service import DNSOutputs, ServiceOutputs
+from launchflow.service import DNSOutputs, DNSRecord, DockerServiceOutputs
 
 
 @dataclasses.dataclass
@@ -34,7 +35,7 @@ class ComputeEngineServiceInputs(Inputs):
     deploy_timeout_sec: float
 
 
-class ComputeEngineService(GCPService):
+class ComputeEngineService(GCPDockerService):
     """A service hosted on a managed instance group on GCP Compute Engine.
 
     Like all [Services](/docs/concepts/services), this class configures itself across multiple [Environments](/docs/concepts/environments).
@@ -223,7 +224,7 @@ class ComputeEngineService(GCPService):
             disk_size_gb=self.disk_size_gb,
         )
 
-    def outputs(self) -> ServiceOutputs:
+    def outputs(self) -> DockerServiceOutputs:
         repo_outputs = self._artifact_registry.outputs()
         if repo_outputs.docker_repository is None:
             raise ValueError("Docker repository not found in artifact registry outputs")
@@ -237,9 +238,14 @@ class ComputeEngineService(GCPService):
                 raise exceptions.ServiceOutputsNotFound(service_name=self.name)
             dns_outputs = DNSOutputs(
                 domain=custom_domain_outputs.registered_domain,
-                ip_address=custom_domain_outputs.ip_address,
+                dns_records=[
+                    DNSRecord(
+                        dns_record_type="A",
+                        dns_record_value=custom_domain_outputs.ip_address,
+                    )
+                ],
             )
-        return ServiceOutputs(
+        return DockerServiceOutputs(
             service_url=service_url,  # type: ignore
             docker_repository=repo_outputs.docker_repository,
             dns_outputs=dns_outputs,

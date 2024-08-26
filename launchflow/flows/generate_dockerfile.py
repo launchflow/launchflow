@@ -4,7 +4,7 @@ import beaupy
 from rich.console import Console
 
 from launchflow.flows.flow_utils import ServiceRef
-from launchflow.service import Service
+from launchflow.service import DockerService, Service
 
 DOCKERFILE_TEMPLATE = """# TODO(developer): Change the base image to match your Python version
 FROM {base_image}
@@ -77,7 +77,7 @@ def vanilla_python_dockerfile_template(
 
 
 def generate_dockerfile(
-    service: Service,
+    service: DockerService,
     gcp_or_aws: Literal["gcp", "aws"],
     console: Console = Console(),
 ):

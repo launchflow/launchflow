@@ -1,6 +1,6 @@
 import dataclasses
 import io
-from typing import IO
+from typing import IO, Optional
 
 from launchflow.gcp_clients import get_storage_client
 from launchflow.models.enums import ResourceProduct
@@ -160,3 +160,63 @@ class GCSBucket(GCPResource[GCSBucketOutputs]):
         """
         bucket = self.bucket()
         return bucket.blob(bucket_path).download_as_bytes()
+
+
+@dataclasses.dataclass
+class BackendBucketOutputs(Outputs):
+    bucket_name: str
+    cdn_ip_address: str
+    url_map_resource_id: str
+
+
+@dataclasses.dataclass
+class BackendBucketInputs(ResourceInputs):
+    location: str
+    force_destroy: bool
+    custom_domain: Optional[str]
+    main_page_suffix: str
+    not_found_page: str
+
+
+class BackendBucket(GCPResource[BackendBucketOutputs]):
+    product = ResourceProduct.GCP_BACKEND_BUCKET.value
+
+    def __init__(
+        self,
+        name: str,
+        *,
+        location: str = "US",
+        force_destroy: bool = False,
+        custom_domain: Optional[str] = None,
+        main_page_suffix: str = "index.html",
+        not_found_page: str = "404.html",
+    ) -> None:
+        """Create a new GCS Backend Bucket resource.
+        **Args:**
+        - `name (str)`: The name of the bucket. This must be globally unique.
+        - `location (str)`: The location of the bucket. Defaults to "US".
+        - `force_destroy (bool)`: If true, the bucket will be destroyed even if it's not empty. Defaults to False.
+        - `custom_domain (Optional[str])`: A custom domain to map to the bucket
+        """
+        super().__init__(
+            name=name,
+            replacement_arguments={"location"},
+            # GCS buckets can only contain lowercase letters
+            resource_id=name.lower(),
+        )
+        # public metadata
+        self.location = location
+        self.force_destroy = force_destroy
+        self.custom_domain = custom_domain
+        self.main_page_suffix = main_page_suffix
+        self.not_found_page = not_found_page
+
+    def inputs(self, environment_state: EnvironmentState) -> BackendBucketInputs:
+        return BackendBucketInputs(
+            resource_id=self.resource_id,
+            location=self.location,
+            force_destroy=self.force_destroy,
+            custom_domain=self.custom_domain,
+            main_page_suffix=self.main_page_suffix,
+            not_found_page=self.not_found_page,
+        )

@@ -1,0 +1,37 @@
+#
+# LaunchFlow global tofu variables
+#
+variable "gcp_project_id" {
+  type = string
+}
+
+variable "gcp_region" {
+  type = string
+}
+
+variable "resource_id" {
+  type = string
+}
+
+variable "environment_service_account_email" {
+  type = string
+}
+
+variable "artifact_bucket" {
+  type = string
+}
+
+
+variable "firebase_project_id" {
+  type = string
+}
+
+variable "custom_domain" {
+  type = string
+  default = null
+}
+
+variable "create_hack" {
+  type = string
+  default = "false"
+}

@@ -7,31 +7,35 @@ import { HeroBackground } from '@/components/HeroBackground'
 import blurCyanImage from '@/images/blur-cyan.png'
 import blurIndigoImage from '@/images/blur-indigo.png'
 
-import Link from 'next/link'
 import { HeroCode } from './HeroCode'
 
-const launchCode = `import launchflow as lf
+const awsCode = `from fastapi import FastAPI
+import launchflow as lf
 
-# Automatically deploys to your cloud account
-gcp_postgres = lf.gcp.CloudSQLPostgres("gcp-postgres")
-aws_postgres = lf.aws.RDSPostgres("aws-postgres")
+app = FastAPI()
 
-# Ready to use with no additional setup
-gcp_postgres.sqlalchemy_engine()
-# FastAPI, Flask, & Django integrations
-aws_postgres.django_settings()`
+@app.get("/")
+def index():
+    return f"Hello from {lf.environment}!"
 
-const mainCode = `from infra import *
+# Deploy this FastAPI app to ECS Fargate on AWS
+api = lf.aws.ECSFargate("my-api", domain="launchflow.com")`
 
-gcs.upload_file("/tmp/hello.txt", "hello.txt")
-s3.upload_file("/tmp/hello.txt", "hello.txt")
+const gcpCode = `from fastapi import FastAPI
+import launchflow as lf
 
-db_gcp = postgres_gcp.sqlalchemy_engine()
-db_aws = postgres_aws.sqlalchemy_engine()`
+app = FastAPI()
+
+@app.get("/")
+def index():
+    return f"Hello from {lf.environment}!"
+
+# Deploy this FastAPI app to Cloud Run on GCP
+api = lf.gcp.CloudRun("my-api", domain="launchflow.com")`
 
 const tabs = [
-  { name: 'infra.py', isActive: true, code: launchCode },
-  // { name: 'main.py', isActive: false, code: mainCode },
+  { name: 'aws.py', isActive: true, code: awsCode },
+  { name: 'gcp.py', isActive: false, code: gcpCode },
 ]
 
 function TrafficLightsIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
@@ -74,9 +78,10 @@ export function Hero() {
               <p className="fluid-text inline bg-gradient-to-r from-primary via-secondary to-logo bg-clip-text font-display tracking-tight text-transparent ">
                 LaunchFlow Docs
               </p>
-              <p className="mt-3 text-lg tracking-tight text-slate-300 sm:text-xl">
-                Deploy, manage, and share cloud infrastructure across multiple
-                cloud providers and environments using Python.
+              <p className="mt-3 text-lg tracking-tight text-slate-300 sm:text-2xl">
+                Automate deployments on AWS and GCP with Python.{' '}
+                <br className="hidden sm:block" />
+                No messy YAML required.
               </p>
               <div className="mt-8 flex items-center gap-4 md:justify-center lg:justify-start">
                 <Button variant="primary-lg" href="/docs/get-started">
