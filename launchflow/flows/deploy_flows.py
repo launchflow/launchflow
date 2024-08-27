@@ -18,7 +18,7 @@ from rich.tree import Tree
 import launchflow
 from launchflow import exceptions
 from launchflow.aws.ecs_fargate import ECSFargate
-from launchflow.aws.service import AWSService
+from launchflow.aws.service import AWSDockerService, AWSService
 from launchflow.cli.resource_utils import is_secret_resource
 from launchflow.clients.docker_client import docker_service_available
 from launchflow.config import config
@@ -50,7 +50,9 @@ from launchflow.flows.plan_utils import lock_plans, print_plans, select_plans
 from launchflow.gcp.cloud_run import CloudRun
 from launchflow.gcp.compute_engine_service import ComputeEngineService
 from launchflow.gcp.gke_service import GKEService
-from launchflow.gcp.service import GCPService
+from launchflow.gcp.firebase_site import FirebaseStaticSite
+from launchflow.gcp.service import GCPDockerService, GCPService, GCPStaticService
+from launchflow.gcp.static_site import StaticSite
 from launchflow.locks import Lock, LockOperation, OperationType, ReleaseReason
 from launchflow.managers.environment_manager import EnvironmentManager
 from launchflow.managers.service_manager import ServiceManager
@@ -63,7 +65,7 @@ from launchflow.models.flow_state import (
 )
 from launchflow.node import Node
 from launchflow.resource import Resource
-from launchflow.service import Service
+from launchflow.service import DockerService, Service, StaticService
 from launchflow.utils import generate_deployment_id
 from launchflow.validation import validate_service_name
 from launchflow.workflows.deploy_aws_service import (
@@ -73,10 +75,12 @@ from launchflow.workflows.deploy_aws_service import (
 )
 from launchflow.workflows.deploy_gcp_service import (
     build_and_push_gcp_service,
+    deploy_local_files_to_firebase_static_site,
     promote_gcp_service_image,
     release_docker_image_to_cloud_run,
     release_docker_image_to_compute_engine,
     release_docker_image_to_gke,
+    upload_local_files_to_static_site,
 )
 
 
@@ -124,7 +128,7 @@ class BuildServicePlan(ServicePlan):
     ) -> BuildServiceResult:
         try:
             logs_file_or_link = None
-            if isinstance(self.service, GCPService):
+            if isinstance(self.service, GCPDockerService):
                 docker_image, logs_file_or_link = await build_and_push_gcp_service(
                     self.service,
                     self.service_manager,
@@ -133,7 +137,7 @@ class BuildServicePlan(ServicePlan):
                     self.build_local,
                 )
                 return BuildServiceResult(self, True, docker_image, logs_file_or_link)
-            elif isinstance(self.service, AWSService):
+            elif isinstance(self.service, AWSDockerService):
                 docker_image, logs_file_or_link = await build_and_push_aws_service(
                     self.service,
                     self.service_manager,
@@ -142,6 +146,9 @@ class BuildServicePlan(ServicePlan):
                     self.build_local,
                 )
                 return BuildServiceResult(self, True, docker_image, logs_file_or_link)
+            elif isinstance(self.service, GCPStaticService):
+                # TODO: Add a hook to allow for custom build steps for static sites
+                return BuildServiceResult(self, True)
             else:
                 result = BuildServiceResult(self, False)
                 result.error_message = f"Unsupported service type: {self.service}"
@@ -169,16 +176,27 @@ class BuildServicePlan(ServicePlan):
         full_yaml_path = os.path.dirname(
             os.path.abspath(config.launchflow_yaml.config_path)
         )
-        build_directory_path = os.path.abspath(
-            os.path.join(full_yaml_path, self.service.build_directory)
-        )
 
-        build_inputs_dict = {
-            "dockerfile": self.service.dockerfile,
-            "build_directory": build_directory_path,
-            "build_ignore": self.service.build_ignore,
-            "build_local": self.build_local,
-        }
+        if isinstance(self.service, DockerService):
+            build_directory_path = os.path.abspath(
+                os.path.join(full_yaml_path, self.service.build_directory)
+            )
+            build_inputs_dict = {
+                "dockerfile": self.service.dockerfile,
+                "build_directory": build_directory_path,
+                "build_ignore": self.service.build_ignore,
+                "build_local": self.build_local,
+            }
+        elif isinstance(self.service, StaticService):
+            static_directory_path = os.path.abspath(
+                os.path.join(full_yaml_path, self.service.static_directory)
+            )
+            build_inputs_dict = {
+                "static_directory": static_directory_path,
+                "static_ignore": self.service.static_ignore,
+            }
+        else:
+            build_inputs_dict = {}
         build_inputs_str = format_configuration_dict(build_inputs_dict)
         console.print()
         console.print(
@@ -274,6 +292,21 @@ class ReleaseServicePlan(ServicePlan):
         tree: Tree,
         dependency_results: List[Result],
     ) -> ReleaseServiceResult:
+        # TODO: Consider refactoring this to separate static & docker release steps
+        if isinstance(self.service, StaticSite):
+            service_url = await upload_local_files_to_static_site(
+                gcp_environment_config=self.gcp_environment_config,  # type: ignore
+                static_site=self.service,
+            )
+            return ReleaseServiceResult(self, True, service_url)
+
+        if isinstance(self.service, FirebaseStaticSite):
+            service_url = await deploy_local_files_to_firebase_static_site(
+                gcp_environment_config=self.gcp_environment_config,  # type: ignore
+                firebase_static_site=self.service,
+            )
+            return ReleaseServiceResult(self, True, service_url)
+
         if self.docker_step is not None:
             maybe_docker_image = self._get_docker_image_from_dependency(
                 dependency_results
@@ -789,7 +822,7 @@ def _find_services_without_dockerfiles(
 ):
     services_without_dockerfile = []
     for node in nodes:
-        if isinstance(node, Service):
+        if isinstance(node, DockerService):
             if not os.path.exists(node.dockerfile):
                 services_without_dockerfile.append(node)
     return services_without_dockerfile
@@ -1156,12 +1189,13 @@ async def deploy(
     table.add_column("IP Address", style="pale_green3", overflow="fold")
     for result in create_results:
         if isinstance(result, CreateServiceResult) and result.dns_outputs is not None:
-            table.add_row(
-                str(ServiceRef(result.plan.service)),
-                result.dns_outputs.domain,
-                "A",
-                result.dns_outputs.ip_address,
-            )
+            for record in result.dns_outputs.dns_records:
+                table.add_row(
+                    str(ServiceRef(result.plan.service)),
+                    result.dns_outputs.domain,
+                    record.dns_record_type,
+                    record.dns_record_value,
+                )
     if table.row_count > 0:
         console.rule("[bold purple]custom domains")
         console.print("Add or update these records in your DNS settings:\n")
@@ -1386,7 +1420,7 @@ class PromoteDockerImagePlan(ServicePlan):
     ) -> PromoteDockerImageResult:
         try:
             logs_file_or_link = None
-            if isinstance(self.service, GCPService):
+            if isinstance(self.service, GCPDockerService):
                 docker_image, logs_file_or_link = await promote_gcp_service_image(
                     self.service,
                     from_service_state=self.from_service_state,
@@ -1398,7 +1432,7 @@ class PromoteDockerImagePlan(ServicePlan):
                 return PromoteDockerImageResult(
                     self, True, docker_image, logs_file_or_link
                 )
-            elif isinstance(self.service, AWSService):
+            elif isinstance(self.service, AWSDockerService):
                 docker_image, logs_file_or_link = await promote_aws_service_image(
                     self.service,
                     from_service_state=self.from_service_state,

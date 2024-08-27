@@ -8,11 +8,11 @@ from launchflow.gcp.artifact_registry_repository import (
 )
 from launchflow.gcp.cloud_run_container import CloudRunServiceContainer
 from launchflow.gcp.custom_domain_mapping import CustomDomainMapping
-from launchflow.gcp.service import GCPService
+from launchflow.gcp.service import GCPDockerService
 from launchflow.models.enums import ServiceProduct
 from launchflow.node import Inputs
 from launchflow.resource import Resource
-from launchflow.service import DNSOutputs, ServiceOutputs
+from launchflow.service import DNSOutputs, DNSRecord, DockerServiceOutputs
 
 
 @dataclass
@@ -20,7 +20,7 @@ class CloudRunInputs(Inputs):
     pass
 
 
-class CloudRun(GCPService):
+class CloudRun(GCPDockerService):
     """A service hosted on GCP Cloud Run.
 
     ### Example Usage
@@ -149,7 +149,7 @@ class CloudRun(GCPService):
             to_return.append(self._custom_domain_mapping)
         return to_return
 
-    def outputs(self) -> ServiceOutputs:
+    def outputs(self) -> DockerServiceOutputs:
         try:
             service_container_outputs = self._cloud_run_service_container.outputs()
             artifact_registry_outputs = self._artifact_registry.outputs()
@@ -164,13 +164,18 @@ class CloudRun(GCPService):
                 raise exceptions.ServiceOutputsNotFound(service_name=self.name)
             dns_outputs = DNSOutputs(
                 domain=custom_domain_outputs.registered_domain,
-                ip_address=custom_domain_outputs.ip_address,
+                dns_records=[
+                    DNSRecord(
+                        dns_record_value=custom_domain_outputs.ip_address,
+                        dns_record_type="A",
+                    ),
+                ],
             )
 
         if artifact_registry_outputs.docker_repository is None:
             raise ValueError("Docker repository not found in artifact registry outputs")
 
-        service_outputs = ServiceOutputs(
+        service_outputs = DockerServiceOutputs(
             service_url=service_container_outputs.service_url,
             docker_repository=artifact_registry_outputs.docker_repository,
             dns_outputs=dns_outputs,

@@ -13,10 +13,4 @@ project: my-project
 backend: lf://default
 ```
 
-This yaml config tells LaunchFlow which where to store its state (for this example, in LaunchFlow Cloud), and what project to use. You can update this file at any time by running `lf init` again. Be careful though -- if you switch your backend, your state won't automatically be moved.
-
-```bash
-lf create prod
-```
-
-will create a new environment in LaunchFlow Cloud using the `prod` environment in the `my-project` project.
+This yaml config tells LaunchFlow which where to store its state (lock files, deployment status, etc), and what project to use. You can update this file at any time by running `lf init` again. Be careful though -- if you switch your backend, your state won't automatically be moved (yet).

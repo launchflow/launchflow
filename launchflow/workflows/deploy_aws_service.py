@@ -9,7 +9,7 @@ from docker.errors import BuildError  # type: ignore
 
 from launchflow import exceptions
 from launchflow.aws.ecs_fargate import ECSFargate
-from launchflow.aws.service import AWSService
+from launchflow.aws.service import AWSDockerService
 from launchflow.config import config
 from launchflow.managers.service_manager import ServiceManager
 from launchflow.models.flow_state import AWSEnvironmentConfig, ServiceState
@@ -290,7 +290,7 @@ async def _promote_docker_image(
 
 
 async def build_and_push_aws_service(
-    aws_service: AWSService,
+    aws_service: AWSDockerService,
     service_manager: ServiceManager,
     aws_environment_config: AWSEnvironmentConfig,
     deployment_id: str,
@@ -312,7 +312,7 @@ async def build_and_push_aws_service(
 
 
 async def build_docker_image_on_code_build(
-    aws_service: AWSService,
+    aws_service: AWSDockerService,
     service_manager: ServiceManager,
     aws_environment_config: AWSEnvironmentConfig,
     deployment_id: str,
@@ -350,7 +350,7 @@ async def build_docker_image_on_code_build(
 
 
 async def build_aws_service_locally(
-    aws_service: AWSService,
+    aws_service: AWSDockerService,
     service_manager: ServiceManager,
     aws_environment_config: AWSEnvironmentConfig,
     deployment_id: str,
@@ -469,7 +469,7 @@ async def release_docker_image_to_ecs_fargate(
 
 # TODO: add a way to promote the docker image without code build
 async def promote_aws_service_image(
-    aws_service: AWSService,
+    aws_service: AWSDockerService,
     from_service_state: ServiceState,
     from_aws_environment_config: AWSEnvironmentConfig,
     to_aws_environment_config: AWSEnvironmentConfig,

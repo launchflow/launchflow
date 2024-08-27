@@ -15,7 +15,7 @@ from launchflow.gcp.cloud_run import CloudRun
 from launchflow.locks import LockOperation, OperationType
 from launchflow.managers.environment_manager import EnvironmentManager
 from launchflow.models import enums, flow_state
-from launchflow.service import ServiceOutputs
+from launchflow.service import DockerServiceOutputs
 from launchflow.workflows.apply_resource_tofu.schemas import ApplyResourceTofuOutputs
 
 
@@ -164,7 +164,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
         )
         mock_release_gcp_service.return_value = "https://service-1234-uc.a.run.app"
 
-        service_outputs = ServiceOutputs(
+        service_outputs = DockerServiceOutputs(
             service_url="https://service-1234-uc.a.run.app",
             docker_repository="gcr.io/project/service",
             dns_outputs=None,
@@ -226,7 +226,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
         )
         mock_release_gcp_service.return_value = "https://service-1234-uc.a.run.app"
 
-        service_outputs = ServiceOutputs(
+        service_outputs = DockerServiceOutputs(
             service_url="https://service-1234-uc.a.run.app",
             docker_repository="gcr.io/project/service",
             dns_outputs=None,
@@ -271,7 +271,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
         )
         mock_release_gcp_service.return_value = "https://service-1234-uc.a.run.app"
 
-        service_outputs = ServiceOutputs(
+        service_outputs = DockerServiceOutputs(
             service_url="https://service-1234-uc.a.run.app",
             docker_repository="gcr.io/project/service",
             dns_outputs=None,
@@ -349,7 +349,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
             "http://service-1234-alb.us-east-1.elb.amazonaws.com"
         )
 
-        service_outputs = ServiceOutputs(
+        service_outputs = DockerServiceOutputs(
             service_url="http://service-1234-alb.us-east-1.elb.amazonaws.com",
             docker_repository="ecr.io/project/service",
             dns_outputs=None,
@@ -421,7 +421,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
             gcp_id="service-1234",
             aws_arn=None,
         )
-        service_outputs = ServiceOutputs(
+        service_outputs = DockerServiceOutputs(
             service_url="https://service-1234-uc.a.run.app",
             docker_repository="gcr.io/project/service",
             dns_outputs=None,
@@ -476,7 +476,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
             gcp_id=None,
             aws_arn="service-1234",
         )
-        service_outputs = ServiceOutputs(
+        service_outputs = DockerServiceOutputs(
             service_url="http://service-1234-alb.us-east-1.elb.amazonaws.com",
             docker_repository="ecr.io/project/service",
             dns_outputs=None,
@@ -669,7 +669,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
 
         # Create a dev service to promote to prod
         service = CloudRun("my-gcp-service")
-        service_outputs = ServiceOutputs(
+        service_outputs = DockerServiceOutputs(
             service_url="https://service-1234-uc.a.run.app",
             docker_repository="gcr.io/project/service",
             dns_outputs=None,
@@ -745,7 +745,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
 
         # Create a dev service to promote to prod
         service = CloudRun("my-gcp-service")
-        service_outputs = ServiceOutputs(
+        service_outputs = DockerServiceOutputs(
             service_url="https://service-1234-uc.a.run.app",
             docker_repository="gcr.io/project/service",
             dns_outputs=None,
@@ -834,7 +834,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
 
         # Create a dev service to promote to prod
         service = ECSFargate("my-aws-service")
-        service_outputs = ServiceOutputs(
+        service_outputs = DockerServiceOutputs(
             service_url="http://service-1234-alb.us-east-1.elb.amazonaws.com",
             docker_repository="ecr.io/project/service",
             dns_outputs=None,
@@ -910,7 +910,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
 
         # Create a dev service to promote to prod
         service = ECSFargate("my-aws-service")
-        service_outputs = ServiceOutputs(
+        service_outputs = DockerServiceOutputs(
             service_url="http://service-1234-alb.us-east-1.elb.amazonaws.com",
             docker_repository="ecr.io/project/service",
             dns_outputs=None,

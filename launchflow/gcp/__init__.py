@@ -6,22 +6,25 @@ from .cloud_run_container import CloudRunServiceContainer
 from .cloud_tasks import CloudTasksQueue
 from .cloudsql import CloudSQLDatabase, CloudSQLPostgres, CloudSQLUser
 from .compute_engine import ComputeEnginePostgres, ComputeEngineRedis
+from .compute_engine_service import ComputeEngineService
 from .custom_domain_mapping import CustomDomainMapping
-from .gcs import GCSBucket
+from .firebase import FirebaseHostingSite, FirebaseProject
+from .firebase_site import FirebaseStaticSite
+from .gcs import BackendBucket, GCSBucket
+from .http_health_check import HttpHealthCheck
 from .launchflow_cloud_releaser import LaunchFlowCloudReleaser
 from .memorystore import MemorystoreRedis
-from .pubsub import PubsubSubscription, PubsubTopic
-from .resource import GCPResource
-from .secret_manager import SecretManagerSecret
-from .utils import get_service_account_credentials
-from .workbench import WorkbenchInstance
-from .compute_engine_service import ComputeEngineService
 from .networking import FirewallAllowRule
-from .http_health_check import HttpHealthCheck
+from .pubsub import PubsubSubscription, PubsubTopic
 from .regional_autoscaler import RegionalAutoscaler
 from .regional_managed_instance_group import RegionalManagedInstanceGroup
 from .gke import GKECluster, NodePool
 from .gke_service import GKEService
+from .resource import GCPResource
+from .secret_manager import SecretManagerSecret
+from .static_site import StaticSite
+from .utils import get_service_account_credentials
+from .workbench import WorkbenchInstance
 
 __all__ = [
     "ArtifactRegistryRepository",
@@ -52,4 +55,8 @@ __all__ = [
     "GKECluster",
     "GKEService",
     "NodePool",
+    "StaticSite",
+    "FirebaseStaticSite",
+    "FirebaseHostingSite",
+    "FirebaseProject",
 ]

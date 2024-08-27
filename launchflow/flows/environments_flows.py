@@ -4,7 +4,6 @@ import os
 import time
 from typing import Optional, Tuple
 
-from launchflow.config import config
 import beaupy  # type: ignore
 import httpx
 import rich
@@ -14,6 +13,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from launchflow import exceptions
 from launchflow.backend import LaunchFlowBackend
 from launchflow.clients.projects_client import ProjectsAsyncClient
+from launchflow.config import config
 from launchflow.flows.project_flows import create_project
 from launchflow.locks import LockOperation, OperationType
 from launchflow.managers.environment_manager import EnvironmentManager
@@ -437,7 +437,10 @@ async def create_environment(
                 status=status,
             )
         elif cloud_provider == CloudProvider.AWS:
-            if existing_environment is not None:
+            if (
+                existing_environment is not None
+                and existing_environment.aws_config is not None
+            ):
                 aws_account_id = existing_environment.aws_config.account_id  # type: ignore
                 region = existing_environment.aws_config.region  # type: ignore
             else:
@@ -514,7 +517,7 @@ async def create_environment(
                     environment_type=environment_type,
                     artifact_bucket=(
                         existing_environment.aws_config.artifact_bucket  # type: ignore
-                        if existing_environment
+                        if existing_environment and existing_environment.aws_config
                         else None
                     ),
                     lock_id=lock.lock_id,

@@ -13,7 +13,7 @@ nextjs:
 
 ## Overview
 
-Resources allow you to add things like databases, cloud storage, and task queues to your application by simply importing them in your code. They unify **managing** infrastructure in your cloud account and **using** it in your code.
+Resources allow you to add databases, cloud storage, task queues, and more to your application by simply importing them in your code. They unify **managing** infrastructure in your cloud account and **using** it in your code.
 
 To create infrastructure, import the LaunchFlow resource, use it in your code, and run `lf create` on the command line. Then,
 

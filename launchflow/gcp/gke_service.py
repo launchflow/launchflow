@@ -6,7 +6,7 @@ from launchflow.gcp.artifact_registry_repository import (
     RegistryFormat,
 )
 from launchflow.gcp.gke import GKECluster, NodePool
-from launchflow.gcp.service import GCPService
+from launchflow.gcp.service import GCPDockerService
 from launchflow.kubernetes.service_container import (
     LivenessProbe,
     ReadinessProbe,
@@ -16,7 +16,7 @@ from launchflow.kubernetes.service_container import (
 from launchflow.models.enums import ServiceProduct
 from launchflow.node import Inputs
 from launchflow.resource import Resource
-from launchflow.service import ServiceOutputs
+from launchflow.service import DockerServiceOutputs, ServiceOutputs
 
 
 @dataclasses.dataclass
@@ -24,7 +24,7 @@ class GKEServiceInputs(Inputs):
     environment_variables: Optional[Dict[str, str]]
 
 
-class GKEService(GCPService):
+class GKEService(GCPDockerService):
     """A service hosted on a GKE Kubernetes Cluster.
 
     Like all [Services](/docs/concepts/services), this class configures itself across multiple [Environments](/docs/concepts/environments).
@@ -120,7 +120,12 @@ class GKEService(GCPService):
         - `readiness_probe ([ReadinessProbe](/docs/reference/kubernetes-resources/service-container#readiness-probe))`: The readiness probe for the service.
         - `environment_variables (Optional[Dict[str, str]])`: A dictionary of environment variables to set on the service container.
         """
-        super().__init__(name, dockerfile, build_directory, build_ignore)
+        super().__init__(
+            name=name,
+            dockerfile=dockerfile,
+            build_directory=build_directory,
+            build_ignore=build_ignore,
+        )
 
         self._artifact_registry = ArtifactRegistryRepository(
             f"{name}-repository", format=RegistryFormat.DOCKER
@@ -148,7 +153,7 @@ class GKEService(GCPService):
     def resources(self) -> List[Resource[Any]]:
         return [self._artifact_registry, self.container]
 
-    def outputs(self) -> ServiceOutputs:
+    def outputs(self) -> DockerServiceOutputs:
         repo_outputs = self._artifact_registry.outputs()
         if repo_outputs.docker_repository is None:
             raise ValueError("Docker repository not found in artifact registry outputs")
@@ -156,7 +161,7 @@ class GKEService(GCPService):
         ip_address = container_outputs.internal_ip
         if container_outputs.external_ip is not None:
             ip_address = container_outputs.external_ip
-        return ServiceOutputs(
+        return DockerServiceOutputs(
             service_url=f"http://{ip_address}",
             docker_repository=repo_outputs.docker_repository,
             dns_outputs=None,

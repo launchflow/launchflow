@@ -17,6 +17,7 @@ class ResourceProduct(str, Enum):
     GCP_PUBSUB_TOPIC = "gcp_pubsub_topic"
     GCP_PUBSUB_SUBSCRIPTION = "gcp_pubsub_subscription"
     GCP_STORAGE_BUCKET = "gcp_storage_bucket"
+    GCP_BACKEND_BUCKET = "gcp_backend_bucket"
     GCP_BIGQUERY_DATASET = "gcp_bigquery_dataset"
     GCP_MEMORYSTORE_REDIS = "gcp_memorystore_redis"
     GCP_COMPUTE_ENGINE = "gcp_compute_engine"
@@ -32,6 +33,8 @@ class ResourceProduct(str, Enum):
     GCP_REGIONAL_AUTO_SCALER = "gcp_regional_auto_scaler"
     GCP_GKE_CLUSTER = "gcp_gke_cluster"
     GCP_GKE_NODE_POOL = "gcp_gke_node_pool"
+    GCP_FIREBASE_PROJECT = "gcp_firebase_project"
+    GCP_FIREBASE_HOSTING_SITE = "gcp_firebase_hosting_site"
     # AWS product types
     AWS_RDS_POSTGRES = "aws_rds_postgres"
     AWS_ELASTICACHE_REDIS = "aws_elasticache_redis"
@@ -55,6 +58,8 @@ class ResourceProduct(str, Enum):
 class ServiceProduct(str, Enum):
     UNKNOWN = "unknown"
     # GCP product types
+    GCP_STATIC_SITE = "gcp_static_site"
+    GCP_FIREBASE_STATIC_SITE = "gcp_firebase_static_site"
     GCP_CLOUD_RUN = "gcp_cloud_run"
     GCP_COMPUTE_ENGINE = "gcp_compute_engine"
     GCP_GKE = "gcp_gke"
