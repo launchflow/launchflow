@@ -40,11 +40,11 @@ Services allow you to deploy websites, APIs, and other types of applications to 
 
 
 {% callout type="note" %}
-**LaunchFlow is not just for deploying Python apps.**
+LaunchFlow is not just for deploying Python apps.
 
 The Python SDK is used to define your infrastructure in code, but you can deploy any static or Dockerized application to AWS or GCP.
 
-Python is just the language for your DevOps automation.
+Python is just the language for your cloud configuration, similar to how Terraform uses HCL.
 
 {% /callout %}
 

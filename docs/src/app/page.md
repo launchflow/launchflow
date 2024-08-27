@@ -2,29 +2,27 @@
 title: Welcome
 ---
 
-LaunchFlow is an open source deployment tool that makes it easy to automate your application's infrastructure, secrets, and deployments on Amazon Web Services (AWS) and Google Cloud Platform (GCP).
+LaunchFlow is an open source Python SDK that lets you launch websites, APIs, and workers to AWS / GCP with minimal configuration.
 
-Use the Python SDK to define your infrastructure in code, then run `lf deploy` to deploy everything to a dedicated environment in your cloud account.
+Use the Python SDK to define your infrastructure in code, then run `lf deploy` to deploy everything to a dedicated VPC environment in your cloud account.
 
 LaunchFlow runs entirely on your local machine and everything is created in your own cloud account. Follow the [Get Started Guide](/docs/get-started) to launch an example API in minutes.
 
-
 {% callout type="note" %}
-**LaunchFlow is not just for deploying Python apps.**
+LaunchFlow is not just for deploying Python apps.
 
 The Python SDK is used to define your infrastructure in code, but you can deploy any static or Dockerized application to AWS or GCP.
 
-Python is just the language for your DevOps automation.
-
+Python is just the language for your cloud configuration, similar to how Terraform uses HCL.
 {% /callout %}
 
 ## Core Concepts
 
-[Services](/docs/concepts/services) allow you to deploy websites, APIs, workflows, and other types of applications to your cloud account with minimal setup. All you need to provide is a Dockerfile - LaunchFlow will take care of the rest.
+[Services](/docs/concepts/services) allow you to deploy websites, APIs, workflows, and other types of applications to your cloud account with minimal setup. All you need to provide is a Dockerfile, then LaunchFlow will take care of the rest.
 
 [Resources](/docs/concepts/resources) allow you to add databases, storage, task queues, and more to your application by simply importing them in your code.
 
-[Environments](/docs/concepts/environments) manage the networking, permissions, and configuration of your **Services** and **Resources** inside a dedicated VPC.
+[Environments](/docs/concepts/environments) manage the networking, permissions, and configuration of your **Services** and **Resources** inside a dedicated VPC. You can switch between environments with a single command.
 
 
 {% quick-links %}
@@ -38,7 +36,9 @@ Python is just the language for your DevOps automation.
 ## Framework Integrations
 
 {% callout type="note" %}
-The integrations below are only available for Python applications.
+The integrations below are only available for Python applications. 
+
+LaunchFlow can deploy any type of application, but Python applications benefit from deeper integrations with the SDK.
 
 We will add support for more languages in the future.
 {% /callout %}

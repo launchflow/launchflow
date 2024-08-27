@@ -13,13 +13,22 @@
 </div>
 <div style="text-align: center;" align="center">
 
-📖 [Docs](https://docs.launchflow.com/) &nbsp; | &nbsp; ⚡ [Quickstart](https://docs.launchflow.com/docs/get-started) &nbsp; | &nbsp; 👋 [Slack](https://join.slack.com/t/launchflowusers/shared_invite/zt-27wlowsza-Uiu~8hlCGkvPINjmMiaaMQ)
+📖 [Docs](https://docs.launchflow.com/) &nbsp; | &nbsp; ⚡ [Quickstart](https://docs.launchflow.com/docs/get-started) &nbsp; | &nbsp; 👋 [Slack](https://join.slack.com/t/launchflowusers/shared_invite/zt-2pc3o5cbq-HZrMzlZXW2~Xs1CABbgPKQ)
 
 </div>
 
-[LaunchFlow](https://launchflow.com/) is an open source deployment tool that makes it easy to launch applications to Serverless, VMs, & Kubernetes on AWS and GCP.
+[LaunchFlow](https://launchflow.com/) is an open source Python SDK that lets you launch websites, APIs, and workers to AWS / GCP with minimal configuration.
 
-Use the Python SDK to define your infrastructure in code, then run `lf deploy` to deploy everything to a dedicated environment in your cloud account.
+- [x] **Serverless Deployments**
+- [x] **Auto-Scaling VMs** 
+- [ ] **Kubernetes Clusters** (in preview)
+- [ ] **Static Sites** (in preview)
+- [x] **Terraform Resources**
+- [ ] Pulumi Resources (coming soon)
+- [ ] Custom Resources (coming soon)
+
+
+Use the Python SDK to define your infrastructure in code, then run `lf deploy` to deploy everything to a dedicated VPC environment in your cloud account.
 
 Fully customizable but configured by default - no messy YAML required.
 
@@ -32,7 +41,7 @@ Services allow you to deploy websites, APIs, background workers and other types 
 > [!NOTE]
 > LaunchFlow is not just for deploying Python apps. The Python SDK is used to define your infrastructure in code, but you can deploy any application that runs on a VM, container, or serverless environment.
 >
-> <b>Python is just the language for your DevOps automation.</b>
+> <b>Python is just the language for your cloud configuration, similar to how Terraform uses HCL.</b>
 
 _Click the dropdown below to see the service types that are currently supported._
 <details>
