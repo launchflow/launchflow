@@ -145,7 +145,7 @@ def index():
     return f'Hello from {lf.environment}!'
 
 # Deploy this FastAPI app to ECS Fargate on AWS
-api = lf.aws.ECSFargate("my-api", domain="launchflow.com")
+api = lf.aws.ECSFargate("my-api")
 ```
 
 #### Step 3. Run the `lf deploy` command to deploy your infrastructure:
@@ -180,7 +180,7 @@ def index():
     return bucket.download_file("hello.txt").decode()
 
 # Deploy this FastAPI app to ECS Fargate on AWS
-api = lf.aws.ECSFargate("my-api", domain="launchflow.com")
+api = lf.aws.ECSFargate("my-api", domain="your-domain.com")
 ```
 
 ### Step 5. Run the `lf deploy` command to deploy your updated infrastructure:
@@ -207,7 +207,7 @@ def index():
     return f'Hello from {lf.environment}!'
 
 # Deploy this FastAPI app to ECS Fargate on AWS
-api = lf.aws.ECSFargate("my-api", domain="launchflow.com")
+api = lf.aws.ECSFargate("my-api", domain="your-domain.com")
 ```
 
 </details>
@@ -227,7 +227,7 @@ def index():
     return f'Hello from {lf.environment}!'
 
 # Deploy Postgres hosted on (GCP) Cloud SQL 
-api = lf.gcp.CloudRun("my-api", domain="launchflow.com")
+api = lf.gcp.CloudRun("my-api", domain="your-domain.com")
 ```
 
 </details>
