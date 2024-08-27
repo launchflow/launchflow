@@ -1,4 +1,4 @@
-from typing import Dict, Literal, Optional
+from typing import Dict, Optional
 from kubernetes import client
 import asyncio
 import time
