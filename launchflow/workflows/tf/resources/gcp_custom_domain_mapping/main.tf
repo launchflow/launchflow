@@ -3,6 +3,11 @@ provider "google" {
   region  = var.gcp_region
 }
 
+
+resource "google_compute_global_address" "default" {
+  name = "${var.resource_id}-global-address"
+}
+
 # HTTPS Load Balancer setup
 resource "google_compute_global_forwarding_rule" "default" {
   name                  = "${var.resource_id}-forwarding-rule"
@@ -10,6 +15,7 @@ resource "google_compute_global_forwarding_rule" "default" {
   port_range            = "443"
   ip_protocol           = "TCP"
   load_balancing_scheme = "EXTERNAL_MANAGED"
+  ip_address            = google_compute_global_address.default.address
 }
 
 resource "google_compute_target_https_proxy" "default" {
@@ -77,6 +83,7 @@ resource "google_compute_global_forwarding_rule" "http" {
   ip_protocol           = "TCP"
   load_balancing_scheme = "EXTERNAL_MANAGED"
   description           = "Forwarding rule for HTTP -> HTTPS redirect for ${var.resource_id}"
+  ip_address            = google_compute_global_address.default.address
 }
 
 resource "google_compute_target_http_proxy" "default" {
