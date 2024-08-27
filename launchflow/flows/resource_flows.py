@@ -413,6 +413,8 @@ async def destroy(
             if (
                 service.product == ServiceProduct.GCP_CLOUD_RUN
                 or service.product == ServiceProduct.GCP_COMPUTE_ENGINE
+                or service.product == ServiceProduct.GCP_STATIC_SITE
+                or service.product == ServiceProduct.GCP_FIREBASE_STATIC_SITE
             ):
                 if environment.gcp_config is None:  # type: ignore
                     raise exceptions.GCPConfigNotFound(

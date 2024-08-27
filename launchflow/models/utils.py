@@ -20,10 +20,12 @@ from launchflow.gcp.bigquery import BigQueryDataset
 from launchflow.gcp.cloud_run import CloudRun, CloudRunServiceContainer
 from launchflow.gcp.cloud_tasks import CloudTasksQueue
 from launchflow.gcp.cloudsql import CloudSQLDatabase, CloudSQLPostgres, CloudSQLUser
-from launchflow.gcp.compute_engine_service import ComputeEngineService
 from launchflow.gcp.compute_engine import ComputeEngine
+from launchflow.gcp.compute_engine_service import ComputeEngineService
 from launchflow.gcp.custom_domain_mapping import CustomDomainMapping
-from launchflow.gcp.gcs import GCSBucket
+from launchflow.gcp.firebase import FirebaseHostingSite, FirebaseProject
+from launchflow.gcp.firebase_site import FirebaseStaticSite
+from launchflow.gcp.gcs import BackendBucket, GCSBucket
 from launchflow.gcp.http_health_check import HttpHealthCheck
 from launchflow.gcp.launchflow_cloud_releaser import (
     LaunchFlowCloudReleaser as GCPReleaser,
@@ -34,6 +36,7 @@ from launchflow.gcp.pubsub import PubsubSubscription, PubsubTopic
 from launchflow.gcp.regional_autoscaler import RegionalAutoscaler
 from launchflow.gcp.regional_managed_instance_group import RegionalManagedInstanceGroup
 from launchflow.gcp.secret_manager import SecretManagerSecret
+from launchflow.gcp.static_site import StaticSite
 from launchflow.gcp.workbench import WorkbenchInstance
 from launchflow.models.enums import ResourceProduct, ServiceProduct
 from launchflow.resource import Resource
@@ -51,6 +54,9 @@ RESOURCE_PRODUCTS_TO_RESOURCES = {
     ResourceProduct.GCP_STORAGE_BUCKET.value: GCSBucket,
     ResourceProduct.GCP_BIGQUERY_DATASET.value: BigQueryDataset,
     ResourceProduct.GCP_MEMORYSTORE_REDIS.value: MemorystoreRedis,
+    ResourceProduct.GCP_BACKEND_BUCKET.value: BackendBucket,
+    ResourceProduct.GCP_FIREBASE_PROJECT.value: FirebaseProject,
+    ResourceProduct.GCP_FIREBASE_HOSTING_SITE.value: FirebaseHostingSite,
     # TODO consider having a separate resource product per compute engine type
     ResourceProduct.GCP_COMPUTE_ENGINE.value: ComputeEngine,
     ResourceProduct.GCP_SECRET_MANAGER_SECRET.value: SecretManagerSecret,
@@ -91,4 +97,6 @@ SERVICE_PRODUCTS_TO_SERVICES = {
     # GCP product types
     ServiceProduct.GCP_CLOUD_RUN.value: CloudRun,
     ServiceProduct.GCP_COMPUTE_ENGINE.value: ComputeEngineService,
+    ServiceProduct.GCP_STATIC_SITE.value: StaticSite,
+    ServiceProduct.GCP_FIREBASE_STATIC_SITE.value: FirebaseStaticSite,
 }

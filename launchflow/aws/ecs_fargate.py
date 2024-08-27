@@ -19,7 +19,7 @@ from launchflow.aws.codebuild_project import (
 from launchflow.aws.ecr_repository import ECRRepository
 from launchflow.aws.ecs_cluster import ECSCluster
 from launchflow.aws.ecs_fargate_container import ECSFargateServiceContainer
-from launchflow.aws.service import AWSService, AWSServiceOutputs
+from launchflow.aws.service import AWSDockerService, AWSDockerServiceOutputs
 from launchflow.models.enums import ServiceProduct
 from launchflow.node import Inputs
 from launchflow.resource import Resource
@@ -33,7 +33,7 @@ class ECSFargateInputs(Inputs):
     desired_count: int = 1
 
 
-class ECSFargate(AWSService):
+class ECSFargate(AWSDockerService):
     """A service hosted on AWS ECS Fargate.
 
     Like all [Services](/docs/concepts/services), this class configures itself across multiple [Environments](/docs/concepts/environments).
@@ -69,7 +69,7 @@ class ECSFargate(AWSService):
         build_directory: str = ".",
         dockerfile: str = "Dockerfile",
         build_ignore: List[str] = [],
-        domain_name: Optional[str] = None,
+        domain: Optional[str] = None,
         certificate: Optional[ACMCertificate] = None,
     ) -> None:
         """Creates a new ECS Fargate service.
@@ -84,11 +84,11 @@ class ECSFargate(AWSService):
         - `build_directory (str)`: The directory to build the service from. This should be a relative path from the project root where your `launchflow.yaml` is defined.
         - `dockerfile (str)`: The Dockerfile to use for building the service. This should be a relative path from the `build_directory`.
         - `build_ignore (List[str])`: A list of files to ignore when building the service. This can be in the same syntax you would use for a `.gitignore`.
-        - `domain_name (Optional[str])`: The domain name to use for the service. This will create an ACM certificate and configure the ALB to use HTTPS.
+        - `domain (Optional[str])`: The domain name to use for the service. This will create an ACM certificate and configure the ALB to use HTTPS.
         """
-        if domain_name is not None and certificate is not None:
+        if domain is not None and certificate is not None:
             raise ValueError(
-                "You cannot specify both a domain_name and a certificate. Please choose one."
+                "You cannot specify both a domain and a certificate. Please choose one."
             )
         super().__init__(
             name=name,
@@ -138,8 +138,8 @@ class ECSFargate(AWSService):
         self._ecs_cluster.resource_id = resource_id_with_launchflow_prefix
 
         self._https_certificate = None
-        if domain_name:
-            self._https_certificate = ACMCertificate(f"{name}-certificate", domain_name)
+        if domain:
+            self._https_certificate = ACMCertificate(f"{name}-certificate", domain)
         if certificate:
             self._https_certificate = certificate
         self._alb = ApplicationLoadBalancer(
@@ -183,7 +183,7 @@ class ECSFargate(AWSService):
             to_return.append(self._https_certificate)
         return to_return  # type: ignore
 
-    def outputs(self) -> AWSServiceOutputs:
+    def outputs(self) -> AWSDockerServiceOutputs:
         try:
             ecr_outputs = self._ecr.outputs()
             code_build_outputs = self._code_build_project.outputs()
@@ -197,7 +197,7 @@ class ECSFargate(AWSService):
             domain = self._https_certificate.outputs().domain_name
             service_url = f"https://{domain}"
 
-        service_outputs = AWSServiceOutputs(
+        service_outputs = AWSDockerServiceOutputs(
             service_url=service_url,
             docker_repository=ecr_outputs.repository_url,
             code_build_project_name=code_build_outputs.project_name,
