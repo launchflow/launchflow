@@ -69,7 +69,6 @@ resource "google_compute_region_network_endpoint_group" "cloud_run_neg" {
 }
 
 # HTTP Proxy setup
-# TODO: add the option to turn this off
 resource "google_compute_global_forwarding_rule" "http" {
   count                 = var.include_http_redirect ? 1 : 0
   name                  = "${var.resource_id}-http-forwarding-rule"
