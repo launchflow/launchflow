@@ -3,7 +3,7 @@ provider "google" {
   region  = var.gcp_region
 }
 
-
+# HTTPS Load Balancer setup
 resource "google_compute_global_forwarding_rule" "default" {
   name                  = "${var.resource_id}-forwarding-rule"
   target                = google_compute_target_https_proxy.default.id
@@ -65,6 +65,34 @@ resource "google_compute_region_network_endpoint_group" "cloud_run_neg" {
   region                = var.region == null ? var.gcp_region : var.region
   cloud_run {
     service = local.resource_id
+  }
+}
+
+# HTTP Proxy setup
+# TODO: add the option to turn this off
+resource "google_compute_global_forwarding_rule" "http" {
+  count                 = var.include_http_redirect ? 1 : 0
+  name                  = "${var.resource_id}-http-forwarding-rule"
+  target                = google_compute_target_http_proxy.default[0].id
+  port_range            = "80"
+  ip_protocol           = "TCP"
+  load_balancing_scheme = "EXTERNAL_MANAGED"
+  description           = "Forwarding rule for HTTP -> HTTPS redirect for ${var.resource_id}"
+}
+
+resource "google_compute_target_http_proxy" "default" {
+  count   = var.include_http_redirect ? 1 : 0
+  name    = "${var.resource_id}-http-proxy"
+  url_map = google_compute_url_map.http_redirect[0].id
+}
+
+resource "google_compute_url_map" "http_redirect" {
+  count = var.include_http_redirect ? 1 : 0
+  name  = "${var.resource_id}-http-redirect"
+
+  default_url_redirect {
+    https_redirect = true
+    strip_query    = false
   }
 }
 

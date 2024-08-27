@@ -33,6 +33,7 @@ class CustomDomainMappingInputs(ResourceInputs):
     health_check: Optional[str]
     region: Optional[str]
     named_port: Optional[str]
+    include_http_redirect: bool
 
 
 class CustomDomainMapping(GCPResource[CustomDomainMappingOutputs]):
@@ -57,6 +58,7 @@ class CustomDomainMapping(GCPResource[CustomDomainMappingOutputs]):
         domain: str,
         cloud_run: Optional[CloudRunServiceContainer] = None,
         gce_service_backend: Optional[GCEServiceBackend] = None,
+        include_http_redirect: bool = True,
     ) -> None:
         """Create a new CustomDomainMapping resource.
 
@@ -65,6 +67,7 @@ class CustomDomainMapping(GCPResource[CustomDomainMappingOutputs]):
         - `domain` (str): The domain to map to the Cloud Run service.
         - `cloud_run` (CloudRunServiceContainer): The Cloud Run service to map the domain to. One and only one of cloud_run and gce_service must be provided.
         - `regional_managed_instance_group` (RegionalManagedInstanceGroup): The Compute Engine service to map the domain to. One and only one of cloud_run and gce_service must be provided.
+        - `include_http_redirect` (bool): Whether to include an HTTP redirect to the HTTPS URL. Defaults to True.
         """
         super().__init__(
             name=name,
@@ -72,6 +75,7 @@ class CustomDomainMapping(GCPResource[CustomDomainMappingOutputs]):
         self.domain = domain
         self.cloud_run = cloud_run
         self.regional_managed_instance_group = gce_service_backend
+        self.include_http_redirect = include_http_redirect
 
         if not cloud_run and not gce_service_backend:
             raise ValueError(
@@ -119,4 +123,5 @@ class CustomDomainMapping(GCPResource[CustomDomainMappingOutputs]):
             health_check=health_check,
             region=region,
             named_port=named_port,
+            include_http_redirect=self.include_http_redirect,
         )

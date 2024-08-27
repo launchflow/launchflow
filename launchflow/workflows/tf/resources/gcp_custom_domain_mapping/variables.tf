@@ -52,3 +52,8 @@ variable "named_port" {
   type    = string
   default = null
 }
+
+variable "include_http_redirect" {
+  type    = bool
+  default = true
+}
