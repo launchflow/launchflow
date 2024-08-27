@@ -52,6 +52,7 @@ module "gke" {
 }
 
 
+
 output "gcp_id" {
   value = module.gke.cluster_id
 }
@@ -75,6 +76,7 @@ data "google_service_account" "default" {
 }
 
 resource "kubernetes_service_account" "default" {
+  depends_on = [module.gke]
   metadata {
     name = split("@", var.environment_service_account_email)[0]
     annotations = {

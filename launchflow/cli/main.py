@@ -85,7 +85,7 @@ def cli_setup(
     log_level: Optional[str] = None,
 ):
     if log_level is not None:
-        logger.setLevel(log_level)
+        logger.setLevel(log_level.upper())
     if needs_opentofu():
         with Progress(
             SpinnerColumn(),
@@ -347,6 +347,10 @@ async def destroy(
         False, "--verbose", "-v", help="If set all logs will be written to stdout."
     ),
     launchflow_api_key: Optional[str] = typer.Option(None, help=API_KEY_HELP),
+    detach: bool = typer.Option(
+        False,
+        help="If true we will not clean up any of the cloud resources associated with the environment and will simply delete the record from LaunchFlow.",
+    ),
 ):
     """Destroy all resources in the project / environment."""
     if local_only and not docker_service_available():
@@ -375,6 +379,7 @@ async def destroy(
             local_only=local_only,
             prompt=not auto_approve,
             verbose=verbose,
+            detach=detach,
         )
         if not result:
             raise typer.Exit(1)

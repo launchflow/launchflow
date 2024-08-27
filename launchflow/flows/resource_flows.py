@@ -24,7 +24,6 @@ from launchflow.flows.flow_utils import (
     SERVICE_COLOR,
     ResourceRef,
 )
-from launchflow.gcp.gke_service import GKEService
 from launchflow.locks import Lock, LockOperation, OperationType
 from launchflow.managers.environment_manager import EnvironmentManager
 from launchflow.managers.resource_manager import ResourceManager
@@ -87,10 +86,6 @@ class DestroyServicePlan:
             self.existing_service.product, Service
         )
         return f"[{SERVICE_COLOR}]{service_cls.__name__}({self.service_name})[/{SERVICE_COLOR}]"
-
-    async def execute_plan(self):
-        """Optional method that can be overridden for destroys."""
-        pass
 
 
 @dataclasses.dataclass(frozen=True)
@@ -188,6 +183,7 @@ async def _destroy_resource(
     progress: Progress,
     verbose: bool,
     console: Console = Console(),
+    detach: bool = False,
 ):
     async with lock as lock_info:
         logs_file = None
@@ -232,7 +228,8 @@ async def _destroy_resource(
         # Save resource to push status update
         await plan.resource_manager.save_resource(plan.resource, lock_info.lock_id)
         try:
-            await fn(inputs)
+            if not detach:
+                await fn(inputs)
             await plan.resource_manager.delete_resource(lock_info.lock_id)
             progress.remove_task(task)
             if verbose:
@@ -276,7 +273,6 @@ async def _destroy_service(lock: Lock, plan: DestroyServicePlan, progress: Progr
             plan.existing_service, lock_info.lock_id
         )
         try:
-            await plan.execute_plan()
             await plan.service_manager.delete_service(lock_info.lock_id)
             progress.console.print(f"[green]✓[/green] {plan.ref} successfully deleted")
             with open(logs_file, "a") as f:
@@ -304,6 +300,7 @@ async def destroy(
     prompt: bool = True,
     verbose: bool = False,
     console: Console = Console(),
+    detach: bool = False,
 ):
     """
     Destroy resources in an environment.
@@ -316,6 +313,7 @@ async def destroy(
     - `local_only`: Whether to destroy only local resources.
     - `prompt`: Whether to prompt the user before destroying resources.
     - `verbose`: If true all output will be written to stdout.
+    - `detach`: If true, state will be deleted but no cloud resources will be touched.
 
     Returns:
         True if all resources were destroyed false otherwise.
@@ -561,7 +559,13 @@ async def destroy(
 
                 async def execute_plan_wrapper(node):
                     result = await _destroy_resource(
-                        node.lock, node.plan, environment, progress, verbose, console
+                        node.lock,
+                        node.plan,
+                        environment,
+                        progress,
+                        verbose,
+                        console,
+                        detach,
                     )
                     results.append(result)
                     completed_plans[node.plan.resource_manager.resource_name] = node

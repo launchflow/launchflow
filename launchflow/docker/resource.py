@@ -44,9 +44,6 @@ class DockerResource(Resource[T]):
         except Exception:
             return
 
-    def cloud_provider(self) -> CloudProvider:
-        return CloudProvider.UNKNOWN
-
     def inputs(self, *args, **kwargs) -> Inputs:  # type: ignore
         raise NotImplementedError
 

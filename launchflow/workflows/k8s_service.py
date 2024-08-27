@@ -73,9 +73,7 @@ async def deploy_new_k8s_service(
     )
 
     core_client = client.CoreV1Api()
-    service: client.V1Service = core_client.create_namespaced_service(
-        namespace=namespace, body=service
-    )  # type: ignore
+    core_client.create_namespaced_service(namespace=namespace, body=service)  # type: ignore
 
     ip = await _wait_for_ingress_ip(core_client, service_name, namespace)
 

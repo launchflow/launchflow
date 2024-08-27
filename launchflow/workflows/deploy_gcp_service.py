@@ -732,7 +732,6 @@ async def release_docker_image_to_gke(
     gke_service: GKEService,
     deployment_id: str,
 ):
-    # TODO: this only deploys doesn't update we need to handle update seperately
     try:
         from google.cloud import container_v1
     except ImportError:

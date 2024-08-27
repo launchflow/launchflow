@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Dict, Literal, Optional
+from typing import Literal, Optional
 
 from launchflow.gcp.gke import GKECluster, NodePool
 from launchflow.kubernetes.resource import KubernetesResource
@@ -11,12 +11,27 @@ from launchflow.resource import ResourceInputs
 
 @dataclasses.dataclass
 class HTTPGet(Inputs):
+    """An HTTPGet used by a Kubernetes probe.
+
+    **Args:**
+    - `path (str)`: The endpoint the probe should call.
+    - `port (int)`: The port to probe.
+    """
+
     path: str
     port: int
 
 
 @dataclasses.dataclass
 class StartupProbe(Inputs):
+    """A StartupProbe used by a Kubernetes container.
+
+    **Args:**
+    - `http_get (HTTPGet)`: The HTTPGet probe to use.
+    - `failure_threshold (int)`: The number of failures before the probe is considered failed.
+    - `period_seconds (int)`: The number of seconds between probe checks.
+    """
+
     http_get: HTTPGet
     failure_threshold: int
     period_seconds: int
@@ -24,6 +39,14 @@ class StartupProbe(Inputs):
 
 @dataclasses.dataclass
 class LivenessProbe(Inputs):
+    """A LivenessProbe used by a Kubernetes container.
+
+    **Args:**
+    - `http_get (HTTPGet)`: The HTTPGet probe to use.
+    - `initial_delay_seconds (int)`: The number of seconds to wait before starting probes.
+    - `period_seconds (int)`: The number of seconds between probe checks.
+    """
+
     http_get: HTTPGet
     initial_delay_seconds: int
     period_seconds: int
@@ -31,6 +54,14 @@ class LivenessProbe(Inputs):
 
 @dataclasses.dataclass
 class ReadinessProbe(Inputs):
+    """A LivenessProbe used by a Kubernetes container.
+
+    **Args:**
+    - `http_get (HTTPGet)`: The HTTPGet probe to use.
+    - `initial_delay_seconds (int)`: The number of seconds to wait before starting probes.
+    - `period_seconds (int)`: The number of seconds between probe checks.
+    """
+
     http_get: HTTPGet
     initial_delay_seconds: int
     period_seconds: int
@@ -49,6 +80,7 @@ class ServiceContainerInputs(ResourceInputs):
     liveness_probe: Optional[LivenessProbe]
     readiness_probe: Optional[ReadinessProbe]
     service_type: Literal["ClusterIP", "NodePort", "LoadBalancer"]
+    num_replicas: int
 
 
 @dataclasses.dataclass
@@ -58,6 +90,29 @@ class ServiceContainerOutputs(Outputs):
 
 
 class ServiceContainer(KubernetesResource[ServiceContainerOutputs]):
+    """A container for a service running on a Kubernetes cluster.
+
+    ### Example usage
+
+    #### Basic Usage
+
+    ```python
+    import launchflow as lf
+
+    cluster = lf.gke.GKECluster("my-cluster")
+    container = lf.kubernetes.ServiceContainer("my-service")
+    ```
+
+    #### Custom Image
+
+    ```python
+    import launchflow as lf
+
+    cluster = lf.gke.GKECluster("my-cluster")
+    container = lf.kubernetes.ServiceContainer("my-service", image="nginx")
+    ```
+    """
+
     product = ResourceProduct.KUBERNETES_SERVICE_CONTAINER.value
 
     def __init__(
@@ -66,6 +121,7 @@ class ServiceContainer(KubernetesResource[ServiceContainerOutputs]):
         cluster: GKECluster,
         *,
         namespace: str = "default",
+        num_replicas: int = 1,
         node_pool: Optional[NodePool] = None,
         image: str = "httpd",
         container_port: int = 80,
@@ -85,6 +141,7 @@ class ServiceContainer(KubernetesResource[ServiceContainerOutputs]):
         self.liveness_probe = liveness_probe
         self.readiness_probe = readiness_probe
         self.service_type = service_type
+        self.num_replicas = num_replicas
 
     def inputs(self, environment_state: EnvironmentState) -> ServiceContainerInputs:
         cluster_id = None
@@ -105,7 +162,7 @@ class ServiceContainer(KubernetesResource[ServiceContainerOutputs]):
         return ServiceContainerInputs(
             resource_id=self.resource_id,
             cluster_id=cluster_id,
-            k8_provider=k8_provider,
+            k8_provider=k8_provider,  # type: ignore
             namespace=self.namespace,
             node_pool_id=node_pool_id,
             image=self.image,
@@ -115,4 +172,5 @@ class ServiceContainer(KubernetesResource[ServiceContainerOutputs]):
             liveness_probe=self.liveness_probe,
             readiness_probe=self.readiness_probe,
             service_type=self.service_type,  # type: ignore
+            num_replicas=self.num_replicas,
         )

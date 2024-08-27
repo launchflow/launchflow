@@ -6,6 +6,9 @@ from unittest import mock
 import pytest
 
 from launchflow import exceptions
+from launchflow.aws.alb import ApplicationLoadBalancerOutputs
+from launchflow.aws.ecs_cluster import ECSClusterOutputs
+from launchflow.logger import logger
 from launchflow.aws.ecs_fargate import ECSFargate
 from launchflow.flows import deploy_flows
 from launchflow.gcp.cloud_run import CloudRun
@@ -78,6 +81,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
         await self.prod_environment_manager.save_environment(
             environment_state=self.prod_environment, lock_id="lock"
         )
+        logger.setLevel("DEBUG")
 
     async def test_deploy_gcp_service_no_environment(self):
         service = CloudRun("my-gcp-service")
@@ -350,6 +354,14 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
             docker_repository="ecr.io/project/service",
             dns_outputs=None,
         )
+        lb_outputs = ApplicationLoadBalancerOutputs(
+            alb_dns_name="http://service-1234-alb.us-east-1.elb.amazonaws.com",
+            alb_security_group_id="sg-1234",
+            alb_target_group_arn="arn:aws:elasticloadbalancing:us-east-1:1234:targetgroup/target-group-1234",
+        )
+        cluster_outputs = ECSClusterOutputs(
+            cluster_name="cluster-1234",
+        )
         service_outputs.aws_arn = "service-1234"
 
         with tempfile.TemporaryDirectory() as tmpdirname:
@@ -358,6 +370,8 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
             # Call the deploy service flow with the build_local flag on and verify the inputs / outputs
             service = ECSFargate("my-aws-service", build_directory=tmpdirname)
             service.outputs = mock.Mock(return_value=service_outputs)
+            service._ecs_cluster.outputs = mock.Mock(return_value=cluster_outputs)
+            service._alb.outputs = mock.Mock(return_value=lb_outputs)
             result = await deploy_flows.deploy(
                 service,
                 environment=self.dev_environment_manager.environment_name,
@@ -467,6 +481,14 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
             docker_repository="ecr.io/project/service",
             dns_outputs=None,
         )
+        lb_outputs = ApplicationLoadBalancerOutputs(
+            alb_dns_name="http://service-1234-alb.us-east-1.elb.amazonaws.com",
+            alb_security_group_id="sg-1234",
+            alb_target_group_arn="arn:aws:elasticloadbalancing:us-east-1:1234:targetgroup/target-group-1234",
+        )
+        cluster_outputs = ECSClusterOutputs(
+            cluster_name="cluster-1234",
+        )
         service_outputs.aws_arn = "service-1234"
         # Simulate an exception being raised during the deploy service flow
         mock_build_aws_service.side_effect = exceptions.MissingAWSDependency()
@@ -481,6 +503,8 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
                 dockerfile="Dockerfile",
             )
             service.outputs = mock.Mock(return_value=service_outputs)
+            service._ecs_cluster.outputs = mock.Mock(return_value=cluster_outputs)
+            service._alb.outputs = mock.Mock(return_value=lb_outputs)
             result = await deploy_flows.deploy(
                 service,
                 environment=self.dev_environment_manager.environment_name,

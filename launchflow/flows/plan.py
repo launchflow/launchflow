@@ -124,16 +124,35 @@ class ServicePlan(Plan):
         return self.resource_or_service  # type: ignore
 
 
-async def execute_plans(
-    plans: List[Plan],
-    tree: Tree,
-) -> List[Result]:
-    plan_id_to_plan: Dict[str, Plan] = {plan.id: plan for plan in plans}
-    plan_tasks: Dict[str, asyncio.Task] = {}
+@dataclass
+class _ExecutePlanNode:
+    plan: Plan
+    tree: Tree
+    execute_task: Optional[asyncio.Task] = field(default=None, init=False)
 
-    async def _execute_with_dependencies(dependency: Plan) -> Result:
-        if dependency.id in plan_tasks:
-            return await plan_tasks[dependency.id]
+
+# This is a global context for all plans that have been executed so far
+# This is used so we don't start the same plan multiple times
+_ALL_PLAN_NODES: Dict[str, _ExecutePlanNode] = {}
+
+
+async def execute_plans(plans: List[Plan], tree: Tree) -> List[Result]:
+    # We keep a global context of plans that are / have been executed to ensure
+    # multiple calls to execute plans don't start the same plan multiple times
+    global _ALL_PLAN_NODES
+
+    plan_nodes = [_ExecutePlanNode(plan, tree) for plan in plans]
+    for node in plan_nodes:
+        _ALL_PLAN_NODES[node.plan.id] = node
+
+    async def _execute_with_dependencies(dependency: _ExecutePlanNode) -> Result:
+        if (
+            dependency.plan.id in _ALL_PLAN_NODES
+            and _ALL_PLAN_NODES[dependency.plan.id].execute_task is not None
+        ):
+            # The task has already been started so we don't need to go down the chain
+            execute_task = _ALL_PLAN_NODES[dependency.plan.id].execute_task
+            return await execute_task  # type: ignore
 
         async def task():
             # SETUP
@@ -144,65 +163,68 @@ async def execute_plans(
                 TextColumn("{task.description}", table_column=Column(overflow="fold")),
                 TimeElapsedColumn(),
             )
-            subtree = tree.add(progress)
+            subtree = dependency.tree.add(progress)
             task_id = progress.add_task(
-                dependency.pending_message(), start=False, total=1
+                dependency.plan.pending_message(), start=False, total=1
             )
 
             # PENDING
-            for dep in dependency.depends_on:
-                if dep.id not in plan_id_to_plan:
+            for dep in dependency.plan.depends_on:
+                if dep.id not in _ALL_PLAN_NODES:
                     progress.start_task(task_id)
-                    spinner_column.finished_text = "[yellow]⚠[/yellow]"
+                    spinner_column.finished_text = "[yellow]⚠[/yellow]"  # type: ignore
                     progress.update(
                         task_id,
-                        description=f"{dependency} canceled due to missing dependency: {dep}",
+                        description=f"{dependency.plan} canceled due to missing dependency: {dep}",
                         completed=1,
                     )
                     progress.stop_task(task_id)
                     for dep_task in dependency_tasks:
                         dep_task.cancel()
 
-                    return await dependency.abandon_plan(f"Missing dependency: {dep}")
+                    return await dependency.plan.abandon_plan(
+                        f"Missing dependency: {dep}"
+                    )
 
-                dep_task = asyncio.create_task(_execute_with_dependencies(dep))
+                dep_node = _ALL_PLAN_NODES[dep.id]
+                dep_task = asyncio.create_task(_execute_with_dependencies(dep_node))
                 dependency_tasks.append(dep_task)
 
             # CHECK DEPENDENCY RESULTS
             dependency_results: List[Result] = await asyncio.gather(*dependency_tasks)
             if not all(result.success for result in dependency_results):
                 progress.start_task(task_id)
-                spinner_column.finished_text = "[yellow]⚠[/yellow]"
+                spinner_column.finished_text = "[yellow]⚠[/yellow]"  # type: ignore
                 progress.update(
                     task_id,
-                    description=f"{dependency} canceled due to dependency failure",
+                    description=f"{dependency.plan} canceled due to dependency failure",
                     completed=1,
                 )
                 progress.stop_task(task_id)
-                return await dependency.abandon_plan("Dependency failure")
+                return await dependency.plan.abandon_plan("Dependency failure")
 
             # EXECUTE PLAN
             progress.start_task(task_id)
-            progress.update(task_id, description=dependency.task_message())
-            result = await dependency.execute_plan(subtree, dependency_results)
+            progress.update(task_id, description=dependency.plan.task_message())
+            result = await dependency.plan.execute_plan(subtree, dependency_results)
             if not result.success:
-                spinner_column.finished_text = "[red]✗[/red]"
-                failure_message = f"{dependency} failed"
+                spinner_column.finished_text = "[red]✗[/red]"  # type: ignore
+                failure_message = f"{dependency.plan} failed"
                 if result.error_message:
                     failure_message += f": {result.error_message}"
                 progress.update(task_id, description=failure_message, completed=1)
             else:
                 progress.update(
-                    task_id, description=dependency.success_message(), completed=1
+                    task_id, description=dependency.plan.success_message(), completed=1
                 )
 
             # DONE
             return result
 
-        plan_tasks[dependency.id] = asyncio.create_task(task())
-        return await plan_tasks[dependency.id]
+        _ALL_PLAN_NODES[dependency.plan.id].execute_task = asyncio.create_task(task())
+        return await _ALL_PLAN_NODES[dependency.plan.id].execute_task  # type: ignore
 
     results = await asyncio.gather(
-        *[_execute_with_dependencies(plan) for plan in plans]
+        *[_execute_with_dependencies(node) for node in plan_nodes]
     )
     return results

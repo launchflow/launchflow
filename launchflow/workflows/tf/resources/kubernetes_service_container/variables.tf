@@ -8,10 +8,6 @@ variable "cluster_id" {
 
 variable "k8_provider" {
   type = string
-  validation {
-    condition     = contains(["gke", "eks"], var.k8_provider)
-    error_message = "Allowed values for provider are \"gke\" or \"eks\"."
-  }
 }
 
 variable "container_port" {
@@ -71,5 +67,9 @@ variable "startup_probe" {
 }
 
 variable "service_type" {
+  type = string
+}
+
+variable "num_replicas" {
   type = string
 }

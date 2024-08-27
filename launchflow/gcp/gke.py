@@ -1,5 +1,5 @@
 import dataclasses
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, Union
 
 from launchflow.gcp.resource import GCPResource
 from launchflow.models.enums import EnvironmentType, ResourceProduct
@@ -25,17 +25,71 @@ class GKEInputs(ResourceInputs):
 
 
 class GKECluster(GCPResource[GKEOutputs]):
+    """A Kubernetes Cluster hosted on GKE.
+
+    Like all [Resources](/docs/concepts/resources), this class configures itself across multiple [Environments](/docs/concepts/environments).
+
+    For more information see [the official documentation](https://cloud.google.com/kubernetes-engine).
+
+    When a GKE cluster is created in an environment, LaunchFlow will connect the default namespace to the environment service account. This ensures that
+    all service, workers, and jobs in the default namespace can access resources in the environment. If you would like to deploy and isolated service, worker, or
+    job we recommend using a new namespace.
+
+    ### Example Usage
+
+    #### Create a GKE Cluster and Deploy a Service
+
+    ```python
+    import launchflow as lf
+
+    cluster = lf.gcp.GKECluster("my-cluster")
+    service = lf.gcp.GKEService("my-service", cluster=cluster)
+    ```
+
+    #### Create a Regional Cluster
+
+    Force a regional cluster. By default LaunchFlow will use regional clusters for production environments and zonal clusters for development environments.
+
+    ```python
+    import launchflow as lf
+
+    cluster = lf.gcp.GKECluster("my-cluster", regional=True, region="us-west1")
+    ```
+
+    #### Create a Single Zone Cluster
+
+    Force a singl zone cluster. By default LaunchFlow will use regional clusters for production environments and zonal clusters for development environments.
+
+    ```python
+    import launchflow as lf
+
+    cluster = lf.gcp.GKECluster("my-cluster", regional=False, zones="us-west1")
+    ```
+
+    #### Specify a Custom IP Range for the K8 Subnet
+
+    If you create multiple clusters in your environment it is recommened you provide a custom IP range for the subnet for each cluster.
+
+    ```python
+    import launchflow as lf
+
+    cluster1 = lf.gcp.GKECluster("my-cluster1", subnet_ip_cidr_range="10.90.0.0/20")
+    cluster2 = lf.gcp.GKECluster("my-cluster2", subnet_ip_cidr_range="10.50.0.0/20")
+    """
+
     product = ResourceProduct.GCP_GKE_CLUSTER.value
 
     def __init__(
         self,
         name: str,
+        # TODO: we should add the option to have this auto discovered, currently you will have to change this
+        # if you want to have multiple clusters in the same environment
         subnet_ip_cidr_range: str = "10.60.0.0/20",
         pod_ip_cidr_range: str = "192.168.0.0/18",
         service_cidr_range: str = "192.168.64.0/18",
         regional: Optional[bool] = None,
         region: Optional[str] = None,
-        zones: Optional[List[str]] = None,
+        zones: Optional[Union[List[str], str]] = None,
         delete_protection: bool = False,
     ):
         """Creates a new GKE Cluster.
@@ -50,13 +104,27 @@ class GKECluster(GCPResource[GKEOutputs]):
         - `zones (Optional[List[str]])`: The zones for the cluster. If not provided will default to the default zone for development environments, and remain unset for production environments.
         - `delete_protection (bool)`: Whether the cluster should have delete protection enabled.
         """
-        super().__init__(name)
+        super().__init__(
+            name,
+            replacement_arguments={
+                "subnet_ip_cidr_range",
+                "pod_ip_cidr_range",
+                "service_cidr_range",
+                "regional",
+                "region",
+                "zones",
+            },
+        )
         self.subnet_ip_cidr_range = subnet_ip_cidr_range
         self.pod_ip_cidr_range = pod_ip_cidr_range
         self.service_cidr_range = service_cidr_range
         self.regional = regional
         self.region = region
-        self.zones = zones
+        self.zones = None
+        if zones is not None and not isinstance(zones, list):
+            self.zones = [zones]
+        else:
+            self.zones = zones
         self.delete_protection = delete_protection
 
     def inputs(self, environment_state: EnvironmentState) -> GKEInputs:
@@ -115,17 +183,57 @@ class NodePoolInputs(ResourceInputs):
 
 
 class NodePool(GCPResource[NodePoolOutputs]):
+    """A node pool for a GKE cluster.
+
+    Like all [Resources](/docs/concepts/resources), this class configures itself across multiple [Environments](/docs/concepts/environments).
+
+    For more information see [the official documentation](https://cloud.google.com/kubernetes-engine/docs/concepts/node-pools).
+
+    ### Example Usage
+
+    #### Basic Example
+
+    ```python
+    import launchflow as lf
+
+    cluster = lf.gcp.GKECluster("my-cluster")
+    node_pool = lf.gcp.NodePool("my-node-pool", cluster=cluster, machine_type="e2-micro")
+    ```
+
+    #### Autoscaling Example
+
+    ```python
+    import launchflow as lf
+
+    cluster = lf.gcp.GKECluster("my-cluster")
+    autoscaling = lf.gcp.gke.Autoscaling(min_node_count=1, max_node_count=10)
+    node_pool = lf.gcp.NodePool("my-node-pool", cluster=cluster, machine_type="e2-micro", autoscaling=autoscaling)
+    ```
+
+    #### Deploy Service to Node Pool
+
+    ```python
+    import launchflow as lf
+
+    cluster = lf.gcp.GKECluster("my-cluster")
+    node_pool = lf.gcp.NodePool("my-node-pool", cluster=cluster, machine_type="e2-micro")
+
+    service = lf.gcp.GKEService("my-service", cluster=cluster, node_pool=node_pool)
+    ```
+    """
+
     product = ResourceProduct.GCP_GKE_NODE_POOL.value
 
     def __init__(
         self,
         name: str,
-        *,
         cluster: GKECluster,
+        *,
         machine_type: str = "e2-medium",
         preemptible: bool = False,
         autoscaling: Optional[Autoscaling] = None,
     ):
+        # TODO: add more customization options such as disk size, gpu support, etc..
         super().__init__(name)
         self.cluster = cluster
         self.autoscaling = autoscaling

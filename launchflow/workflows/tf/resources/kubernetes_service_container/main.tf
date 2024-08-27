@@ -43,7 +43,7 @@ resource "kubernetes_deployment_v1" "default" {
     namespace = var.namespace
   }
   spec {
-    replicas = 1
+    replicas = var.num_replicas
     selector {
       match_labels = {
         app = var.resource_id
