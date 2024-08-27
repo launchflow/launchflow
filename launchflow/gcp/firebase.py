@@ -18,6 +18,7 @@ class FirebaseProjectInputs(ResourceInputs):
     pass
 
 
+# TODO: Update docstring
 class FirebaseProject(GCPResource[FirebaseProjectOutputs]):
     product = ResourceProduct.GCP_FIREBASE_PROJECT.value
 
@@ -42,6 +43,7 @@ class FirebaseHostingSiteOutputs(Outputs):
 @dataclasses.dataclass
 class FirebaseHostingSiteInputs(ResourceInputs):
     firebase_project_id: str
+    # TODO: Reconcile args with other usage of domains
     custom_domain: Optional[str]
 
 

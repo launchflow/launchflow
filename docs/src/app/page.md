@@ -22,7 +22,7 @@ Python is just the language for your DevOps automation.
 
 [Services](/docs/concepts/services) allow you to deploy websites, APIs, workflows, and other types of applications to your cloud account with minimal setup. All you need to provide is a Dockerfile - LaunchFlow will take care of the rest.
 
-[Resources](/docs/concepts/resources) allow you to add things like databases, storage, and task queues to your application by simply importing them in your code.
+[Resources](/docs/concepts/resources) allow you to add databases, storage, task queues, and more to your application by simply importing them in your code.
 
 [Environments](/docs/concepts/environments) manage the networking, permissions, and configuration of your **Services** and **Resources** inside a dedicated VPC.
 

@@ -21,6 +21,9 @@ variable "artifact_bucket" {
   type = string
 }
 
+#
+# Firebase specific fields
+#
 
 variable "firebase_project_id" {
   type = string

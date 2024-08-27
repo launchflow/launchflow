@@ -79,9 +79,8 @@ export function Hero() {
                 LaunchFlow Docs
               </p>
               <p className="mt-3 text-lg tracking-tight text-slate-300 sm:text-2xl">
-                Automate deployments on AWS and GCP with Python.{' '}
-                <br className="hidden sm:block" />
-                No messy YAML required.
+                Deploy applications to AWS and GCP with Python.
+                <br className="hidden sm:block" /> No messy YAML required.
               </p>
               <div className="mt-8 flex items-center gap-4 md:justify-center lg:justify-start">
                 <Button variant="primary-lg" href="/docs/get-started">

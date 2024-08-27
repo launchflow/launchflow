@@ -67,7 +67,7 @@ You can learn more about it in the [launchflow.yaml docs](/reference/launchflow-
 
 {% tab label="AWS" %}
 
-LaunchFlow uses your local AWS credentials to manage and provision resources. We recommend using the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) to authenticate with your AWS account. Once you have the CLI set up, run the following command to login to your AWS account:
+LaunchFlow uses your local AWS credentials to manage and provision resources. We recommend using the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) to authenticate with your AWS account. Once you have the CLI set up, run the following command to make sure you're authenticated:
 
 ```bash
 aws sts get-caller-identity

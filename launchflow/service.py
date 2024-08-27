@@ -5,8 +5,6 @@ from launchflow.models.enums import ServiceProduct
 from launchflow.node import Node, NodeType, Outputs, T
 from launchflow.resource import Resource
 
-# TODO: Determine if we can remove the Outputs inheritance for DNSOutputs
-
 
 @dataclass
 class DNSRecord(Outputs):

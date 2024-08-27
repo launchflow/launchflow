@@ -15,6 +15,7 @@ class StaticSiteInputs(Inputs):
     pass
 
 
+# TODO: Add docs
 class StaticSite(GCPStaticService):
     """A service hosted on Google Cloud Platform that serves static files.
 
