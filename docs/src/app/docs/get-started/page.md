@@ -8,10 +8,9 @@ nextjs:
 
 <!-- TODO use the fence highlighting to show the lines that were modified-->
 <!-- would be nice to modify it to show additions in green and deletions in red -->
-LaunchFlow is an open source deployment tool that makes it easy to automate your application's infrastructure, secrets, and deployments on Amazon Web Services (AWS) and Google Cloud Platform (GCP). For an overview, see the [welcome page](../).
+LaunchFlow is an open source Python SDK that lets you launch websites, APIs, and workers to AWS / GCP with minimal configuration. See the [welcome page](../) for an overview.
 
-
-In this walk-through, we'll install LaunchFlow and demonstrate how to create and deploy a small web application with it. See [here](../#core-concepts) an overview of the core concepts.
+In this walk-through, we'll install LaunchFlow and demonstrate how to deploy a small web application with it.
 
 <!-- TODO: move tab provider so we only have one set of tabs at the top that's sticky like https://docs.stripe.com/checkout/quickstart -->
 {% tabProvider defaultLabel="AWS" %}
@@ -50,14 +49,14 @@ Use the CLI to set up your local workspace.
 lf init --backend=local
 ```
 
-Running the command will create a `launchflow.yaml` file that configures your application. The `--backend=local` flag tells LaunchFlow to store configuration and state information locally.
-
-The file will look something like this:
+Running the command will create a `launchflow.yaml` file that looks like this:
 
 ```yaml
 project: your-project-name
 backend: file://.launchflow
 ```
+
+The `--backend=local` flag tells LaunchFlow to store configuration and state information locally. You can also use a cloud storage like Google Cloud Storage, S3 (coming soon), or LaunchFlow Cloud.
 
 You can learn more about it in the [launchflow.yaml docs](/reference/launchflow-yaml).
 
