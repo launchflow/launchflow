@@ -114,7 +114,7 @@ def add_to_module_to_page(mapping, prefix, module_to_page):
             continue
 
         cloud_provider = resource.cloud_provider()
-        if cloud_provider is None:
+        if cloud_provider is None or cloud_provider.value == "unknown":
             print("Skipping generating docs for", resource.__name__)
             continue
 
