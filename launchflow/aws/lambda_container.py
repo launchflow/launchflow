@@ -1,9 +1,8 @@
 from dataclasses import dataclass
-from typing import Optional, Union
+from typing import Literal, Optional
 
 import launchflow as lf
 from launchflow.aws.alb import ApplicationLoadBalancer
-from launchflow.aws.ecs_cluster import ECSCluster
 from launchflow.aws.resource import AWSResource
 from launchflow.models.enums import ResourceProduct
 from launchflow.models.flow_state import EnvironmentState
@@ -20,14 +19,17 @@ class LambdaServiceContainerInputs(ResourceInputs):
     # port: int = 80
     # desired_count: int = 1
     hack: str
+    port: int = 80
+    memory_size: int = 256
+    timeout: int = 10
     alb_security_group_id: Optional[str] = None
     alb_target_group_arn: Optional[str] = None
+    package_type: Literal["Image", "Zip"] = "Image"
 
 
 @dataclass
 class LambdaServiceContainerOutputs(Outputs):
-    pass
-    # public_ip: str
+    lambda_url: str
 
 
 class LambdaServiceContainer(AWSResource[LambdaServiceContainerOutputs]):
@@ -46,16 +48,17 @@ class LambdaServiceContainer(AWSResource[LambdaServiceContainerOutputs]):
     def __init__(
         self,
         name: str,
-        hack = "",
+        hack="",
         # ecs_cluster: Union[ECSCluster, str],
         alb: Optional[ApplicationLoadBalancer] = None,
+        package_type: Literal["Image", "Zip"] = "Zip",
         # cpu: int = 256,
-        # memory: int = 512,
+        memory: int = 256,
         port: int = 80,
+        timeout: int = 10,
         # desired_count: int = 1,
     ) -> None:
-        """TODO
-        """
+        """TODO"""
         if not isinstance(alb, (ApplicationLoadBalancer, type(None))):
             raise ValueError("alb must be an ApplicationLoadBalancer or None")
 
@@ -64,6 +67,11 @@ class LambdaServiceContainer(AWSResource[LambdaServiceContainerOutputs]):
             resource_id=f"{name}-{lf.project}-{lf.environment}",
         )
         self.alb = alb
+        self.package_type = package_type
+        self.port = port
+        self.memory = memory
+        self.timeout = timeout
+
         self.hack = hack
 
     def inputs(
@@ -88,5 +96,9 @@ class LambdaServiceContainer(AWSResource[LambdaServiceContainerOutputs]):
             resource_id=self.resource_id,
             alb_security_group_id=alb_security_group_id,
             alb_target_group_arn=alb_target_group_arn,
+            package_type=self.package_type,
+            port=self.port,
+            memory_size=self.memory,
+            timeout=self.timeout,
             hack=self.hack,
         )

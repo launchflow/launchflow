@@ -45,6 +45,23 @@ variable "alb_security_group_id" {
 
 variable "alb_target_group_arn" {
   type = string
+  default = null
+}
+
+variable "package_type" {
+  type = string
+}
+
+variable "memory_size" {
+  type = number
+}
+
+variable "timeout" {
+  type = number
+}
+
+variable "port" {
+  type = number
 }
 
 variable "hack" {

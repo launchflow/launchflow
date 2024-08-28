@@ -34,8 +34,7 @@ class LambdaServiceInputs(Inputs):
 
 
 class LambdaService(AWSDockerService):
-    """TODO
-    """
+    """TODO"""
 
     product = ServiceProduct.AWS_LAMBDA.value
 
@@ -43,7 +42,7 @@ class LambdaService(AWSDockerService):
     def __init__(
         self,
         name: str,
-        hack = "",
+        hack="",
         port: int = 80,
         build_directory: str = ".",
         dockerfile: str = "Dockerfile",
@@ -51,8 +50,7 @@ class LambdaService(AWSDockerService):
         domain_name: Optional[str] = None,
         certificate: Optional[ACMCertificate] = None,
     ) -> None:
-        """TODO
-        """
+        """TODO"""
         if domain_name is not None and certificate is not None:
             raise ValueError(
                 "You cannot specify both a domain_name and a certificate. Please choose one."
@@ -106,19 +104,17 @@ class LambdaService(AWSDockerService):
             self._https_certificate = ACMCertificate(f"{name}-certificate", domain_name)
         if certificate:
             self._https_certificate = certificate
-        self._alb = ApplicationLoadBalancer(
-            f"{name}-lb", container_port=port, certificate=self._https_certificate
-        )
+        # self._alb = ApplicationLoadBalancer(
+        #     f"{name}-lb", container_port=port, certificate=self._https_certificate
+        # )
 
         self._lambda_service_container = LambdaServiceContainer(
             name,
-            alb=self._alb,
+            # alb=self._alb,
             port=port,
             hack=hack,
         )
-        self._lambda_service_container.resource_id = (
-            resource_id_with_launchflow_prefix
-        )
+        self._lambda_service_container.resource_id = resource_id_with_launchflow_prefix
         self.port = port
 
     def inputs(self) -> LambdaServiceInputs:
@@ -129,7 +125,7 @@ class LambdaService(AWSDockerService):
             self._ecr,
             self._code_build_project,
             self._lambda_service_container,
-            self._alb,
+            # self._alb,
         ]
         if self._https_certificate:
             to_return.append(self._https_certificate)
@@ -140,11 +136,12 @@ class LambdaService(AWSDockerService):
             ecr_outputs = self._ecr.outputs()
             code_build_outputs = self._code_build_project.outputs()
             lambda_outputs = self._lambda_service_container.outputs()
-            alb_outputs = self._alb.outputs()
+            # alb_outputs = self._alb.outputs()
         except exceptions.ResourceOutputsNotFound:
             raise exceptions.ServiceOutputsNotFound(service_name=self.name)
 
-        service_url = f"http://{alb_outputs.alb_dns_name}"
+        # service_url = f"http://{alb_outputs.alb_dns_name}"
+        service_url = lambda_outputs.lambda_url
         if self._https_certificate:
             domain = self._https_certificate.outputs().domain_name
             service_url = f"https://{domain}"

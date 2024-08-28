@@ -46,7 +46,21 @@ resource "aws_iam_role" "env_role" {
         Action = "sts:AssumeRole"
         Effect = "Allow"
         Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+      },
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
           Service = "codebuild.amazonaws.com"
+        }
+      },
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "apigateway.amazonaws.com"
         }
       },
     ]
@@ -58,6 +72,17 @@ resource "aws_iam_role" "env_role" {
     policy = jsonencode({
       Version = "2012-10-17"
       Statement = [
+        {
+          Action = [
+            "ec2:DescribeNetworkInterfaces",
+            "ec2:CreateNetworkInterface",
+            "ec2:DeleteNetworkInterface",
+            "ec2:DescribeInstances",
+            "ec2:AttachNetworkInterface"
+          ]
+          Effect = "Allow"
+          Resource = "*"
+        },
         {
           Action = [
             "s3:*",
