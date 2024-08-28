@@ -14,8 +14,8 @@ from launchflow import exceptions
 from launchflow.backend import GCSBackend, LaunchFlowBackend, LocalBackend
 from launchflow.config import config
 from launchflow.dependencies import opentofu
-from launchflow.utils import logging_output
 from launchflow.logger import logger
+from launchflow.utils import logging_output
 
 _GCS_BACKEND_TEMPLATE = """
 terraform {

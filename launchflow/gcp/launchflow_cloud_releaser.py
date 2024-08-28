@@ -11,11 +11,11 @@ from launchflow.backend import LaunchFlowBackend
 from launchflow.clients.accounts_client import AccountsSyncClient
 from launchflow.clients.environments_client import EnvironmentsSyncClient
 from launchflow.config import config
+from launchflow.gcp.resource import GCPResource
 from launchflow.models.enums import ResourceProduct
 from launchflow.models.flow_state import EnvironmentState
 from launchflow.node import Outputs
 from launchflow.resource import ResourceInputs
-from launchflow.gcp.resource import GCPResource
 
 
 @dataclasses.dataclass
