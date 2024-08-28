@@ -44,6 +44,7 @@ class ResourceProduct(str, Enum):
     AWS_CODEBUILD_PROJECT = "aws_codebuild_project"
     AWS_ECR_REPOSITORY = "aws_ecr_repository"
     AWS_ECS_FARGATE_SERVICE_CONTAINER = "aws_ecs_fargate_service_container"
+    AWS_LAMBDA_SERVICE_CONTAINER = "aws_lambda_service_container"
     AWS_ECS_CLUSTER = "aws_ecs_cluster"
     AWS_ALB = "aws_application_load_balancer"
     AWS_ACM_CERTIFICATE = "aws_acm_certificate"
@@ -62,6 +63,7 @@ class ServiceProduct(str, Enum):
     GCP_COMPUTE_ENGINE = "gcp_compute_engine"
     # AWS product types
     AWS_ECS_FARGATE = "aws_ecs_fargate"
+    AWS_LAMBDA = "aws_lambda"
 
 
 class EnvironmentType(str, Enum):

@@ -428,7 +428,7 @@ async def destroy(
                         gcp_environment_config=environment.gcp_config,  # type: ignore
                     )
                 )
-            elif service.product == ServiceProduct.AWS_ECS_FARGATE:
+            elif service.product == ServiceProduct.AWS_ECS_FARGATE or service.product == ServiceProduct.AWS_LAMBDA:
                 if environment.aws_config is None:  # type: ignore
                     raise exceptions.AWSConfigNotFound(
                         environment_name=environment_name
