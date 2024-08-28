@@ -26,6 +26,7 @@ from launchflow.gcp.custom_domain_mapping import CustomDomainMapping
 from launchflow.gcp.firebase import FirebaseHostingSite, FirebaseProject
 from launchflow.gcp.firebase_site import FirebaseStaticSite
 from launchflow.gcp.gcs import BackendBucket, GCSBucket
+from launchflow.gcp.global_ip_address import GlobalIPAddress
 from launchflow.gcp.http_health_check import HttpHealthCheck
 from launchflow.gcp.launchflow_cloud_releaser import (
     LaunchFlowCloudReleaser as GCPReleaser,
@@ -36,6 +37,7 @@ from launchflow.gcp.pubsub import PubsubSubscription, PubsubTopic
 from launchflow.gcp.regional_autoscaler import RegionalAutoscaler
 from launchflow.gcp.regional_managed_instance_group import RegionalManagedInstanceGroup
 from launchflow.gcp.secret_manager import SecretManagerSecret
+from launchflow.gcp.ssl import ManagedSSLCertificate
 from launchflow.gcp.static_site import StaticSite
 from launchflow.gcp.workbench import WorkbenchInstance
 from launchflow.models.enums import ResourceProduct, ServiceProduct
@@ -69,6 +71,8 @@ RESOURCE_PRODUCTS_TO_RESOURCES = {
     ResourceProduct.GCP_FIREWALL_ALLOW_RULE.value: FirewallAllowRule,
     ResourceProduct.GCP_COMPUTE_HTTP_HEALTH_CHECK.value: HttpHealthCheck,
     ResourceProduct.GCP_REGIONAL_AUTO_SCALER.value: RegionalAutoscaler,
+    ResourceProduct.GCP_GLOBAL_IP_ADDRESS.value: GlobalIPAddress,
+    ResourceProduct.GCP_MANAGED_SSL_CERTIFICATE.value: ManagedSSLCertificate,
     # AWS product types
     ResourceProduct.AWS_RDS_POSTGRES.value: RDSPostgres,
     ResourceProduct.AWS_ELASTICACHE_REDIS.value: ElasticacheRedis,

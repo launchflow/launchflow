@@ -24,7 +24,11 @@ variable "artifact_bucket" {
 #
 # Custom domain mapping specific fields
 #
-variable "domain" {
+variable "ip_address_id" {
+  type = string
+}
+
+variable "ssl_certificate_id" {
   type = string
 }
 
