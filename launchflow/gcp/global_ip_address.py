@@ -1,5 +1,4 @@
 import dataclasses
-from typing import Dict
 
 from launchflow.gcp.resource import GCPResource
 from launchflow.models.enums import ResourceProduct

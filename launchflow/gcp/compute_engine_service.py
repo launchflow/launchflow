@@ -2,7 +2,6 @@ import dataclasses
 from datetime import timedelta
 from typing import Any, List, Literal, Optional, Union
 
-from launchflow import exceptions
 from launchflow.gcp.artifact_registry_repository import (
     ArtifactRegistryRepository,
     RegistryFormat,
@@ -27,7 +26,7 @@ from launchflow.gcp.ssl import ManagedSSLCertificate
 from launchflow.models.enums import ServiceProduct
 from launchflow.node import Inputs
 from launchflow.resource import Resource
-from launchflow.service import DNSOutputs, DNSRecord, DockerServiceOutputs
+from launchflow.service import DockerServiceOutputs
 
 
 @dataclasses.dataclass

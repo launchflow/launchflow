@@ -14,7 +14,7 @@ from launchflow.gcp.ssl import ManagedSSLCertificate
 from launchflow.models.enums import ServiceProduct
 from launchflow.node import Inputs
 from launchflow.resource import Resource
-from launchflow.service import DNSOutputs, DNSRecord, DockerServiceOutputs
+from launchflow.service import DockerServiceOutputs
 
 
 @dataclass
