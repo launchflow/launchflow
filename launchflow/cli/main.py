@@ -3,6 +3,7 @@ import logging
 import os
 import shlex
 import signal
+import sys
 from typing import Any, List, Optional, Set
 
 import rich
@@ -716,6 +717,9 @@ def version():
 if __name__ == "__main__":
     if os.name == "nt":
         import winloop
+
+        sys.stdin.reconfigure(encoding="utf-8")
+        sys.stdout.reconfigure(encoding="utf-8")
 
         asyncio.set_event_loop_policy(winloop.EventLoopPolicy())
     else:
