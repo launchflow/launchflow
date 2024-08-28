@@ -715,5 +715,9 @@ def version():
 
 
 if __name__ == "__main__":
-    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-    app()
+    if os.name == "nt":
+        import winloop
+
+        asyncio.set_event_loop_policy(winloop.EventLoopPolicy())
+    else:
+        asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())

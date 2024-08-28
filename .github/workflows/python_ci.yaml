@@ -35,12 +35,13 @@ jobs:
       contents: write
       id-token: write
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         # TODO: fix tests for 3.8, pytext-httpx doesn't support httpx which makes
         # some of our tests fail, we could just disable those tests for 3.8
         python-version: ["3.9", "3.10", "3.11", "3.12"]
+        os: [ubuntu-latest, windows-latest]
 
     steps:
       - uses: actions/checkout@v3
