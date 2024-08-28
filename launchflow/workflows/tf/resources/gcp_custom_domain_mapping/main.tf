@@ -4,26 +4,22 @@ provider "google" {
 }
 
 
+# HTTPS Load Balancer setup
 resource "google_compute_global_forwarding_rule" "default" {
   name                  = "${var.resource_id}-forwarding-rule"
   target                = google_compute_target_https_proxy.default.id
   port_range            = "443"
   ip_protocol           = "TCP"
   load_balancing_scheme = "EXTERNAL_MANAGED"
+  ip_address            = var.ip_address_id
 }
 
 resource "google_compute_target_https_proxy" "default" {
   name             = "${var.resource_id}-https-proxy"
   url_map          = google_compute_url_map.default.id
-  ssl_certificates = [google_compute_managed_ssl_certificate.default.id]
+  ssl_certificates = [var.ssl_certificate_id]
 }
 
-resource "google_compute_managed_ssl_certificate" "default" {
-  name = "${var.resource_id}-ssl-certificate"
-  managed {
-    domains = [var.domain]
-  }
-}
 
 resource "google_compute_url_map" "default" {
   name = var.resource_id
@@ -68,18 +64,32 @@ resource "google_compute_region_network_endpoint_group" "cloud_run_neg" {
   }
 }
 
-
-output "ip_address" {
-  value = google_compute_global_forwarding_rule.default.ip_address
+# HTTP Proxy setup
+resource "google_compute_global_forwarding_rule" "http" {
+  count                 = var.include_http_redirect ? 1 : 0
+  name                  = "${var.resource_id}-http-forwarding-rule"
+  target                = google_compute_target_http_proxy.default[0].id
+  port_range            = "80"
+  ip_protocol           = "TCP"
+  load_balancing_scheme = "EXTERNAL_MANAGED"
+  description           = "Forwarding rule for HTTP -> HTTPS redirect for ${var.resource_id}"
+  ip_address            = var.ip_address_id
 }
 
-output "registered_domain" {
-  value = var.domain
+resource "google_compute_target_http_proxy" "default" {
+  count   = var.include_http_redirect ? 1 : 0
+  name    = "${var.resource_id}-http-proxy"
+  url_map = google_compute_url_map.http_redirect[0].id
 }
 
-output "ssl_certificate_id" {
+resource "google_compute_url_map" "http_redirect" {
+  count = var.include_http_redirect ? 1 : 0
+  name  = "${var.resource_id}-http-redirect"
 
-  value = google_compute_managed_ssl_certificate.default.id
+  default_url_redirect {
+    https_redirect = true
+    strip_query    = false
+  }
 }
 
 

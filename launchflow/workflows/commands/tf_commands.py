@@ -14,8 +14,8 @@ from launchflow import exceptions
 from launchflow.backend import GCSBackend, LaunchFlowBackend, LocalBackend
 from launchflow.config import config
 from launchflow.dependencies import opentofu
-from launchflow.utils import logging_output
 from launchflow.logger import logger
+from launchflow.utils import logging_output
 
 _GCS_BACKEND_TEMPLATE = """
 terraform {
@@ -152,7 +152,7 @@ class TFCommand:
                 # Upload the state to launchflow
                 with open(tf_state_path, "r") as f:
                     state = json.load(f)
-                with httpx.Client() as client:
+                with httpx.Client(timeout=60) as client:
                     response = client.post(
                         f"{self.backend.lf_cloud_url}/v1/projects/{self.launchflow_state_url}",
                         json=state,

@@ -38,6 +38,7 @@ ENV PATH="${PATH}:/usr/local/lib/python3.11/site-packages/bin"
 WORKDIR /code
 COPY --chown=appuser:appuser ./app /code/app
 COPY --chown=appuser:appuser ./launchflow.yaml /code/launchflow.yaml
+COPY --chown=appuser:appuser ./.launchflow /code/.launchflow
 
 # Expose the port the app runs on
 EXPOSE $PORT

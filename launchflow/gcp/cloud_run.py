@@ -8,11 +8,13 @@ from launchflow.gcp.artifact_registry_repository import (
 )
 from launchflow.gcp.cloud_run_container import CloudRunServiceContainer
 from launchflow.gcp.custom_domain_mapping import CustomDomainMapping
+from launchflow.gcp.global_ip_address import GlobalIPAddress
 from launchflow.gcp.service import GCPDockerService
+from launchflow.gcp.ssl import ManagedSSLCertificate
 from launchflow.models.enums import ServiceProduct
 from launchflow.node import Inputs
 from launchflow.resource import Resource
-from launchflow.service import DNSOutputs, DNSRecord, DockerServiceOutputs
+from launchflow.service import DockerServiceOutputs
 
 
 @dataclass
@@ -128,11 +130,18 @@ class CloudRun(GCPDockerService):
         self._cloud_run_service_container.resource_id = name
 
         self._custom_domain_mapping: Optional[CustomDomainMapping] = None
+        self._ip_address: Optional[GlobalIPAddress] = None
+        self._ssl_certificate: Optional[ManagedSSLCertificate] = None
 
         if domain:
+            self._ip_address = GlobalIPAddress(f"{name}-ip-address")
+            self._ssl_certificate = ManagedSSLCertificate(
+                f"{name}-ssl-certificate", domains=domain
+            )
             self._custom_domain_mapping = CustomDomainMapping(
                 f"{name}-domain-mapping",
-                domain=domain,
+                ip_address=self._ip_address,
+                ssl_certificate=self._ssl_certificate,
                 cloud_run=self._cloud_run_service_container,
             )
             self._custom_domain_mapping.resource_id = name
@@ -145,7 +154,11 @@ class CloudRun(GCPDockerService):
             self._artifact_registry,
             self._cloud_run_service_container,
         ]
-        if self._custom_domain_mapping:
+        if self._ip_address is not None:
+            to_return.append(self._ip_address)
+        if self._ssl_certificate is not None:
+            to_return.append(self._ssl_certificate)
+        if self._custom_domain_mapping is not None:
             to_return.append(self._custom_domain_mapping)
         return to_return
 
@@ -157,20 +170,8 @@ class CloudRun(GCPDockerService):
             raise exceptions.ServiceOutputsNotFound(service_name=self.name)
 
         dns_outputs = None
-        if self._custom_domain_mapping is not None:
-            try:
-                custom_domain_outputs = self._custom_domain_mapping.outputs()
-            except exceptions.ResourceOutputsNotFound:
-                raise exceptions.ServiceOutputsNotFound(service_name=self.name)
-            dns_outputs = DNSOutputs(
-                domain=custom_domain_outputs.registered_domain,
-                dns_records=[
-                    DNSRecord(
-                        dns_record_value=custom_domain_outputs.ip_address,
-                        dns_record_type="A",
-                    ),
-                ],
-            )
+        if self._custom_domain_mapping:
+            dns_outputs = self._custom_domain_mapping.dns_outputs()
 
         if artifact_registry_outputs.docker_repository is None:
             raise ValueError("Docker repository not found in artifact registry outputs")

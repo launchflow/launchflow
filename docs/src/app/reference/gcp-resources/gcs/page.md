@@ -1,3 +1,14 @@
+## BackendBucket
+
+### initialization
+
+Create a new GCS Backend Bucket resource.
+**Args:**
+- `name (str)`: The name of the bucket. This must be globally unique.
+- `location (str)`: The location of the bucket. Defaults to "US".
+- `force_destroy (bool)`: If true, the bucket will be destroyed even if it's not empty. Defaults to False.
+- `custom_domain (Optional[str])`: A custom domain to map to the bucket
+
 ## GCSBucket
 
 A storage bucket in Google Cloud Storage.

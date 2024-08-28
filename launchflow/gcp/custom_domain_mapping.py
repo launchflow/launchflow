@@ -2,20 +2,21 @@ import dataclasses
 from typing import Optional
 
 from launchflow.gcp.cloud_run_container import CloudRunServiceContainer
+from launchflow.gcp.global_ip_address import GlobalIPAddress
 from launchflow.gcp.http_health_check import HttpHealthCheck
 from launchflow.gcp.regional_managed_instance_group import RegionalManagedInstanceGroup
 from launchflow.gcp.resource import GCPResource
+from launchflow.gcp.ssl import ManagedSSLCertificate
 from launchflow.models.enums import ResourceProduct
 from launchflow.models.flow_state import EnvironmentState
 from launchflow.node import Depends, Outputs
 from launchflow.resource import ResourceInputs
+from launchflow.service import DNSOutputs, DNSRecord
 
 
 @dataclasses.dataclass
 class CustomDomainMappingOutputs(Outputs):
-    ip_address: str
-    registered_domain: str
-    ssl_certificate_id: str
+    pass
 
 
 @dataclasses.dataclass
@@ -27,12 +28,14 @@ class GCEServiceBackend:
 
 @dataclasses.dataclass
 class CustomDomainMappingInputs(ResourceInputs):
-    domain: str
+    ip_address_id: str
+    ssl_certificate_id: str
     cloud_run_service: Optional[str]
     gce_service: Optional[str]
     health_check: Optional[str]
     region: Optional[str]
     named_port: Optional[str]
+    include_http_redirect: bool
 
 
 class CustomDomainMapping(GCPResource[CustomDomainMappingOutputs]):
@@ -54,9 +57,11 @@ class CustomDomainMapping(GCPResource[CustomDomainMappingOutputs]):
         self,
         name: str,
         *,
-        domain: str,
+        ssl_certificate: ManagedSSLCertificate,
+        ip_address: GlobalIPAddress,
         cloud_run: Optional[CloudRunServiceContainer] = None,
         gce_service_backend: Optional[GCEServiceBackend] = None,
+        include_http_redirect: bool = True,
     ) -> None:
         """Create a new CustomDomainMapping resource.
 
@@ -65,13 +70,16 @@ class CustomDomainMapping(GCPResource[CustomDomainMappingOutputs]):
         - `domain` (str): The domain to map to the Cloud Run service.
         - `cloud_run` (CloudRunServiceContainer): The Cloud Run service to map the domain to. One and only one of cloud_run and gce_service must be provided.
         - `regional_managed_instance_group` (RegionalManagedInstanceGroup): The Compute Engine service to map the domain to. One and only one of cloud_run and gce_service must be provided.
+        - `include_http_redirect` (bool): Whether to include an HTTP redirect to the HTTPS URL. Defaults to True.
         """
         super().__init__(
             name=name,
         )
-        self.domain = domain
+        self.ssl_certificate = ssl_certificate
+        self.ip_address = ip_address
         self.cloud_run = cloud_run
         self.regional_managed_instance_group = gce_service_backend
+        self.include_http_redirect = include_http_redirect
 
         if not cloud_run and not gce_service_backend:
             raise ValueError(
@@ -113,10 +121,25 @@ class CustomDomainMapping(GCPResource[CustomDomainMappingOutputs]):
             named_port = self.regional_managed_instance_group.named_port
         return CustomDomainMappingInputs(
             resource_id=self.resource_id,
-            domain=self.domain,
+            ip_address_id=Depends(self.ip_address).gcp_id,  # type: ignore
+            ssl_certificate_id=Depends(self.ssl_certificate).gcp_id,  # type: ignore
             cloud_run_service=cloud_run,
             gce_service=gce_service,
             health_check=health_check,
             region=region,
             named_port=named_port,
+            include_http_redirect=self.include_http_redirect,
+        )
+
+    def dns_outputs(self) -> DNSOutputs:
+        ip_outputs = self.ip_address.outputs()
+        ssl_outputs = self.ssl_certificate.outputs()
+        return DNSOutputs(
+            domain=ssl_outputs.domains[0],
+            dns_records=[
+                DNSRecord(
+                    dns_record_value=ip_outputs.ip_address,
+                    dns_record_type="A",
+                ),
+            ],
         )
