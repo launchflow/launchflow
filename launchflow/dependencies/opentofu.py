@@ -1,7 +1,6 @@
 import logging
 import os
 import subprocess
-import sys
 
 import httpx
 
@@ -11,7 +10,8 @@ BASE_BIN_DIR = os.path.join(os.path.expanduser("~"), ".launchflow", "bin")
 TOFU_PATH = os.path.join(BASE_BIN_DIR, "tofu")
 TOFU_VERSION = "1.7.2"
 
-if sys.platform == "win32":
+
+if os.name == "nt":
     remote_path = "https://get.opentofu.org/install-opentofu.ps1"
     install_cmd = f"install-opentofu.ps1 --installMethod standalone --installPath {BASE_BIN_DIR} --opentofuVersion {TOFU_VERSION} --skipVerify"
     install_script_path = os.path.join(BASE_BIN_DIR, "install-opentofu.ps1")
