@@ -17,7 +17,7 @@ dependencies = [
     "pyyaml",
     "pathspec",
     "pydantic>=2.0",
-    "deepdiff",
+    "deepdiff!=8.0.0",
     "typer",
     "requests",
     "httpx",
