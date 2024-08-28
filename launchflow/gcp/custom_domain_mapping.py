@@ -133,11 +133,8 @@ class CustomDomainMapping(GCPResource[CustomDomainMappingOutputs]):
         )
 
     def dns_outputs(self) -> DNSOutputs:
-        try:
-            ip_outputs = self.ip_address.outputs()
-            ssl_outputs = self.ssl_certificate.outputs()
-        except exceptions.ResourceOutputsNotFound:
-            raise exceptions.ServiceOutputsNotFound(service_name=self.name)
+        ip_outputs = self.ip_address.outputs()
+        ssl_outputs = self.ssl_certificate.outputs()
         return DNSOutputs(
             domain=ssl_outputs.domains[0],
             dns_records=[
