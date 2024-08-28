@@ -21,13 +21,14 @@ dependencies = [
     "typer",
     "requests",
     "httpx",
-    "uvloop",
+    "uvloop;platform_system!='Windows'",
     "Jinja2",
     "docker",
     "pyjwt",
     "terminaltexteffects",
     "setuptools",
     "posthog",
+    "winloop;platform_system=='Windows'",
 ]
 requires-python = ">=3.9"
 
