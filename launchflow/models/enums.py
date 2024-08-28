@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Optional
 
 
 class CloudProvider(str, Enum):
@@ -53,18 +52,6 @@ class ResourceProduct(str, Enum):
     # Local product types
     LOCAL_DOCKER = "local_docker"
 
-    def cloud_provider(self) -> Optional[CloudProvider]:
-        if self.name.startswith("GCP"):
-            return CloudProvider.GCP
-        elif self.name.startswith("AWS"):
-            return CloudProvider.AWS
-        elif self.name.startswith("LOCAL"):
-            return None
-        else:
-            raise NotImplementedError(
-                f"Product type {self.name} could not be mapped to a cloud provider."
-            )
-
 
 class ServiceProduct(str, Enum):
     UNKNOWN = "unknown"
@@ -75,12 +62,6 @@ class ServiceProduct(str, Enum):
     GCP_COMPUTE_ENGINE = "gcp_compute_engine"
     # AWS product types
     AWS_ECS_FARGATE = "aws_ecs_fargate"
-
-    def cloud_provider(self):
-        if self.name.startswith("GCP"):
-            return CloudProvider.GCP
-        elif self.name.startswith("AWS"):
-            return CloudProvider.AWS
 
 
 class EnvironmentType(str, Enum):
