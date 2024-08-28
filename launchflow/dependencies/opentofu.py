@@ -34,6 +34,10 @@ def install_opentofu():
         response = client.get(remote_path)
         response.raise_for_status()
         with open(install_script_path, "w") as f:
+            if os.name == "nt":
+                f.write(
+                    "Import-Module $PSHOME\\Modules\\Microsoft.PowerShell.Utility -Function Get-FileHash\n"
+                )
             f.write(response.text)
         try:
             logger.debug(f"Running install script: {install_cmd}")
