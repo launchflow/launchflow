@@ -163,7 +163,7 @@ lf deploy
 6. Deploy your FastAPI app to the new ECS Fargate service
 7. Output the URL & DNS settings of your new FastAPI app
 
-#### Step 4. Add a Resource type to your Python file:
+#### Step 4. Add a Resource type and customize the Service:
 
 ```python
 from fastapi import FastAPI
@@ -179,8 +179,8 @@ def index():
     bucket.upload_from_string(f"Hello from {lf.environment}!", "hello.txt")
     return bucket.download_file("hello.txt").decode()
 
-# Deploy this FastAPI app to ECS Fargate on AWS
-api = lf.aws.ECSFargate("my-api", domain="your-domain.com")
+# You can customize the Fargate service with Python
+api = lf.aws.ECSFargate("my-api", domain="your-domain.com", memory=512, cpu=256)
 ```
 
 ### Step 5. Run the `lf deploy` command to deploy your updated infrastructure:
