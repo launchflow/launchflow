@@ -63,7 +63,7 @@ variable "desired_count" {
 }
 
 variable "alb_security_group_id" {
-  type = string
+  type    = string
   default = null
 }
 

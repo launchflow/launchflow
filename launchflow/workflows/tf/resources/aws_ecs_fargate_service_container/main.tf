@@ -34,6 +34,13 @@ data "aws_iam_role" "launchflow_env_role" {
 
 # Create a task definition
 resource "aws_ecs_task_definition" "task_definition" {
+
+  lifecycle {
+    ignore_changes = [
+      container_definitions
+    ]
+  }
+
   family                   = "${var.resource_id}-task"
   task_role_arn            = data.aws_iam_role.launchflow_env_role.arn
   execution_role_arn       = data.aws_iam_role.launchflow_env_role.arn
@@ -109,14 +116,14 @@ resource "aws_security_group" "ecs_tasks_sg" {
 
 # TODO: Determine if we should drop this rule since we already allow all VPC traffic
 resource "aws_security_group_rule" "ecs_alb_ingress" {
-    count                       = var.alb_security_group_id != null ? 1 : 0
-    type                        = "ingress"
-    from_port                   = 0
-    to_port                     = 0
-    protocol                    = "-1"
-    description                 = "Allow inbound traffic from ALB"
-    security_group_id           = aws_security_group.ecs_tasks_sg.id
-    source_security_group_id    = var.alb_security_group_id
+  count                    = var.alb_security_group_id != null ? 1 : 0
+  type                     = "ingress"
+  from_port                = 0
+  to_port                  = 0
+  protocol                 = "-1"
+  description              = "Allow inbound traffic from ALB"
+  security_group_id        = aws_security_group.ecs_tasks_sg.id
+  source_security_group_id = var.alb_security_group_id
 }
 
 resource "random_id" "rnd" {
