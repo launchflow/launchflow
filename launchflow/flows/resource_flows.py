@@ -775,12 +775,7 @@ async def import_existing_resources(
     plans = []
     for resource in resources:
         rm = environment_manager.create_resource_manager(resource.name)  # type: ignore
-        try:
-            resource_state = await rm.load_resource()
-            if resource_state.status == ResourceStatus.CREATE_FAILED:
-                plans.append(ImportResourcePlan(resource=resource, resource_manager=rm))  # type: ignore
-        except exceptions.ResourceNotFound:
-            plans.append(ImportResourcePlan(resource=resource, resource_manager=rm))  # type: ignore
+        plans.append(ImportResourcePlan(resource=resource, resource_manager=rm))  # type: ignore
 
     environment_ref = (
         f"{environment_manager.project_name}/{environment_manager.environment_name}"
