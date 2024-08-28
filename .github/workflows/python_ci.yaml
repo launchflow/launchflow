@@ -53,13 +53,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install uv==0.1.39
-          uv venv
-          source .venv/bin/activate
-          uv pip compile pyproject.toml --extra dev --extra gcp --extra aws -o requirements.txt
-          uv pip install -r requirements.txt
+          pip install -e .[gcp,aws,dev]
 
       - name: Run Pytest
         run: |
-          source .venv/bin/activate
           pytest
