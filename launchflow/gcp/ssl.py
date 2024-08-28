@@ -49,6 +49,7 @@ class ManagedSSLCertificate(GCPResource[ManagedSSLCertificateOutputs]):
             self.domains.append(domains)
         else:
             self.domains = domains
+            self.domains.sort()
 
     def inputs(
         self, environment_state: EnvironmentState
