@@ -24,9 +24,7 @@ if environment.gcp_config is not None:
 elif environment.aws_config is not None:
     bucket = lf.aws.S3Bucket(f"{lf.project}-{lf.environment}-s3-bucket")
     run_service = lf.aws.ECSFargate(
-        "fastapi-service",
-        dockerfile="Dockerfile.aws",
-        port=8080,
+        "fastapi-service", dockerfile="Dockerfile.aws", port=8080, desired_count=2
     )
 else:
     raise AssertionError("Environment wasn't set up properly")

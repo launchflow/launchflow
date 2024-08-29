@@ -16,8 +16,6 @@ Creates a new ECS Fargate service container.
 **Args:**
 - `name (str)`: The name of the ECS Fargate service container.
 - `ecs_cluster (Union[ECSCluster, str])`: The ECS cluster or the name of the ECS cluster.
-- `cpu (int)`: The CPU units to allocate to the container. Defaults to 256.
-- `memory (int)`: The memory to allocate to the container. Defaults to 512.
 - `port (int)`: The port the container listens on. Defaults to 80.
 - `desired_count (int)`: The number of tasks to run. Defaults to 1.
 

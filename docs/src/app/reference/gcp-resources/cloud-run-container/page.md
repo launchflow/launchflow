@@ -26,6 +26,7 @@ Creates a new Cloud Run Service container.
 - `invokers (Optional[List[str]])`: A list of invokers that can access the service.
 - `custom_audiences (Optional[List[str]])`: A list of custom audiences that can access the service. See: [https://cloud.google.com/run/docs/configuring/custom-audiences](https://cloud.google.com/run/docs/configuring/custom-audiences)
 - `ingress (Optional[Literal])`: The ingress settings for the service. See: [https://cloud.google.com/run/docs/securing/ingress](https://cloud.google.com/run/docs/configuring/custom-audiences)
+- `environment_variables (Optional[Dict[str, str]])`: A dictionary of environment variables to set for the service.
 
 ### inputs
 

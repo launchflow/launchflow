@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.4.8](https://github.com/launchflow/launchflow/compare/v0.4.7...v0.4.8) (2024-08-29)
+
+
+### Features
+
+* Add support for static sites on GCP ([#36](https://github.com/launchflow/launchflow/issues/36)) ([2345f63](https://github.com/launchflow/launchflow/commit/2345f637637a84d6f5832466f5214695b5aea18e))
+
+
+### Bug Fixes
+
+* add support for http -&gt; https redirect ([#40](https://github.com/launchflow/launchflow/issues/40)) ([55c7f6b](https://github.com/launchflow/launchflow/commit/55c7f6b2bac87cc6c4ee1f966a7ef0b79e9b76e4))
+* block bad deepdiff version ([#46](https://github.com/launchflow/launchflow/issues/46)) ([3f61f87](https://github.com/launchflow/launchflow/commit/3f61f874cf0db905ca1d5dba256dcea6ad82f412))
+* ensure ecs task definition can be updated without rolling back the image ([#59](https://github.com/launchflow/launchflow/issues/59)) ([28fe3c8](https://github.com/launchflow/launchflow/commit/28fe3c852e2f2ae3a0957e4d4486aeec8f39e744))
+* ensure we don't overwrite fargate container configuration on updates ([#53](https://github.com/launchflow/launchflow/issues/53)) ([b32429e](https://github.com/launchflow/launchflow/commit/b32429e370205580e688c3bff27565f916680de1))
+* expose environment variables for cloud run ([#55](https://github.com/launchflow/launchflow/issues/55)) ([e068aa8](https://github.com/launchflow/launchflow/commit/e068aa8ec8ae54dd57cf7499c340eb36394a0613))
+* prompt user to create project during env creation for lf cloud ([#32](https://github.com/launchflow/launchflow/issues/32)) ([803070e](https://github.com/launchflow/launchflow/commit/803070eeb396e105f6b520e08b59a7cd84f945fb))
+
 ## [0.4.7](https://github.com/launchflow/launchflow/compare/v0.4.6...v0.4.7) (2024-08-22)
 
 

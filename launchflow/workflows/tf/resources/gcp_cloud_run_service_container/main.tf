@@ -11,7 +11,6 @@ resource "google_cloud_run_v2_service" "service" {
       template[0].labels,
       template[0].timeout,
       template[0].containers[0].image,
-      template[0].containers[0].env,
       template[0].containers[0].volume_mounts,
       template[0].containers[0].liveness_probe,
       template[0].containers[0].startup_probe,
@@ -64,6 +63,13 @@ resource "google_cloud_run_v2_service" "service" {
       env {
         name  = "LAUNCHFLOW_CLOUD_PROVIDER"
         value = "gcp"
+      }
+      dynamic "env" {
+        for_each = var.environment_variables != null ? var.environment_variables : {}
+        content {
+          name  = env.key
+          value = env.value
+        }
       }
     }
 
