@@ -65,7 +65,7 @@ resource "google_cloud_run_v2_service" "service" {
         value = "gcp"
       }
       dynamic "env" {
-        for_each = var.environment_variables != null ? [1] : []
+        for_each = var.environment_variables != null ? var.environment_variables : {}
         content {
           name  = env.key
           value = env.value
