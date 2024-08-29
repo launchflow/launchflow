@@ -26,10 +26,22 @@ class CloudRun(GCPDockerService):
     """A service hosted on GCP Cloud Run.
 
     ### Example Usage
+
+    #### Basic Usage
     ```python
     import launchflow as lf
 
     service = lf.gcp.CloudRun("my-service", cpu=4)
+    ```
+
+    #### Custom Environment Variables
+    ```python
+    import launchflow as lf
+
+    service = lf.gcp.CloudRun(
+        "my-service",
+        environment_variables={"MY_ENV_VAR": "my-value"}
+    )
     ```
 
     **NOTE:** This will create the following infrastructure in your GCP project:
