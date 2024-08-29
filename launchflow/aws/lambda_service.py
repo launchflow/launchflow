@@ -1,12 +1,12 @@
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Any, List, Optional
+from typing_extensions import Callable
 
 import pkg_resources
 
 import launchflow as lf
 from launchflow import exceptions
 from launchflow.aws.acm import ACMCertificate
-from launchflow.aws.alb import ApplicationLoadBalancer
 from launchflow.aws.codebuild_project import (
     Cache,
     CloudWatchLogsConfig,
@@ -42,19 +42,24 @@ class LambdaStaticService(AWSStaticService):
     def __init__(
         self,
         name: str,
-        static_directory: str,
-        handler: str,
+        handler: Callable,
+        static_directory: str = ".",
         hack="",
         port: int = 80,
         static_ignore: List[str] = [],  # type: ignore
         domain_name: Optional[str] = None,
         certificate: Optional[ACMCertificate] = None,
+        requirements_txt_path: Optional[str] = None,
     ) -> None:
         """TODO"""
         if domain_name is not None and certificate is not None:
             raise ValueError(
                 "You cannot specify both a domain_name and a certificate. Please choose one."
             )
+
+        self.handler = handler
+        self.requirements_txt_path = requirements_txt_path
+
         super().__init__(
             name=name,
             static_directory=static_directory,
@@ -103,13 +108,9 @@ class LambdaStaticService(AWSStaticService):
             self._https_certificate = ACMCertificate(f"{name}-certificate", domain_name)
         if certificate:
             self._https_certificate = certificate
-        self._alb = ApplicationLoadBalancer(
-            f"{name}-lb", container_port=port, certificate=self._https_certificate
-        )
 
         self._lambda_service_container = LambdaServiceContainer(
             name,
-            alb=self._alb,
             port=port,
             hack=hack,
         )
@@ -124,7 +125,6 @@ class LambdaStaticService(AWSStaticService):
             self._ecr,
             self._code_build_project,
             self._lambda_service_container,
-            self._alb,
         ]
         if self._https_certificate:
             to_return.append(self._https_certificate)
@@ -135,11 +135,9 @@ class LambdaStaticService(AWSStaticService):
             ecr_outputs = self._ecr.outputs()
             code_build_outputs = self._code_build_project.outputs()
             lambda_outputs = self._lambda_service_container.outputs()
-            # alb_outputs = self._alb.outputs()
         except exceptions.ResourceOutputsNotFound:
             raise exceptions.ServiceOutputsNotFound(service_name=self.name)
 
-        # service_url = f"http://{alb_outputs.alb_dns_name}"
         service_url = lambda_outputs.lambda_url
         if self._https_certificate:
             domain = self._https_certificate.outputs().domain_name
@@ -228,13 +226,9 @@ class LambdaDockerService(AWSStaticService):
             self._https_certificate = ACMCertificate(f"{name}-certificate", domain_name)
         if certificate:
             self._https_certificate = certificate
-        self._alb = ApplicationLoadBalancer(
-            f"{name}-lb", container_port=port, certificate=self._https_certificate
-        )
 
         self._lambda_service_container = LambdaServiceContainer(
             name,
-            alb=self._alb,
             port=port,
             hack=hack,
         )
@@ -249,7 +243,6 @@ class LambdaDockerService(AWSStaticService):
             self._ecr,
             self._code_build_project,
             self._lambda_service_container,
-            self._alb,
         ]
         if self._https_certificate:
             to_return.append(self._https_certificate)
@@ -260,11 +253,9 @@ class LambdaDockerService(AWSStaticService):
             ecr_outputs = self._ecr.outputs()
             code_build_outputs = self._code_build_project.outputs()
             lambda_outputs = self._lambda_service_container.outputs()
-            # alb_outputs = self._alb.outputs()
         except exceptions.ResourceOutputsNotFound:
             raise exceptions.ServiceOutputsNotFound(service_name=self.name)
 
-        # service_url = f"http://{alb_outputs.alb_dns_name}"
         service_url = lambda_outputs.lambda_url
         if self._https_certificate:
             domain = self._https_certificate.outputs().domain_name
