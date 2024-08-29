@@ -7,7 +7,6 @@ from typing import Any, List, Optional, Set
 
 import rich
 import typer
-import uvloop
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from terminaltexteffects.effects.effect_wipe import Wipe
 
@@ -715,5 +714,11 @@ def version():
 
 
 if __name__ == "__main__":
-    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-    app()
+    if os.name == "nt":
+        import winloop
+
+        asyncio.set_event_loop_policy(winloop.EventLoopPolicy())
+    else:
+        import uvloop
+
+        asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())

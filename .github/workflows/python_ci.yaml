@@ -29,18 +29,16 @@ jobs:
         run: |
           mypy .
 
-  # TODO: add better tests around extras
   test:
     permissions:
       contents: write
       id-token: write
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        # TODO: fix tests for 3.8, pytext-httpx doesn't support httpx which makes
-        # some of our tests fail, we could just disable those tests for 3.8
         python-version: ["3.9", "3.10", "3.11", "3.12"]
+        os: [ubuntu-latest, windows-latest]
 
     steps:
       - uses: actions/checkout@v3
@@ -52,13 +50,37 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install uv==0.1.39
-          uv venv
-          source .venv/bin/activate
-          uv pip compile pyproject.toml --extra dev --extra gcp --extra aws -o requirements.txt
-          uv pip install -r requirements.txt
+          pip install -e .[gcp,aws,dev]
 
       - name: Run Pytest
         run: |
-          source .venv/bin/activate
           pytest
+
+  # This verify basic functionality still works on all installs
+  # without extras installed
+  extras_install:
+    permissions:
+      contents: write
+      id-token: write
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          pip install -e .[gcp,aws,dev]
+
+      - name: Test LaunchFlow Version
+        run: |
+          lf version
