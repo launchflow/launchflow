@@ -6,10 +6,10 @@ from .ec2 import EC2Postgres, EC2Redis
 from .ecr_repository import ECRRepository
 from .ecs_cluster import ECSCluster
 from .ecs_fargate import ECSFargate
-from .lambda_service import LambdaService
 from .ecs_fargate_container import ECSFargateServiceContainer
-from .lambda_container import LambdaServiceContainer
 from .elasticache import ElasticacheRedis
+from .lambda_container import LambdaServiceContainer
+from .lambda_service import LambdaDockerService, LambdaStaticService
 from .rds import RDSPostgres
 from .s3 import S3Bucket
 from .secrets_manager import SecretsManagerSecret

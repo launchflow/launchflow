@@ -167,6 +167,8 @@ resource "aws_apigatewayv2_stage" "default" {
 }
 
 
+# Load Balancer setup
+
 
 output "lambda_url" {
   description = "API Gateway URL for the Lambda Function"

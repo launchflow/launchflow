@@ -9,6 +9,7 @@ from docker.errors import BuildError  # type: ignore
 
 from launchflow import exceptions
 from launchflow.aws.ecs_fargate import ECSFargate
+from launchflow.aws.lambda_service import LambdaStaticService
 from launchflow.aws.service import AWSDockerService
 from launchflow.config import config
 from launchflow.managers.service_manager import ServiceManager
@@ -43,6 +44,16 @@ async def _upload_source_tarball_to_s3(
 
     loop = asyncio.get_event_loop()
     await loop.run_in_executor(None, upload_async)
+
+
+# TODO(michael): This is where the deploy logic should live
+# We probably want to add "versioning" somehow for rollbacks (maybe by storing in s3 under a deployment id)
+# but I would just not worry about that for now. Can probably just zip in memory -> deploy to lambda
+async def deploy_local_files_to_lambda_static_site(
+    aws_environment_config: AWSEnvironmentConfig,
+    static_lambda: LambdaStaticService,
+):
+    pass
 
 
 def _get_build_status(client, build_id):

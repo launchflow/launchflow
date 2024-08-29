@@ -23,7 +23,7 @@ class LambdaServiceContainerInputs(ResourceInputs):
     memory_size: int = 256
     timeout: int = 10
     alb_security_group_id: Optional[str] = None
-    alb_target_group_arn: Optional[str] = None
+    alb_target_group_arn: Optional[str] = None  # I think this is unused
     package_type: Literal["Image", "Zip"] = "Image"
 
 

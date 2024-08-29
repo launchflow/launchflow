@@ -77,3 +77,9 @@ def tar_source_in_memory(directory: str, ignore_patterns: List[str]):
 
     # Return the in-memory file
     return in_memory_tar
+
+
+# TODO(michael): Add a func to zip up local files with ignore patterns
+# I would try to keep this in memory unless you absolutely need to write to disk
+def zip_source_in_memory(directory: str, ignore_patterns: List[str]):
+    pass

@@ -63,7 +63,8 @@ class ServiceProduct(str, Enum):
     GCP_COMPUTE_ENGINE = "gcp_compute_engine"
     # AWS product types
     AWS_ECS_FARGATE = "aws_ecs_fargate"
-    AWS_LAMBDA = "aws_lambda"
+    AWS_STATIC_LAMBDA = "aws_static_lambda"
+    AWS_DOCKER_LAMBDA = "aws_docker_lambda"
 
 
 class EnvironmentType(str, Enum):
