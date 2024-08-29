@@ -30,6 +30,7 @@ class CloudRunServiceContainerInputs(ResourceInputs):
     ]
     launchflow_environment: str
     launchflow_project: str
+    environment_variables: Optional[Dict[str, str]]
 
 
 @dataclass
@@ -70,6 +71,7 @@ class CloudRunServiceContainer(GCPResource[CloudRunServiceContainerOutputs]):
                 "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER",
             ]
         ] = None,
+        environment_variables: Optional[Dict[str, str]] = None,
     ) -> None:
         """Creates a new Cloud Run Service container.
 
@@ -86,6 +88,7 @@ class CloudRunServiceContainer(GCPResource[CloudRunServiceContainerOutputs]):
         - `invokers (Optional[List[str]])`: A list of invokers that can access the service.
         - `custom_audiences (Optional[List[str]])`: A list of custom audiences that can access the service. See: [https://cloud.google.com/run/docs/configuring/custom-audiences](https://cloud.google.com/run/docs/configuring/custom-audiences)
         - `ingress (Optional[Literal])`: The ingress settings for the service. See: [https://cloud.google.com/run/docs/securing/ingress](https://cloud.google.com/run/docs/configuring/custom-audiences)
+        - `environment_variables (Optional[Dict[str, str]])`: A dictionary of environment variables to set for the service.
         """
         super().__init__(
             name=name,
@@ -102,6 +105,7 @@ class CloudRunServiceContainer(GCPResource[CloudRunServiceContainerOutputs]):
         self.invokers = invokers
         self.custom_audiences = custom_audiences
         self.ingress = ingress
+        self.environment_variables = environment_variables
 
     def import_tofu_resource(
         self, environment_state: EnvironmentState
@@ -137,4 +141,5 @@ class CloudRunServiceContainer(GCPResource[CloudRunServiceContainerOutputs]):
             ingress=self.ingress,
             launchflow_environment=lf.environment,
             launchflow_project=lf.project,
+            environment_variables=self.environment_variables,
         )

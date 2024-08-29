@@ -95,3 +95,8 @@ variable "ingress" {
   default  = null
   nullable = true
 }
+
+variable "environment_variables" {
+  type    = map(string)
+  default = null
+}
