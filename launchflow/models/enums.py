@@ -37,6 +37,7 @@ class ResourceProduct(str, Enum):
     GCP_MANAGED_SSL_CERTIFICATE = "gcp_managed_ssl_certificate"
     # AWS product types
     AWS_RDS_POSTGRES = "aws_rds_postgres"
+    AWS_RDS = "aws_rds"
     AWS_ELASTICACHE_REDIS = "aws_elasticache_redis"
     AWS_EC2 = "aws_ec2"
     AWS_S3_BUCKET = "aws_s3_bucket"
