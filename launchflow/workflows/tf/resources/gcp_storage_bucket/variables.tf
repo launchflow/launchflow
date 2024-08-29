@@ -33,3 +33,8 @@ variable "force_destroy" {
   type    = bool
   default = false
 }
+
+variable "uniform_bucket_level_access" {
+  type    = bool
+  default = false
+}
