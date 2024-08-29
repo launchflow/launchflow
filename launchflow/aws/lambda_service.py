@@ -42,11 +42,11 @@ class LambdaStaticService(AWSStaticService):
     def __init__(
         self,
         name: str,
+        static_directory: str,
+        handler: str,
         hack="",
         port: int = 80,
-        build_directory: str = ".",
-        dockerfile: str = "Dockerfile",
-        build_ignore: List[str] = [],
+        static_ignore: List[str] = [],  # type: ignore
         domain_name: Optional[str] = None,
         certificate: Optional[ACMCertificate] = None,
     ) -> None:
@@ -57,9 +57,8 @@ class LambdaStaticService(AWSStaticService):
             )
         super().__init__(
             name=name,
-            dockerfile=dockerfile,
-            build_directory=build_directory,
-            build_ignore=build_ignore,
+            static_directory=static_directory,
+            static_ignore=static_ignore,
         )
         resource_id_with_launchflow_prefix = f"{name}-{lf.project}-{lf.environment}"
         # Resources - flows should not access these directly
@@ -161,7 +160,7 @@ class LambdaStaticService(AWSStaticService):
 class LambdaDockerService(AWSStaticService):
     """TODO"""
 
-    product = ServiceProduct.AWS_STATIC_LAMBDA.value
+    product = ServiceProduct.AWS_DOCKER_LAMBDA.value
 
     # TODO: Add better support for custom domains + write up a guide for different domain providers
     def __init__(
