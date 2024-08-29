@@ -46,14 +46,6 @@ variable "resource_name" {
   type = string
 }
 
-variable "cpu" {
-  type = number
-}
-
-variable "memory" {
-  type = number
-}
-
 variable "port" {
   type = number
 }
