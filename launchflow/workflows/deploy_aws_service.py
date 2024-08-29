@@ -70,29 +70,12 @@ def zip_directory(directory_path, output_path):
     :param directory_path: Path to the directory to be zipped
     :param output_path: Path where the zip file should be created
     """
-    with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+    with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
         for root, dirs, files in os.walk(directory_path):
             for file in files:
                 file_path = os.path.join(root, file)
                 arcname = os.path.relpath(file_path, directory_path)
                 zipf.write(file_path, arcname)
-
-def list_lambda_functions(region_name):
-    """
-    List all Lambda functions in the specified region.
-
-    :param region_name: AWS region name
-    :return: List of Lambda function configurations
-    """
-    lambda_client = boto3.client('lambda', region_name=region_name)
-
-    functions = []
-    paginator = lambda_client.get_paginator('list_functions')
-
-    for page in paginator.paginate():
-        functions.extend(page['Functions'])
-
-    return functions
 
 def upload_to_lambda(zip_file_path, function_name, region_name):
     """
@@ -103,8 +86,6 @@ def upload_to_lambda(zip_file_path, function_name, region_name):
     :param role_arn: ARN of the IAM role for the Lambda function
     """
     # Create a boto3 client for Lambda
-    foo = list_lambda_functions(region_name)
-    breakpoint()
     lambda_client = boto3.client('lambda', region_name=region_name)
 
     # Read the zip file
@@ -114,7 +95,8 @@ def upload_to_lambda(zip_file_path, function_name, region_name):
     try:
         response_config = lambda_client.update_function_configuration(
             FunctionName=function_name,
-            Handler="main.lambda_handle"
+            Handler="main.lambda_handle",
+            Timeout=300,
         )
 
         # Try to update the existing function
@@ -150,39 +132,18 @@ async def deploy_local_files_to_lambda_static_site(
     with tempfile.TemporaryDirectory() as temp_dir:
         copy_directory_contents(static_directory_path, temp_dir)
 
-        # Build a virtualenv for the requirements
-        venv_path = os.path.join(temp_dir, ".venv")
-
-        # Create virtual environment
-        venv.create(venv_path, with_pip=True)
-        if sys.platform == "win32":
-            python_executable = os.path.join(venv_path, "Scripts", "python.exe")
-        else:
-            python_executable = os.path.join(venv_path, "bin", "python")
-
         # 2. Install packages from requirements.txt
-        subprocess.check_call([python_executable, "-m", "pip", "install", "-r", "requirements.txt"])
-
-        # 3. Copy the contents of site-packages directory to the top-level of the temp directory
-        python_version = f"python{sys.version_info.major}.{sys.version_info.minor}"
-        if sys.platform == "win32":
-            site_packages_dir = os.path.join(venv_path, "Lib", "site-packages")
-        else:
-            site_packages_dir = os.path.join(venv_path, "lib", python_version, "site-packages")
-
-        copy_directory_contents(site_packages_dir, temp_dir)
-
-        # 4. Remove the rest of the venv
-        shutil.rmtree(venv_path)
+        subprocess.check_call(f"pip install --platform manylinux2014_x86_64 --target={temp_dir} --implementation cp --python-version 3.11 --only-binary=:all: -r requirements.txt".split())
 
         # 5. Zip the contents of the temp directory
         zip_file_path = os.path.join(temp_dir, "lambda.zip")
         zip_directory(temp_dir, zip_file_path)
+        print("ZIP PATH", zip_file_path)
+        breakpoint()
 
         # 6. Uplodad the zip to lambda
         upload_to_lambda(zip_file_path, lambda_static_site._lambda_service_container.resource_id, region_name=aws_environment_config.region)
 
-        breakpoint()
         print(1)
 
 def _get_build_status(client, build_id):
