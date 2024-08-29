@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Literal, Optional
+from typing import Dict, List, Literal, Optional
 
 from launchflow import exceptions
 from launchflow.gcp.artifact_registry_repository import (
@@ -67,6 +67,7 @@ class CloudRun(GCPDockerService):
                 "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER",
             ]
         ] = None,
+        environment_variables: Optional[Dict[str, str]] = None,
         # custom domain inputs
         domain: Optional[str] = None,
     ) -> None:
@@ -88,6 +89,7 @@ class CloudRun(GCPDockerService):
         - `invokers (Optional[List[str]])`: A list of invokers that can access the service.
         - `custom_audiences (Optional[List[str]])`: A list of custom audiences that can access the service. See: [https://cloud.google.com/run/docs/configuring/custom-audiences](https://cloud.google.com/run/docs/configuring/custom-audiences).
         - `ingress (Optional[Literal["INGRESS_TRAFFIC_ALL", "INGRESS_TRAFFIC_INTERNAL_ONLY", "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"]])`: The ingress settings for the service. See: [https://cloud.google.com/run/docs/securing/ingress](https://cloud.google.com/run/docs/configuring/custom-audiences).
+        - `environment_variables (Optional[Dict[str, str]])`: A dictionary of environment variables to set for the service.
         - `domain (Optional[str])`: The custom domain to map to the service.
         """
         super().__init__(
@@ -126,6 +128,7 @@ class CloudRun(GCPDockerService):
             invokers=invokers,
             custom_audiences=custom_audiences,
             ingress=ingress,
+            environment_variables=environment_variables,
         )
         self._cloud_run_service_container.resource_id = name
 
