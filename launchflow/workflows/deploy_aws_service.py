@@ -159,6 +159,7 @@ async def deploy_local_files_to_lambda_static_site(
                         "LAUNCHFLOW_ENVIRONMENT": service_manager.environment_name,
                         "LAUNCHFLOW_CLOUD_PROVIDER": "aws",
                         "LAUNCHFLOW_DEPLOYMENT_ID": deployment_id,
+                        "LAUNCHFLOW_ARTIFACT_BUCKET": f"s3://{aws_environment_config.artifact_bucket}",
                     }
                 },
             )

@@ -112,6 +112,26 @@ resource "aws_lambda_function" "default" {
   }
 }
 
+# TODO: Refactor NAT Gateway to be a module
+
+# resource "aws_eip" "eip" {
+#   vpc        = true
+#   tags = {
+#     Project     = var.launchflow_project
+#     Environment = var.launchflow_environment
+#   }
+# }
+
+# resource "aws_nat_gateway" "nat_gateway" {
+#   allocation_id = aws_eip.eip.id
+#   subnet_id     = aws_subnet.subnet_public.id
+
+#   tags = {
+#     Project     = var.launchflow_project
+#     Environment = var.launchflow_environment
+#   }
+# }
+
 # TODO: REMOVE ALL API GATEWAY CODE BELOW
 
 resource "aws_apigatewayv2_api" "default" {
