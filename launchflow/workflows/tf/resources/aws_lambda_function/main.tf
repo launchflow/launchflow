@@ -9,19 +9,7 @@ provider "aws" {
   }
 }
 
-# Import the subnets for the VPC
-data "aws_subnets" "lf_public_vpc_subnets" {
-  filter {
-    name   = "vpc-id"
-    values = [var.vpc_id]
-  }
-  tags = {
-    "Project" : var.launchflow_project,
-    "Environment" : var.launchflow_environment,
-    "Public" : "true"
-  }
-}
-
+# Import the private subnets for the VPC
 data "aws_subnets" "lf_private_vpc_subnets" {
   filter {
     name   = "vpc-id"
@@ -39,31 +27,11 @@ data "aws_iam_role" "launchflow_env_role" {
   name = var.env_role_name
 }
 
-# Define a Security Group for the ECS Tasks
-resource "aws_security_group" "lambda_sg" {
-  name        = "${var.resource_id}-lambda-sg"
-  description = "Allow inbound traffic"
-  vpc_id      = var.vpc_id
-
-  ingress {
-    from_port   = var.port
-    to_port     = var.port
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Project     = var.launchflow_project
-    Environment = var.launchflow_environment
-  }
+data "aws_security_group" "default_vpc_sg" {
+  vpc_id = var.vpc_id
+  name   = "default"
 }
+
 
 
 resource "local_file" "hello" {
@@ -110,7 +78,7 @@ resource "aws_lambda_function" "default" {
   replace_security_groups_on_destroy = true
 
   vpc_config {
-    security_group_ids = [aws_security_group.lambda_sg.id]
+    security_group_ids = [data.aws_security_group.default_vpc_sg.id]
     subnet_ids         = [data.aws_subnets.lf_private_vpc_subnets.ids[0]]
   }
 
@@ -128,92 +96,49 @@ resource "aws_lambda_function" "default" {
   }
 }
 
-# TODO: Refactor NAT Gateway to be a module
 
-resource "aws_eip" "eip" {
-  domain        = "vpc"
-  tags = {
-    Project     = var.launchflow_project
-    Environment = var.launchflow_environment
-  }
-}
-
-resource "aws_nat_gateway" "nat_gateway" {
-  allocation_id = aws_eip.eip.id
-  subnet_id     = data.aws_subnets.lf_public_vpc_subnets.ids[0]
-
-  tags = {
-    Project     = var.launchflow_project
-    Environment = var.launchflow_environment
-  }
-}
-
-data "aws_route_table" "selected" {
-  vpc_id = var.vpc_id
-  
-  tags = {
-    "Project" = var.launchflow_project
-    "Environment" = var.launchflow_environment
-    "Public" = "false"
-  }
-}
-
-resource "aws_route" "route" {
-  route_table_id            = data.aws_route_table.selected.id
-  nat_gateway_id = aws_nat_gateway.nat_gateway.id
-  destination_cidr_block = "0.0.0.0/0"
-}
-
-resource "aws_route_table_association" "association" {
-  subnet_id      = data.aws_subnets.lf_private_vpc_subnets.ids[0]
-  route_table_id = data.aws_route_table.selected.id
-}
-
+# TODO: Determine if we can remove this / restrict the scope a bit more
 resource "aws_iam_role_policy_attachment" "iam_role_policy_attachment_lambda_vpc_access_execution" {
   role       = data.aws_iam_role.launchflow_env_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
 
-# TODO: REMOVE ALL API GATEWAY CODE BELOW
 
-resource "aws_apigatewayv2_api" "default" {
-  name          = "${var.resource_id}-gateway"
-  protocol_type = "HTTP"
+# API GATEWAY INTEGRATION - OPTIONAL
+data "aws_apigatewayv2_api" "imported_api_gateway" {
+  count = var.api_gateway_config != null ? 1 : 0
+
+  api_id = var.api_gateway_config.api_gateway_id
 }
 
 resource "aws_lambda_permission" "default" {
+  count = var.api_gateway_config != null ? 1 : 0
+
   statement_id  = "AllowExecutionFromAPIGateway"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.default.function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.default.execution_arn}/*/*"
+  source_arn    = "${data.aws_apigatewayv2_api.imported_api_gateway[0].execution_arn}/*/*"
 }
 
 resource "aws_apigatewayv2_integration" "default" {
-  api_id           = aws_apigatewayv2_api.default.id
+  count = var.api_gateway_config != null ? 1 : 0
+
+  api_id           = data.aws_apigatewayv2_api.imported_api_gateway[0].id
   integration_type = "AWS_PROXY"
   integration_uri  = aws_lambda_function.default.arn
 }
 
 resource "aws_apigatewayv2_route" "default" {
-  api_id    = aws_apigatewayv2_api.default.id
-  route_key = "$default"
-  target    = "integrations/${aws_apigatewayv2_integration.default.id}"
+  count     = var.api_gateway_config != null ? 1 : 0
+
+  api_id    = data.aws_apigatewayv2_api.imported_api_gateway[0].id
+  route_key = var.api_gateway_config.api_route_key == "/" ? "$default" : var.api_gateway_config.api_route_key
+  target    = "integrations/${aws_apigatewayv2_integration.default[0].id}"
 }
 
-resource "aws_apigatewayv2_stage" "default" {
-  api_id      = aws_apigatewayv2_api.default.id
-  name        = "$default"
-  auto_deploy = true
-}
-
-
-output "lambda_url" {
-  description = "API Gateway URL for the Lambda Function"
-  value       = aws_apigatewayv2_api.default.api_endpoint
-}
+# TODO: Add a Lambda Function URL option
 
 output "aws_arn" {
-  description = "Lambda Function ARN"
   value       = aws_lambda_function.default.arn
 }

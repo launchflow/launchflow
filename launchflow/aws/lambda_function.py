@@ -3,11 +3,31 @@ from dataclasses import dataclass
 from typing import Literal, Optional
 
 import launchflow as lf
+from launchflow.aws.api_gateway import APIGateway
 from launchflow.aws.resource import AWSResource
 from launchflow.models.enums import ResourceProduct
 from launchflow.models.flow_state import EnvironmentState
-from launchflow.node import Outputs
+from launchflow.node import Depends, Inputs, Outputs
 from launchflow.resource import ResourceInputs
+
+"""
+Use cases:
+- Lambda inside / outside VPC (bool)  | punt
+
+TODO
+- Lambda publically accessible / private (pass in ALB, API Gateway, etc.)
+- Lambda with / without internet access (pass in ENI, NAT Gateway, etc.)
+
+
+- Lambda with custom triggers (e.g. S3, SQS, SNS, etc.)
+- Lambda with container image vs zip (enum)
+- Lambda with different runtimes, memory sizes, and timeouts (args)
+
+
+TODO
+- look into reasons to put Lambda in private vs public subnet
+
+"""
 
 
 class LambdaRuntime(enum.Enum):
@@ -66,35 +86,40 @@ class LambdaRuntime(enum.Enum):
 
 
 @dataclass
-class LambdaContainerInputs(ResourceInputs):
-    # Shared Inputs
-    timeout: int = 10
-    memory_size: int = 256
-    package_type: Literal["Image", "Zip"] = "Image"
-    # Static Inputs
-    runtime: LambdaRuntime = LambdaRuntime.PYTHON3_11
-    # Docker Inputs
-    port: int = 80
+class APIGatewayConfig(Inputs):
+    api_gateway_id: str
+    api_route_key: str
 
 
-# TODO: Pull API Gateway into its own Resource
 @dataclass
-class LambdaContainerOutputs(Outputs):
-    lambda_url: str
+class LambdaFunctionInputs(ResourceInputs):
+    # Shared Inputs
+    timeout: int
+    memory_size: int
+    package_type: Literal["Image", "Zip"]
+    # Static Inputs
+    runtime: LambdaRuntime
+    # API Gateway Inputs
+    api_gateway_config: Optional[APIGatewayConfig]
 
 
-class LambdaContainer(AWSResource[LambdaContainerOutputs]):
-    """A container for a service running on Lambda.
+@dataclass
+class LambdaFunctionOutputs(Outputs):
+    pass
+
+
+class LambdaFunction(AWSResource[LambdaFunctionOutputs]):
+    """A Lambda function.
 
     ****Example usage:****
     ```python
     import launchflow as lf
 
-    lambda_func = lf.aws.LambdaServiceContainer("my-service-container")
+    lambda_func = lf.aws.LambdaFunction("my-lambda-function")
     ```
     """
 
-    product = ResourceProduct.AWS_LAMBDA_CONTAINER.value
+    product = ResourceProduct.AWS_LAMBDA_FUNCTION.value
 
     def __init__(
         self,
@@ -104,7 +129,8 @@ class LambdaContainer(AWSResource[LambdaContainerOutputs]):
         memory_size: int = 256,
         package_type: Literal["Image", "Zip"] = "Zip",
         runtime: LambdaRuntime = LambdaRuntime.PYTHON3_11,
-        port: int = 80,
+        route: Optional[str] = None,
+        api_gateway: Optional[APIGateway] = None,
     ) -> None:
         """TODO"""
         super().__init__(
@@ -115,23 +141,34 @@ class LambdaContainer(AWSResource[LambdaContainerOutputs]):
         self.memory_size = memory_size
         self.package_type = package_type
         self.runtime = runtime
-        self.port = port
+        self.route = route
 
-    def inputs(self, environment_state: EnvironmentState) -> LambdaContainerInputs:
-        """Get the inputs for the Lambda service container resource.
+        self._api_gateway = api_gateway
+
+    def inputs(self, environment_state: EnvironmentState) -> LambdaFunctionInputs:
+        """Get the inputs for the Lambda function resource.
 
         **Args:**
          - `environment_state (EnvironmentState)`: The environment to get inputs for
 
         **Returns:**
-         - `LambdaServiceContainerInputs`: The inputs required for the Lambda service container
+         - `LambdaFunctionInputs`: The inputs required for the Lambda function resource
         """
 
-        return LambdaContainerInputs(
+        api_gateway_config = None
+        if self._api_gateway is not None:
+            api_gateway_id = Depends(self._api_gateway).api_gateway_id
+            # TODO: clean this up / throw validation error in __init__ if route is None and api_gateway is not None
+            api_gateway_config = APIGatewayConfig(
+                api_gateway_id=api_gateway_id,
+                api_route_key=self.route or "/",
+            )
+
+        return LambdaFunctionInputs(
             resource_id=self.resource_id,
             timeout=self.timeout,
             memory_size=self.memory_size,
             package_type=self.package_type,
             runtime=self.runtime,
-            port=self.port,
+            api_gateway_config=api_gateway_config,
         )

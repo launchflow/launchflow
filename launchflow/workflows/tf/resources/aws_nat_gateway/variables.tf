@@ -35,25 +35,16 @@ variable "launchflow_environment" {
 }
 
 #
-# Lambda service container specific variables
+# NAT Gateway tofu variables
 #
 
-variable "timeout" {
-  type = number
-}
-
-variable "memory_size" {
-  type = number
-}
-
-variable "package_type" {
+variable "eip_allocation_id" {
   type = string
 }
 
-variable "runtime" {
-  type = string
-}
-
-variable "port" {
-  type = number
+variable "private_route_config" {
+  type = object({
+    destination_cidr_block = string
+  })
+  default = null  
 }

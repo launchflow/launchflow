@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 import launchflow as lf
-from launchflow.aws.lambda_container import LambdaContainer
+from launchflow.aws.lambda_function import LambdaFunction
 from launchflow.aws.resource import AWSResource
 from launchflow.aws.sqs import SQSQueue
 from launchflow.models.enums import ResourceProduct
@@ -40,7 +40,7 @@ class LambdaEventMapping(AWSResource[LambdaEventMappingOutputs]):
         self,
         name: str,
         *,
-        lambda_container: LambdaContainer,
+        lambda_container: LambdaFunction,
         sqs_queue: SQSQueue,
         batch_size: int = 10,
     ) -> None:

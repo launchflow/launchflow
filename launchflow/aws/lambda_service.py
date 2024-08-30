@@ -7,6 +7,7 @@ from typing_extensions import Callable
 import launchflow as lf
 from launchflow import exceptions
 from launchflow.aws.acm import ACMCertificate
+from launchflow.aws.api_gateway import APIGateway
 from launchflow.aws.codebuild_project import (
     Cache,
     CloudWatchLogsConfig,
@@ -17,8 +18,10 @@ from launchflow.aws.codebuild_project import (
     Source,
 )
 from launchflow.aws.ecr_repository import ECRRepository
-from launchflow.aws.lambda_container import LambdaContainer
+from launchflow.aws.elastic_ip import ElasticIP
 from launchflow.aws.lambda_event_mapping import LambdaEventMapping
+from launchflow.aws.lambda_function import LambdaFunction
+from launchflow.aws.nat_gateway import NATGateway
 from launchflow.aws.service import AWSDockerServiceOutputs, AWSStaticService
 from launchflow.aws.sqs import SQSQueue
 from launchflow.models.enums import ServiceProduct
@@ -37,7 +40,6 @@ class LambdaStaticService(AWSStaticService):
 
     product = ServiceProduct.AWS_STATIC_LAMBDA.value
 
-    # TODO: Add better support for custom domains + write up a guide for different domain providers
     def __init__(
         self,
         name: str,
@@ -45,9 +47,9 @@ class LambdaStaticService(AWSStaticService):
         *,
         static_directory: str = ".",
         static_ignore: List[str] = [],  # type: ignore
-        domain_name: Optional[str] = None,
+        enable_public_access: bool = False,  # TODO: rename this to highlight its for public egress, not ingress
         requirements_txt_path: Optional[str] = None,
-        sqs_queue: Optional[SQSQueue] = None,
+        public_route: Optional[str] = None,
     ) -> None:
         """TODO"""
         super().__init__(
@@ -57,22 +59,24 @@ class LambdaStaticService(AWSStaticService):
         )
         resource_id_with_launchflow_prefix = f"{name}-{lf.project}-{lf.environment}"
 
-        self._https_certificate = None
-        if domain_name:
-            self._https_certificate = ACMCertificate(f"{name}-certificate", domain_name)
+        self._api_gateway = None
+        if public_route is not None:
+            self._api_gateway = lf.aws.APIGateway("tanke-api-gateway")
 
-        self._lambda_service_container = LambdaContainer(name)
+        self._lambda_service_container = LambdaFunction(
+            name, api_gateway=self._api_gateway, route=public_route
+        )
         self._lambda_service_container.resource_id = resource_id_with_launchflow_prefix
 
-        self._lambda_event_mapping = None
-        if sqs_queue is not None:
-            raise ValueError("SQS Queues are not supported for static Lambda services.")
-            self._lambda_event_mapping = LambdaEventMapping(
-                f"{name}-event-mapping",
-                lambda_container=self._lambda_service_container,
-                sqs_queue=sqs_queue,
+        self._elastic_ip = None
+        self._nat_gateway = None
+        if enable_public_access:
+            self._elastic_ip = ElasticIP(f"{name}-elastic-ip")
+            self._elastic_ip.resource_id = resource_id_with_launchflow_prefix
+            self._nat_gateway = NATGateway(
+                f"{name}-nat-gateway", elastic_ip=self._elastic_ip
             )
-            self._lambda_event_mapping.resource_id = resource_id_with_launchflow_prefix
+            self._nat_gateway.resource_id = resource_id_with_launchflow_prefix
 
         self.handler = handler
         self.requirements_txt_path = requirements_txt_path
@@ -84,10 +88,12 @@ class LambdaStaticService(AWSStaticService):
         to_return = [
             self._lambda_service_container,
         ]
-        if self._https_certificate:
-            to_return.append(self._https_certificate)
-        if self._lambda_event_mapping:
-            to_return.append(self._lambda_event_mapping)
+        if self._api_gateway:
+            to_return.append(self._api_gateway)
+        if self._elastic_ip:
+            to_return.append(self._elastic_ip)
+        if self._nat_gateway:
+            to_return.append(self._nat_gateway)
         return to_return  # type: ignore
 
     def outputs(self) -> StaticServiceOutputs:
@@ -96,10 +102,13 @@ class LambdaStaticService(AWSStaticService):
         except exceptions.ResourceOutputsNotFound:
             raise exceptions.ServiceOutputsNotFound(service_name=self.name)
 
-        service_url = lambda_outputs.lambda_url
-        if self._https_certificate:
-            domain = self._https_certificate.outputs().domain_name
-            service_url = f"https://{domain}"
+        service_url = "TODO"
+        if self._api_gateway is not None:
+            try:
+                api_gateway_outputs = self._api_gateway.outputs()
+                service_url = api_gateway_outputs.api_gateway_endpoint
+            except exceptions.ResourceOutputsNotFound:
+                raise exceptions.ServiceOutputsNotFound(service_name=self.name)
 
         service_outputs = StaticServiceOutputs(
             service_url=service_url,
@@ -183,7 +192,7 @@ class LambdaDockerService(AWSStaticService):
         if certificate:
             self._https_certificate = certificate
 
-        self._lambda_service_container = LambdaContainer(
+        self._lambda_service_container = LambdaFunction(
             name,
             port=port,
             hack=hack,
