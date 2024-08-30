@@ -8,7 +8,7 @@ from .ecs_cluster import ECSCluster
 from .ecs_fargate import ECSFargate
 from .ecs_fargate_container import ECSFargateServiceContainer
 from .elasticache import ElasticacheRedis
-from .lambda_container import LambdaServiceContainer
+from .lambda_container import LambdaContainer
 from .lambda_service import LambdaDockerService, LambdaStaticService
 from .rds import RDSPostgres
 from .s3 import S3Bucket

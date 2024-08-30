@@ -38,32 +38,14 @@ variable "launchflow_environment" {
 # Lambda service container specific variables
 #
 
-variable "alb_security_group_id" {
-  type = string
-  default = null
-}
-
-variable "alb_target_group_arn" {
-  type = string
-  default = null
-}
-
-variable "package_type" {
+variable "event_source_arn" {
   type = string
 }
 
-variable "memory_size" {
-  type = number
+variable "function_arn" {
+  type = string
 }
 
-variable "timeout" {
+variable "batch_size" {
   type = number
-}
-
-variable "port" {
-  type = number
-}
-
-variable "hack" {
-    type = string
 }

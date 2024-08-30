@@ -13,6 +13,7 @@ from launchflow.config import config
 from launchflow.flows.environments_flows import get_environment
 from launchflow.managers.project_manager import ProjectManager
 from launchflow.models.utils import RESOURCE_PRODUCTS_TO_RESOURCES
+from launchflow.resource import Resource
 
 app = UTyper(help="Commands for viewing resources managed by LaunchFlow")
 
@@ -53,7 +54,9 @@ async def list(
 
         print("Resources:")
         for name, resource in resources.items():
-            resource_cls = RESOURCE_PRODUCTS_TO_RESOURCES[resource.product]
+            resource_cls = RESOURCE_PRODUCTS_TO_RESOURCES.get(
+                resource.product, Resource
+            )
             print(f"- {resource_cls.__name__}(name='{name}')")
 
 

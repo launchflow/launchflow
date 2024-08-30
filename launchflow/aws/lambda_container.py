@@ -1,104 +1,137 @@
+import enum
 from dataclasses import dataclass
 from typing import Literal, Optional
 
 import launchflow as lf
-from launchflow.aws.alb import ApplicationLoadBalancer
 from launchflow.aws.resource import AWSResource
 from launchflow.models.enums import ResourceProduct
 from launchflow.models.flow_state import EnvironmentState
-from launchflow.node import Depends, Outputs
+from launchflow.node import Outputs
 from launchflow.resource import ResourceInputs
 
 
+class LambdaRuntime(enum.Enum):
+    PYTHON2_7 = "python2.7"
+    PYTHON3_6 = "python3.6"
+    PYTHON3_7 = "python3.7"
+    PYTHON3_8 = "python3.8"
+    PYTHON3_9 = "python3.9"
+    PYTHON3_10 = "python3.10"
+    PYTHON3_11 = "python3.11"
+    PYTHON3_12 = "python3.12"
+    NODEJS = "nodejs"
+    NODEJS4_3 = "nodejs4.3"
+    NODEJS6_10 = "nodejs6.10"
+    NODEJS8_10 = "nodejs8.10"
+    NODEJS10_X = "nodejs10.x"
+    NODEJS12_X = "nodejs12.x"
+    NODEJS14_X = "nodejs14.x"
+    NODEJS16_X = "nodejs16.x"
+    NODEJS18_X = "nodejs18.x"
+    NODEJS20_X = "nodejs20.x"
+    NODEJS4_3_EDGE = "nodejs4.3-edge"
+    JAVA8 = "java8"
+    JAVA8_AL2 = "java8.al2"
+    JAVA11 = "java11"
+    JAVA17 = "java17"
+    JAVA21 = "java21"
+    DOTNETCORE1_0 = "dotnetcore1.0"
+    DOTNETCORE2_0 = "dotnetcore2.0"
+    DOTNETCORE2_1 = "dotnetcore2.1"
+    DOTNETCORE3_1 = "dotnetcore3.1"
+    DOTNET6 = "dotnet6"
+    DOTNET8 = "dotnet8"
+    GO1_X = "go1.x"
+    RUBY2_5 = "ruby2.5"
+    RUBY2_7 = "ruby2.7"
+    RUBY3_2 = "ruby3.2"
+    RUBY3_3 = "ruby3.3"
+    PROVIDED = "provided"
+    PROVIDED_AL2 = "provided.al2"
+    PROVIDED_AL2023 = "provided.al2023"
+
+    def python_version(self) -> Optional[str]:
+        if self in [
+            LambdaRuntime.PYTHON2_7,
+            LambdaRuntime.PYTHON3_6,
+            LambdaRuntime.PYTHON3_7,
+            LambdaRuntime.PYTHON3_8,
+            LambdaRuntime.PYTHON3_9,
+            LambdaRuntime.PYTHON3_10,
+            LambdaRuntime.PYTHON3_11,
+            LambdaRuntime.PYTHON3_12,
+        ]:
+            return self.value.split("python")[-1]
+        return None
+
+
 @dataclass
-class LambdaServiceContainerInputs(ResourceInputs):
-    # resource_name: str
-    # ecs_cluster_name: str
-    # cpu: int = 256
-    # memory: int = 512
-    # port: int = 80
-    # desired_count: int = 1
-    hack: str
-    port: int = 80
-    memory_size: int = 256
+class LambdaContainerInputs(ResourceInputs):
+    # Shared Inputs
     timeout: int = 10
-    alb_security_group_id: Optional[str] = None
-    alb_target_group_arn: Optional[str] = None  # I think this is unused
+    memory_size: int = 256
     package_type: Literal["Image", "Zip"] = "Image"
+    # Static Inputs
+    runtime: LambdaRuntime = LambdaRuntime.PYTHON3_11
+    # Docker Inputs
+    port: int = 80
 
 
+# TODO: Pull API Gateway into its own Resource
 @dataclass
-class LambdaServiceContainerOutputs(Outputs):
+class LambdaContainerOutputs(Outputs):
     lambda_url: str
 
 
-class LambdaServiceContainer(AWSResource[LambdaServiceContainerOutputs]):
+class LambdaContainer(AWSResource[LambdaContainerOutputs]):
     """A container for a service running on Lambda.
 
     ****Example usage:****
     ```python
     import launchflow as lf
 
-    service_container = lf.aws.LambdaServiceContainer("my-service-container")
+    lambda_func = lf.aws.LambdaServiceContainer("my-service-container")
     ```
     """
 
-    product = ResourceProduct.AWS_LAMBDA_SERVICE_CONTAINER.value
+    product = ResourceProduct.AWS_LAMBDA_CONTAINER.value
 
     def __init__(
         self,
         name: str,
-        hack="",
-        # ecs_cluster: Union[ECSCluster, str],
-        alb: Optional[ApplicationLoadBalancer] = None,
-        package_type: Literal["Image", "Zip"] = "Zip",
-        # cpu: int = 256,
-        memory: int = 256,
-        port: int = 80,
+        *,
         timeout: int = 10,
-        # desired_count: int = 1,
+        memory_size: int = 256,
+        package_type: Literal["Image", "Zip"] = "Zip",
+        runtime: LambdaRuntime = LambdaRuntime.PYTHON3_11,
+        port: int = 80,
     ) -> None:
         """TODO"""
-        if not isinstance(alb, (ApplicationLoadBalancer, type(None))):
-            raise ValueError("alb must be an ApplicationLoadBalancer or None")
-
         super().__init__(
             name=name,
             resource_id=f"{name}-{lf.project}-{lf.environment}",
         )
-        self.alb = alb
-        self.package_type = package_type
-        self.port = port
-        self.memory = memory
         self.timeout = timeout
+        self.memory_size = memory_size
+        self.package_type = package_type
+        self.runtime = runtime
+        self.port = port
 
-        self.hack = hack
-
-    def inputs(
-        self, environment_state: EnvironmentState
-    ) -> LambdaServiceContainerInputs:
-        """Get the inputs for the ECS Fargate service container resource.
+    def inputs(self, environment_state: EnvironmentState) -> LambdaContainerInputs:
+        """Get the inputs for the Lambda service container resource.
 
         **Args:**
          - `environment_state (EnvironmentState)`: The environment to get inputs for
 
         **Returns:**
-         - `LambdaServiceContainerInputs`: The inputs required for the ECS Fargate service container.
+         - `LambdaServiceContainerInputs`: The inputs required for the Lambda service container
         """
 
-        alb_security_group_id = None
-        alb_target_group_arn = None
-        if self.alb is not None:
-            alb_security_group_id = Depends(self.alb).alb_security_group_id  # type: ignore
-            alb_target_group_arn = Depends(self.alb).alb_target_group_arn  # type: ignore
-
-        return LambdaServiceContainerInputs(
+        return LambdaContainerInputs(
             resource_id=self.resource_id,
-            alb_security_group_id=alb_security_group_id,
-            alb_target_group_arn=alb_target_group_arn,
-            package_type=self.package_type,
-            port=self.port,
-            memory_size=self.memory,
             timeout=self.timeout,
-            hack=self.hack,
+            memory_size=self.memory_size,
+            package_type=self.package_type,
+            runtime=self.runtime,
+            port=self.port,
         )

@@ -3,6 +3,7 @@ import os
 import random
 import tarfile
 import tempfile
+import zipfile
 from typing import Generator, List, Optional
 
 from pathspec import PathSpec
@@ -79,7 +80,28 @@ def tar_source_in_memory(directory: str, ignore_patterns: List[str]):
     return in_memory_tar
 
 
-# TODO(michael): Add a func to zip up local files with ignore patterns
-# I would try to keep this in memory unless you absolutely need to write to disk
 def zip_source_in_memory(directory: str, ignore_patterns: List[str]):
-    pass
+    ignore_patterns = list(set(ignore_patterns + _DEFAULT_IGNORE_PATTERNS))
+
+    def should_include_file(pathspec: PathSpec, file_path: str, root_dir: str):
+        relative_path = os.path.relpath(file_path, root_dir)
+        return not pathspec.match_file(relative_path)
+
+    pathspec = PathSpec.from_lines("gitwildmatch", ignore_patterns)
+
+    # Use BytesIO object as an in-memory file
+    in_memory_zip = io.BytesIO()
+
+    # Open the zipfile using the in-memory file-like object
+    with zipfile.ZipFile(in_memory_zip, mode="w") as zipf:
+        for root, dirs, files in os.walk(directory):
+            for file in files:
+                file_path = os.path.join(root, file)
+                if should_include_file(pathspec, file_path, directory):
+                    zipf.write(file_path, os.path.relpath(file_path, directory))
+
+    # Seek to the beginning of the in-memory file
+    in_memory_zip.seek(0)
+
+    # Return the in-memory file
+    return in_memory_zip

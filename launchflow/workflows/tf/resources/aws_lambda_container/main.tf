@@ -53,26 +53,6 @@ resource "aws_security_group" "lambda_sg" {
   }
 }
 
-# TODO: Determine if we should drop this rule since we already allow all VPC traffic
-resource "aws_security_group_rule" "ecs_alb_ingress" {
-    count                       = var.alb_security_group_id != null ? 1 : 0
-    type                        = "ingress"
-    from_port                   = 0
-    to_port                     = 0
-    protocol                    = "-1"
-    description                 = "Allow inbound traffic from ALB"
-    security_group_id           = aws_security_group.lambda_sg.id
-    source_security_group_id    = var.alb_security_group_id
-}
-
-data "aws_security_group" "default_vpc_sg" {
-  vpc_id = var.vpc_id
-  name   = "default"
-}
-
-# JUST ADDED
-
-
 
 resource "local_file" "hello" {
   content  = <<EOF
@@ -111,7 +91,7 @@ resource "aws_lambda_function" "default" {
   filename = data.archive_file.lambda.output_path
   source_code_hash = data.archive_file.lambda.output_base64sha256
   handler = "hello.lambda_handler"
-  runtime = "python3.11"
+  runtime = var.runtime
 
   vpc_config {
     security_group_ids = [aws_security_group.lambda_sg.id]
@@ -132,8 +112,7 @@ resource "aws_lambda_function" "default" {
   }
 }
 
-# PULLED IN
-
+# TODO: REMOVE ALL API GATEWAY CODE BELOW
 
 resource "aws_apigatewayv2_api" "default" {
   name          = "${var.resource_id}-gateway"
@@ -165,9 +144,6 @@ resource "aws_apigatewayv2_stage" "default" {
   name        = "$default"
   auto_deploy = true
 }
-
-
-# Load Balancer setup
 
 
 output "lambda_url" {
