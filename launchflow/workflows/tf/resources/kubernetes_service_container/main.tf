@@ -127,8 +127,9 @@ resource "kubernetes_deployment_v1" "default" {
 
 resource "kubernetes_service_v1" "default" {
   metadata {
-    name      = var.resource_id
-    namespace = var.namespace
+    name        = var.resource_id
+    namespace   = var.namespace
+    annotations = var.annotations
   }
   spec {
     selector = {

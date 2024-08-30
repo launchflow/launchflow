@@ -85,6 +85,7 @@ variable "container_resources" {
       memory = optional(string, null)
     }), null)
   })
+  default = null
 }
 
 variable "tolerations" {
@@ -95,5 +96,10 @@ variable "tolerations" {
     value    = string
     effect   = optional(string, null)
   }))
+  default = null
+}
+
+variable "annotations" {
+  type    = map(string)
   default = null
 }

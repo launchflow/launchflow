@@ -6,7 +6,10 @@ from launchflow.gcp.artifact_registry_repository import (
     RegistryFormat,
 )
 from launchflow.gcp.gke import GKECluster, NodePool
+from launchflow.gcp.gke_custom_domain_mapping import GKECustomDomainMapping
+from launchflow.gcp.global_ip_address import GlobalIPAddress
 from launchflow.gcp.service import GCPDockerService
+from launchflow.gcp.ssl import ManagedSSLCertificate
 from launchflow.kubernetes.service_container import (
     ContainerResources,
     LivenessProbe,
@@ -104,6 +107,7 @@ class GKEService(GCPDockerService):
         environment_variables: Optional[Dict[str, str]] = None,
         container_resources: Optional[ContainerResources] = None,
         tolerations: Optional[List[Toleration]] = None,
+        domain: Optional[str] = None,
         # TODO: add support for custom domains
     ) -> None:
         """Create a new GKE Service.
@@ -151,13 +155,41 @@ class GKEService(GCPDockerService):
         self.cluster = cluster
         self.namespace = namespace
         self.environment_variables = environment_variables
+        self.domain = domain
+        self._custom_domain_mapping = None
+        self._ip_address = None
+        self._ssl_certificate = None
+        if domain:
+            if service_type != "NodePort":
+                raise ValueError(
+                    "Custom domains are only supported for ClusterIP services. Please set service_type='ClusterIP' to use a custom domain."
+                )
+            self._ip_address = GlobalIPAddress(f"{name}-ip-address")
+            self._ssl_certificate = ManagedSSLCertificate(
+                f"{name}-ssl-certificate", domains=domain
+            )
+            self._custom_domain_mapping = GKECustomDomainMapping(
+                f"{name}-domain-mapping",
+                ip_address=self._ip_address,
+                ssl_certificate=self._ssl_certificate,
+                service_name=name,
+                service_container=self.container,
+            )
+            self._custom_domain_mapping.resource_id = name
 
     def inputs(self, *args, **kwargs) -> GKEServiceInputs:
         # TODO: this should have a dependency on the resource but right now services can't depend on resources
         return GKEServiceInputs(self.environment_variables)
 
     def resources(self) -> List[Resource[Any]]:
-        return [self._artifact_registry, self.container]
+        resources = [self._artifact_registry, self.container]
+        if self._custom_domain_mapping:
+            resources.append(self._custom_domain_mapping)
+        if self._ip_address:
+            resources.append(self._ip_address)
+        if self._ssl_certificate:
+            resources.append(self._ssl_certificate)
+        return resources
 
     def outputs(self) -> DockerServiceOutputs:
         repo_outputs = self._artifact_registry.outputs()

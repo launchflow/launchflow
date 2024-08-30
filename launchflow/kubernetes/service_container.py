@@ -1,5 +1,5 @@
 import dataclasses
-from typing import List, Literal, Optional
+from typing import Dict, List, Literal, Optional
 
 from launchflow.gcp.gke import GKECluster, NodePool
 from launchflow.kubernetes.resource import KubernetesResource
@@ -117,6 +117,7 @@ class ServiceContainerInputs(ResourceInputs):
     num_replicas: int
     container_resources: Optional[ContainerResources]
     tolerations: Optional[List[Toleration]]
+    annotations: Optional[Dict[str, str]]
 
 
 @dataclasses.dataclass
@@ -170,6 +171,7 @@ class ServiceContainer(KubernetesResource[ServiceContainerOutputs]):
         service_type: Literal["ClusterIP", "NodePort", "LoadBalancer"] = "LoadBalancer",
         container_resources: Optional[ContainerResources] = None,
         tolerations: Optional[List[Toleration]] = None,
+        annotations: Optional[Dict[str, str]] = None,
     ):
         super().__init__(name, cluster)
         self.namespace = namespace
@@ -184,6 +186,7 @@ class ServiceContainer(KubernetesResource[ServiceContainerOutputs]):
         self.num_replicas = num_replicas
         self.container_resources = container_resources
         self.toleration = tolerations
+        self.annotations = annotations
 
     def inputs(self, environment_state: EnvironmentState) -> ServiceContainerInputs:
         cluster_id = None
@@ -217,4 +220,5 @@ class ServiceContainer(KubernetesResource[ServiceContainerOutputs]):
             num_replicas=self.num_replicas,
             container_resources=self.container_resources,
             tolerations=self.toleration,
+            annotations=self.annotations,
         )
