@@ -28,6 +28,7 @@ class GCSBucketOutputs(Outputs):
 class BucketInputs(ResourceInputs):
     location: str
     force_destroy: bool
+    uniform_bucket_level_access: bool
 
 
 class GCSBucket(GCPResource[GCSBucketOutputs]):
@@ -56,7 +57,12 @@ class GCSBucket(GCPResource[GCSBucketOutputs]):
     product = ResourceProduct.GCP_STORAGE_BUCKET.value
 
     def __init__(
-        self, name: str, *, location: str = "US", force_destroy: bool = False
+        self,
+        name: str,
+        *,
+        location: str = "US",
+        force_destroy: bool = False,
+        uniform_bucket_level_access: bool = False,
     ) -> None:
         """Create a new GCS Bucket resource.
 
@@ -64,6 +70,7 @@ class GCSBucket(GCPResource[GCSBucketOutputs]):
         - `name (str)`: The name of the bucket. This must be globally unique.
         - `location (str)`: The location of the bucket. Defaults to "US".
         - `force_destroy (bool)`: If true, the bucket will be destroyed even if it's not empty. Defaults to False.
+        - `uniform_bucket_level_access (bool)`: If true, enables uniform bucket-level access for the bucket. Defaults to False.
         """
         super().__init__(
             name=name,
@@ -74,12 +81,14 @@ class GCSBucket(GCPResource[GCSBucketOutputs]):
         # public metadata
         self.location = location
         self.force_destroy = force_destroy
+        self.uniform_bucket_level_access = uniform_bucket_level_access
 
     def inputs(self, environment_state: EnvironmentState) -> BucketInputs:
         return BucketInputs(
             resource_id=self.resource_id,
             location=self.location,
             force_destroy=self.force_destroy,
+            uniform_bucket_level_access=self.uniform_bucket_level_access,
         )
 
     def bucket(self):

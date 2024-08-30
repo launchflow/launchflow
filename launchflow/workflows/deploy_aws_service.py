@@ -533,6 +533,16 @@ async def release_docker_image_to_ecs_fargate(
         del new_task_definition["containerDefinitions"][0]["command"]
     if "entryPoint" in new_task_definition["containerDefinitions"][0]:
         del new_task_definition["containerDefinitions"][0]["entryPoint"]
+    # Update the port mappings
+    new_task_definition["containerDefinitions"][0]["portMappings"] = [
+        {
+            "containerPort": ecs_fargate_service.port,
+            "hostPort": ecs_fargate_service.port,
+        }
+    ]
+    # Update the cpu and memory
+    new_task_definition["cpu"] = str(ecs_fargate_service.cpu)
+    new_task_definition["memory"] = str(ecs_fargate_service.memory)
 
     # Add the environment variables
     new_task_definition["containerDefinitions"][0]["environment"] = [

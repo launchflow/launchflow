@@ -15,8 +15,6 @@ from launchflow.resource import ResourceInputs
 class ECSFargateServiceContainerInputs(ResourceInputs):
     resource_name: str
     ecs_cluster_name: str
-    cpu: int = 256
-    memory: int = 512
     port: int = 80
     desired_count: int = 1
     alb_security_group_id: Optional[str] = None
@@ -46,8 +44,6 @@ class ECSFargateServiceContainer(AWSResource[ECSFargateServiceContainerOutputs])
         name: str,
         ecs_cluster: Union[ECSCluster, str],
         alb: Optional[ApplicationLoadBalancer] = None,
-        cpu: int = 256,
-        memory: int = 512,
         port: int = 80,
         desired_count: int = 1,
     ) -> None:
@@ -56,8 +52,6 @@ class ECSFargateServiceContainer(AWSResource[ECSFargateServiceContainerOutputs])
         **Args:**
         - `name (str)`: The name of the ECS Fargate service container.
         - `ecs_cluster (Union[ECSCluster, str])`: The ECS cluster or the name of the ECS cluster.
-        - `cpu (int)`: The CPU units to allocate to the container. Defaults to 256.
-        - `memory (int)`: The memory to allocate to the container. Defaults to 512.
         - `port (int)`: The port the container listens on. Defaults to 80.
         - `desired_count (int)`: The number of tasks to run. Defaults to 1.
 
@@ -75,8 +69,6 @@ class ECSFargateServiceContainer(AWSResource[ECSFargateServiceContainerOutputs])
         )
         self.ecs_cluster = ecs_cluster
         self.alb = alb
-        self.cpu = cpu
-        self.memory = memory
         self.port = port
         self.desired_count = desired_count
 
@@ -110,8 +102,6 @@ class ECSFargateServiceContainer(AWSResource[ECSFargateServiceContainerOutputs])
             resource_id=self.resource_id,
             resource_name=self.name,
             ecs_cluster_name=ecs_cluster_name,
-            cpu=self.cpu,
-            memory=self.memory,
             port=self.port,
             desired_count=self.desired_count,
             alb_security_group_id=alb_security_group_id,
