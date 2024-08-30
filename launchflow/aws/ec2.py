@@ -83,11 +83,6 @@ try:
 except ImportError:
     aiomysql = None
 
-try:
-    import MySQLdb
-except ImportError:
-    MySQLdb = None
-
 
 import dataclasses
 import os
@@ -141,6 +136,17 @@ class EC2PostgresAdditionalOutputs(Outputs):
 @dataclasses.dataclass
 class EC2PostgresOutputs(EC2BaseOutputs):
     additional_outputs: EC2PostgresAdditionalOutputs
+
+
+@dataclasses.dataclass
+class EC2MySQLAdditionalOutputs(Outputs):
+    password: str
+    mysql_port: str
+
+
+@dataclasses.dataclass
+class EC2MySQLOutputs(EC2BaseOutputs):
+    additional_outputs: EC2MySQLAdditionalOutputs
 
 
 @dataclasses.dataclass
@@ -705,7 +711,7 @@ class EC2SimpleServer(EC2[EC2BaseOutputs]):
         return super().inputs(environment_state)
 
 
-class EC2MySQL(EC2[EC2PostgresOutputs]):
+class EC2MySQL(EC2[EC2MySQLOutputs]):
     """An EC2 instance running MySQL on Docker.
 
     ### Example usage
@@ -826,11 +832,6 @@ class EC2MySQL(EC2[EC2PostgresOutputs]):
         }
         ```
         """
-        if MySQLdb is None:
-            raise ImportError(
-                "MySQLdb is not installed. Please install it with `pip install mysqlclient`."
-            )
-
         connection_info = self.outputs()
         return {
             "ENGINE": "django.db.backends.mysql",

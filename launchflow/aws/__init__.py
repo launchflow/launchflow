@@ -2,7 +2,7 @@
 from .acm import ACMCertificate
 from .alb import ApplicationLoadBalancer
 from .codebuild_project import CodeBuildProject
-from .ec2 import EC2Postgres, EC2Redis
+from .ec2 import EC2MySQL, EC2Postgres, EC2Redis
 from .ecr_repository import ECRRepository
 from .ecs_cluster import ECSCluster
 from .ecs_fargate import ECSFargate
