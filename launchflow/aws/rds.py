@@ -1,3 +1,43 @@
+# Handling imports and missing dependencies
+
+try:
+    import asyncpg  # type: ignore
+except ImportError:
+    asyncpg = None
+try:
+    import pg8000  # type: ignore
+except ImportError:
+    pg8000 = None
+
+try:
+    import psycopg2  # type: ignore
+except ImportError:
+    psycopg2 = None
+try:
+    from sqlalchemy.ext.asyncio import create_async_engine
+except ImportError:
+    async_sessionmaker = None
+    create_async_engine = None  # type: ignore
+
+try:
+    from sqlalchemy import create_engine, text
+except ImportError:
+    text = None  # type: ignore
+    create_engine = None  # type: ignore
+    DeclarativeBase = None
+    sessionmaker = None
+
+try:
+    import pymysql
+except ImportError:
+    pymysql = None
+
+try:
+    import aiomysql
+except ImportError:
+    aiomysql = None
+
+
 import dataclasses
 import enum
 from typing import Optional
@@ -174,3 +214,81 @@ class RDS(AWSResource[RDSOutputs]):
             )
         else:
             raise ValueError("unsupported environment type")
+
+    def query(self, query: str):
+        """Executes a SQL query on the Postgres instance running on the RDS cluster.
+
+        **Args:**
+        - `query (str)`: The SQL query to execute.
+
+        **Returns:**
+        - The result of the query if it returns rows, otherwise None.
+
+        **Example usage:**
+        ```python
+        import launchflow as lf
+
+        postgres = lf.aws.RDS("my-pg-db")
+
+        # Executes a query on the Postgres instance running on the RDS cluster
+        postgres.query("SELECT 1")
+        ```
+
+        **NOTE**: This method is not recommended for production use. Use `sqlalchemy_engine` instead.
+        """
+        engine = self.sqlalchemy_engine()
+        with engine.connect() as connection:
+            result = connection.execute(text(query))
+            connection.commit()
+            if result.returns_rows:
+                return result.fetchall()
+
+    def sqlalchemy_engine_options(self):
+        connection_info = self.outputs()
+        if self.engine_version.engine == RDSEngine.MYSQL:
+            if pymysql is None:
+                raise ImportError(
+                    "pymysql is not installed. Please install it with `pip install pymysql`."
+                )
+            return {
+                "url": f"mysql+pymysql://root:{connection_info.password}@{connection_info.endpoint}/{connection_info.dbname}",
+            }
+
+        elif self.engine_version.engine == RDSEngine.POSTGRES:
+            if pg8000 is None:
+                raise ImportError(
+                    "pg8000 is not installed. Please install it with `pip install pg8000`."
+                )
+            return {
+                "url": f"postgresql+pg8000://{connection_info.username}:{connection_info.password}@{connection_info.endpoint}/{connection_info.dbname}",
+            }
+
+    def sqlalchemy_engine(self, **engine_kwargs):
+        """Returns a SQLAlchemy engine for connecting to the RDS SQL Postgres instance.
+
+        Args:
+        - `**engine_kwargs`: Additional keyword arguments to pass to `sqlalchemy.create_engine`.
+
+        **Example usage:**
+        ```python
+        import launchflow as lf
+
+        postgres = lf.aws.RDS("my-pg-db")
+
+        # Creates a SQLAlchemy engine for connecting to the RDS SQL Postgres instance
+        engine = postgres.sqlalchemy_engine()
+
+        with engine.connect() as connection:
+            print(connection.execute("SELECT 1").fetchone())  # prints (1,)
+        ```
+        """
+        if create_engine is None:
+            raise ImportError(
+                "SQLAlchemy is not installed. Please install it with "
+                "`pip install sqlalchemy`."
+            )
+
+        engine_options = self.sqlalchemy_engine_options()
+        engine_options.update(engine_kwargs)
+
+        return create_engine(**engine_options)
