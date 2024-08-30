@@ -27,6 +27,8 @@ class GKEInputs(ResourceInputs):
 class GKECluster(GCPResource[GKEOutputs]):
     """A Kubernetes Cluster hosted on GKE.
 
+    NOTE: GKECluster is still in beta and is subject to change.
+
     Like all [Resources](/docs/concepts/resources), this class configures itself across multiple [Environments](/docs/concepts/environments).
 
     For more information see [the official documentation](https://cloud.google.com/kubernetes-engine).
@@ -184,6 +186,8 @@ class NodePoolInputs(ResourceInputs):
 
 class NodePool(GCPResource[NodePoolOutputs]):
     """A node pool for a GKE cluster.
+
+    NOTE: This resource is currently in beta and may change in the future.
 
     Like all [Resources](/docs/concepts/resources), this class configures itself across multiple [Environments](/docs/concepts/environments).
 

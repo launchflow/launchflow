@@ -206,6 +206,7 @@ $ lf destroy [OPTIONS] [ENVIRONMENT]
 * `-y, --auto-approve`: Auto approve resource destruction.
 * `-v, --verbose`: If set all logs will be written to stdout.
 * `--launchflow-api-key TEXT`: API key to use for this request. If not set will fallback to your user local credentials from `lf login`
+* `--detach / --no-detach`: If true we will not clean up any of the cloud resources associated with the environment and will simply delete the record from LaunchFlow.  [default: no-detach]
 * `--help`: Show this message and exit.
 
 ## lf environments

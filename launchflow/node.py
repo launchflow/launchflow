@@ -133,8 +133,7 @@ class Node(Generic[T]):
                 f"Node outputs must be a dataclass, got {self._outputs_type}"
             )
 
-    @classmethod
-    def cloud_provider(cls) -> CloudProvider:
+    def cloud_provider(self) -> CloudProvider:
         raise NotImplementedError
 
     def __hash__(self):

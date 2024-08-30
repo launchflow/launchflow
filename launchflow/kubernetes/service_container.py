@@ -92,6 +92,8 @@ class ServiceContainerOutputs(Outputs):
 class ServiceContainer(KubernetesResource[ServiceContainerOutputs]):
     """A container for a service running on a Kubernetes cluster.
 
+    NOTE: ServiceContainer is still in beta and is subject to change.
+
     ### Example usage
 
     #### Basic Usage

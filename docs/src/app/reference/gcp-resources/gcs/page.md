@@ -40,6 +40,7 @@ Create a new GCS Bucket resource.
 - `name (str)`: The name of the bucket. This must be globally unique.
 - `location (str)`: The location of the bucket. Defaults to "US".
 - `force_destroy (bool)`: If true, the bucket will be destroyed even if it's not empty. Defaults to False.
+- `uniform_bucket_level_access (bool)`: If true, enables uniform bucket-level access for the bucket. Defaults to False.
 
 ### bucket
 
