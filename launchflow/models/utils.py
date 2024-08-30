@@ -10,7 +10,7 @@ from launchflow.aws.elasticache import ElasticacheRedis
 from launchflow.aws.launchflow_cloud_releaser import (
     LaunchFlowCloudReleaser as AWSReleaser,
 )
-from launchflow.aws.rds import RDSPostgres
+from launchflow.aws.rds import RDS
 from launchflow.aws.s3 import S3Bucket
 from launchflow.aws.secrets_manager import SecretsManagerSecret
 from launchflow.aws.sqs import SQSQueue
@@ -74,7 +74,7 @@ RESOURCE_PRODUCTS_TO_RESOURCES = {
     ResourceProduct.GCP_GLOBAL_IP_ADDRESS.value: GlobalIPAddress,
     ResourceProduct.GCP_MANAGED_SSL_CERTIFICATE.value: ManagedSSLCertificate,
     # AWS product types
-    ResourceProduct.AWS_RDS_POSTGRES.value: RDSPostgres,
+    ResourceProduct.AWS_RDS_POSTGRES.value: RDS,
     ResourceProduct.AWS_ELASTICACHE_REDIS.value: ElasticacheRedis,
     # TODO consider having a separate resource product per EC2 instance type
     ResourceProduct.AWS_EC2.value: EC2,

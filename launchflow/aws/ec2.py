@@ -73,6 +73,22 @@ except ImportError:
     sessionmaker = None
 
 
+try:
+    import pymysql
+except ImportError:
+    pymysql = None
+
+try:
+    import aiomysql
+except ImportError:
+    aiomysql = None
+
+try:
+    import MySQLdb
+except ImportError:
+    MySQLdb = None
+
+
 import dataclasses
 import os
 import subprocess
@@ -687,3 +703,214 @@ class EC2SimpleServer(EC2[EC2BaseOutputs]):
             publicly_accessible=publicly_accessible,
         )
         return super().inputs(environment_state)
+
+
+class EC2MySQL(EC2[EC2PostgresOutputs]):
+    """An EC2 instance running MySQL on Docker.
+
+    ### Example usage
+    ```python
+    from sqlalchemy import text
+    import launchflow as lf
+
+    mysql = lf.aws.EC2MySQL("my-mysql-db")
+    engine = mysql.sqlalchemy_engine()
+
+    with engine.connect() as connection:
+        print(connection.execute(text("SELECT 1")).fetchone())  # prints (1,)
+    ```
+    """
+
+    def __init__(
+        self,
+        name: str,
+        *,
+        password: Optional[str] = None,
+        instance_type: Optional[str] = None,
+        disk_size_gb: int = 8,
+    ) -> None:
+        """Create a new EC2MySQL resource.
+
+        **Args:**
+        - `name (str)`: The name of the MySQL VM resource. This must be globally unique.
+        - `password (Optional[str])`: The password for the MySQL DB. If not provided, a random password will be generated.
+        - `instance_type (Optional[str])`: The type of machine to use. Defaults to `t3.micro` for development environments and `t3.medium` for production environments.
+        - `disk_size_gb (Optional[str])`: The size of the disk in GB. Defaults to 8.
+        """
+        super().__init__(name=name, vm_config=None)
+        self.password = password
+        self.instance_type = instance_type
+        self.disk_size_gb = disk_size_gb
+
+    def inputs(self, environment_state: EnvironmentState):
+        """Get the inputs for the EC2MySQL resource.
+
+        **Args:**
+        - `environment_type` (EnvironmentType): The environment type (e.g., development, production).
+
+        **Returns:**
+        - `VMConfig`: The configuration for the VM.
+        """
+        if self.password is None:
+            try:
+                # Attempt to see if the resource exists yet
+                self.password = self.outputs().additional_outputs.password
+            except exceptions.ResourceOutputsNotFound:
+                self.password = generate_random_password()
+
+        if environment_state.environment_type == EnvironmentType.PRODUCTION:
+            publicly_accessible = False
+        else:
+            publicly_accessible = True
+
+        self.vm_config = VMConfig(
+            resource_id=self.resource_id,
+            additional_outputs={"mysql_port": "3306", "password": self.password},
+            docker_cfg=DockerConfig(
+                image="mysql:latest",
+                args=[],
+                environment_variables={"MYSQL_ROOT_PASSWORD": self.password},
+            ),
+            instance_type=self.instance_type,
+            disk_size_gb=self.disk_size_gb,
+            firewall_cfg=FirewallConfig(expose_ports=[3306]),
+            associate_public_ip_address=True,
+            publicly_accessible=publicly_accessible,
+        )
+        return super().inputs(environment_state)
+
+    def query(self, query: str):
+        """Executes a SQL query on the MySQL instance running on the EC2 VM.
+
+        **Args:**
+        - `query`: The SQL query to execute.
+
+        **Returns:**
+        - The result of the query.
+
+        **Example usage:**
+        ```python
+        import launchflow as lf
+
+        mysql = lf.aws.EC2MySQL("my-mysql-db")
+
+        # Executes a query on the MySQL instance running on the EC2 VM
+        mysql.query("SELECT 1")
+        ```
+
+        **NOTE**: This method is not recommended for production use. Use `sqlalchemy_engine` instead.
+        """
+        engine = self.sqlalchemy_engine()
+        with engine.connect() as connection:
+            result = connection.execute(text(query))
+            connection.commit()
+            if result.returns_rows:
+                return result.fetchall()
+
+    def django_settings(self):
+        """Returns a Django settings dictionary for connecting to the MySQL instance running on EC2.
+
+        **Returns:**
+        - A dictionary of Django settings for connecting to the MySQL instance.
+
+        **Example usage:**
+        ```python
+        import launchflow as lf
+
+        mysql = lf.aws.EC2MySQL("my-mysql-db")
+
+        # settings.py
+        DATABASES = {
+            # Connect Django's ORM to the MySQL instance running on EC2
+            "default": mysql.django_settings(),
+        }
+        ```
+        """
+        if MySQLdb is None:
+            raise ImportError(
+                "MySQLdb is not installed. Please install it with `pip install mysqlclient`."
+            )
+
+        connection_info = self.outputs()
+        return {
+            "ENGINE": "django.db.backends.mysql",
+            "NAME": "mysql",
+            "USER": "root",
+            "PASSWORD": connection_info.additional_outputs.password,
+            "HOST": self._get_host(connection_info),
+            "PORT": connection_info.additional_outputs.mysql_port,
+        }
+
+    def sqlalchemy_engine_options(self):
+        """Returns SQLAlchemy engine options for connecting to the MySQL instance running on EC2.
+
+        **Returns:**
+        - A dictionary of SQLAlchemy engine options.
+        """
+        if pymysql is None:
+            raise ImportError(
+                "pymysql is not installed. Please install it with `pip install pymysql`."
+            )
+
+        connection_info = self.outputs()
+        host = self._get_host(connection_info)
+        return {
+            "url": f"mysql+pymysql://root:{connection_info.additional_outputs.password}@{host}:{connection_info.additional_outputs.mysql_port}/mysql",
+        }
+
+    async def sqlalchemy_async_engine_options(self):
+        """Returns async SQLAlchemy engine options for connecting to the MySQL instance running on EC2.
+
+        **Returns:**
+        - A dictionary of async SQLAlchemy engine options.
+        """
+        if aiomysql is None:
+            raise ImportError(
+                "aiomysql is not installed. Please install it with `pip install aiomysql`."
+            )
+
+        connection_info = await self.outputs_async()
+        host = self._get_host(connection_info)
+        return {
+            "url": f"mysql+aiomysql://root:{connection_info.additional_outputs.password}@{host}:{connection_info.additional_outputs.mysql_port}/mysql"
+        }
+
+    def sqlalchemy_engine(self, **engine_kwargs):
+        """Returns a SQLAlchemy engine for connecting to a MySQL instance hosted on EC2.
+
+        **Args:**
+        - `**engine_kwargs`: Additional keyword arguments to pass to `sqlalchemy.create_engine`.
+
+        **Returns:**
+        - A SQLAlchemy engine.
+        """
+        if create_engine is None:
+            raise ImportError(
+                "SQLAlchemy is not installed. Please install it with "
+                "`pip install sqlalchemy`."
+            )
+
+        engine_options = self.sqlalchemy_engine_options()
+        engine_options.update(engine_kwargs)
+
+        return create_engine(**engine_options)
+
+    async def sqlalchemy_async_engine(self, **engine_kwargs):
+        """Returns an async SQLAlchemy engine for connecting to a MySQL instance hosted on EC2.
+
+        **Args:**
+        - `**engine_kwargs`: Additional keyword arguments to pass to `create_async_engine`.
+
+        **Returns:**
+        - An async SQLAlchemy engine.
+        """
+        if create_async_engine is None:
+            raise ImportError(
+                "SQLAlchemy asyncio extension is not installed. "
+                "Please install it with `pip install sqlalchemy[asyncio]`."
+            )
+
+        engine_options = await self.sqlalchemy_async_engine_options()
+        engine_options.update(engine_kwargs)
+
+        return create_async_engine(**engine_options)

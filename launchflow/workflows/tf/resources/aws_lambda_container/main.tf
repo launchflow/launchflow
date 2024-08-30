@@ -22,6 +22,18 @@ data "aws_subnets" "lf_public_vpc_subnets" {
   }
 }
 
+data "aws_subnets" "lf_private_vpc_subnets" {
+  filter {
+    name   = "vpc-id"
+    values = [var.vpc_id]
+  }
+  tags = {
+    "Project" : var.launchflow_project,
+    "Environment" : var.launchflow_environment,
+    "Public" : "false"
+  }
+}
+
 # Import the launchflow environment role
 data "aws_iam_role" "launchflow_env_role" {
   name = var.env_role_name
@@ -93,9 +105,13 @@ resource "aws_lambda_function" "default" {
   handler = "hello.lambda_handler"
   runtime = var.runtime
 
+  # NOTE: We set this to speed up the destroy process. Without this, lambda can hold 
+  # onto the security group for ~30mins and block it from being deleted.
+  replace_security_groups_on_destroy = true
+
   vpc_config {
     security_group_ids = [aws_security_group.lambda_sg.id]
-    subnet_ids         = data.aws_subnets.lf_public_vpc_subnets.ids
+    subnet_ids         = [data.aws_subnets.lf_private_vpc_subnets.ids[0]]
   }
 
   environment {
@@ -114,23 +130,49 @@ resource "aws_lambda_function" "default" {
 
 # TODO: Refactor NAT Gateway to be a module
 
-# resource "aws_eip" "eip" {
-#   vpc        = true
-#   tags = {
-#     Project     = var.launchflow_project
-#     Environment = var.launchflow_environment
-#   }
-# }
+resource "aws_eip" "eip" {
+  domain        = "vpc"
+  tags = {
+    Project     = var.launchflow_project
+    Environment = var.launchflow_environment
+  }
+}
 
-# resource "aws_nat_gateway" "nat_gateway" {
-#   allocation_id = aws_eip.eip.id
-#   subnet_id     = aws_subnet.subnet_public.id
+resource "aws_nat_gateway" "nat_gateway" {
+  allocation_id = aws_eip.eip.id
+  subnet_id     = data.aws_subnets.lf_public_vpc_subnets.ids[0]
 
-#   tags = {
-#     Project     = var.launchflow_project
-#     Environment = var.launchflow_environment
-#   }
-# }
+  tags = {
+    Project     = var.launchflow_project
+    Environment = var.launchflow_environment
+  }
+}
+
+data "aws_route_table" "selected" {
+  vpc_id = var.vpc_id
+  
+  tags = {
+    "Project" = var.launchflow_project
+    "Environment" = var.launchflow_environment
+    "Public" = "false"
+  }
+}
+
+resource "aws_route" "route" {
+  route_table_id            = data.aws_route_table.selected.id
+  nat_gateway_id = aws_nat_gateway.nat_gateway.id
+  destination_cidr_block = "0.0.0.0/0"
+}
+
+resource "aws_route_table_association" "association" {
+  subnet_id      = data.aws_subnets.lf_private_vpc_subnets.ids[0]
+  route_table_id = data.aws_route_table.selected.id
+}
+
+resource "aws_iam_role_policy_attachment" "iam_role_policy_attachment_lambda_vpc_access_execution" {
+  role       = data.aws_iam_role.launchflow_env_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+}
 
 # TODO: REMOVE ALL API GATEWAY CODE BELOW
 

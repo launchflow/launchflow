@@ -10,7 +10,8 @@ from .ecs_fargate_container import ECSFargateServiceContainer
 from .elasticache import ElasticacheRedis
 from .lambda_container import LambdaContainer
 from .lambda_service import LambdaDockerService, LambdaStaticService
-from .rds import RDSPostgres
+from .rds import RDS
+from .rds_postgres import RDSPostgres
 from .s3 import S3Bucket
 from .secrets_manager import SecretsManagerSecret
 from .sqs import SQSQueue
