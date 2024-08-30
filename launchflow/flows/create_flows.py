@@ -290,7 +290,6 @@ class CreateResourcePlan(ResourcePlan):
                     new_resource_state.status = ResourceStatus.UPDATE_FAILED
                 # If it failed we record what inputs were used
                 new_resource_state.attempted_inputs = final_inputs
-                print("DO NOT SUBMIT: ", new_resource_state.attempted_inputs)
                 await self.resource_manager.save_resource(
                     new_resource_state, lock_info.lock_id
                 )
