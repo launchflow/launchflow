@@ -104,6 +104,8 @@ def _get_relative_import_path(func: Callable, cwd: str) -> str:
 async def deploy_local_files_to_lambda_static_site(
     aws_environment_config: AWSEnvironmentConfig,
     lambda_static_site: LambdaStaticService,
+    service_manager: ServiceManager,
+    deployment_id: str,
 ):
     # 1. create a temp dir
     full_yaml_path = os.path.dirname(
@@ -125,9 +127,12 @@ async def deploy_local_files_to_lambda_static_site(
             lambda_static_site.requirements_txt_path is not None
             and python_version is not None
         ):
+            # TODO: Move this logic to the build step
             subprocess.check_call(
                 f"pip install --platform manylinux2014_x86_64 --target={temp_dir} --implementation cp --python-version {python_version} --only-binary=:all: -r {lambda_static_site.requirements_txt_path}".split(),
                 cwd=full_yaml_path,
+                stdout=subprocess.DEVNULL,  # TODO: Dump to the build logs file
+                stderr=subprocess.DEVNULL,  # TODO: Dump to the build logs file
             )
 
         # TODO: factor in files to ignore while zipping
@@ -148,6 +153,14 @@ async def deploy_local_files_to_lambda_static_site(
             _ = lambda_client.update_function_configuration(
                 FunctionName=lambda_static_site._lambda_service_container.resource_id,
                 Handler=handler_path,
+                Environment={
+                    "Variables": {
+                        "LAUNCHFLOW_PROJECT": service_manager.project_name,
+                        "LAUNCHFLOW_ENVIRONMENT": service_manager.environment_name,
+                        "LAUNCHFLOW_CLOUD_PROVIDER": "aws",
+                        "LAUNCHFLOW_DEPLOYMENT_ID": deployment_id,
+                    }
+                },
             )
             time.sleep(3)
 

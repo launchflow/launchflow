@@ -57,7 +57,3 @@ variable "runtime" {
 variable "port" {
   type = number
 }
-
-variable "setup_api_gateway" {
-  type = bool
-}

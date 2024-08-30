@@ -47,7 +47,7 @@ class LambdaStaticService(AWSStaticService):
         static_ignore: List[str] = [],  # type: ignore
         domain_name: Optional[str] = None,
         requirements_txt_path: Optional[str] = None,
-        sqs_queue: Optional[str] = None,
+        sqs_queue: Optional[SQSQueue] = None,
     ) -> None:
         """TODO"""
         super().__init__(
@@ -66,6 +66,7 @@ class LambdaStaticService(AWSStaticService):
 
         self._lambda_event_mapping = None
         if sqs_queue is not None:
+            raise ValueError("SQS Queues are not supported for static Lambda services.")
             self._lambda_event_mapping = LambdaEventMapping(
                 f"{name}-event-mapping",
                 lambda_container=self._lambda_service_container,

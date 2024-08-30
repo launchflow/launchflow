@@ -311,6 +311,8 @@ class ReleaseServicePlan(ServicePlan):
             service_url = await deploy_local_files_to_lambda_static_site(
                 aws_environment_config=self.aws_environment_config,  # type: ignore
                 lambda_static_site=self.service,
+                service_manager=self.service_manager,
+                deployment_id=self.deployment_id,
             )
             return ReleaseServiceResult(self, True, service_url)
 
