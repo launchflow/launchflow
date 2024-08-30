@@ -55,6 +55,7 @@ class ResourceProduct(str, Enum):
     LOCAL_DOCKER = "local_docker"
     # Kubernetes product types
     KUBERNETES_SERVICE_CONTAINER = "kubernetes_service_container"
+    KUBERNETES_HORIZONTAL_POD_AUTOSCALER = "kubernetes_horizontal_pod_autoscaler"
 
 
 class ServiceProduct(str, Enum):
