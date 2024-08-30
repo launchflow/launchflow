@@ -799,7 +799,10 @@ async def plan_create_resource(
         existing_resource_state = None
 
     if existing_resource_state is not None:
-        if existing_resource_state.product != resource.product:
+        if (
+            existing_resource_state.product != resource.product
+            and existing_resource_state.product != ResourceProduct.UNKNOWN
+        ):
             exception = exceptions.ResourceProductMismatch(
                 resource=resource,
                 existing_product=existing_resource_state.product,
@@ -902,9 +905,9 @@ async def plan_create_resources(
                     dependency_plan
                 )
                 if isinstance(resolved_dependency_plan, FailedToPlan):
-                    resource_name_to_plan[
-                        resource_dependency.name
-                    ] = resolved_dependency_plan
+                    resource_name_to_plan[resource_dependency.name] = (
+                        resolved_dependency_plan
+                    )
                     return FailedToPlan(
                         resource=plan.resource,
                         error_message=f"DependencyFailedToPlan: {ResourceRef(plan.resource)} depends on {ResourceRef(resource_dependency)} which failed to plan.",

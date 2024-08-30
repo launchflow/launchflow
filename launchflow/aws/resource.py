@@ -14,5 +14,6 @@ class AWSResource(TofuResource[T]):
     ):
         super().__init__(name, replacement_arguments, resource_id, ignore_arguments)
 
-    def cloud_provider(self) -> CloudProvider:
+    @classmethod
+    def cloud_provider(cls) -> CloudProvider:
         return CloudProvider.AWS

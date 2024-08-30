@@ -116,6 +116,14 @@ export const referenceNavigation = [
         title: 'HTTP Health Check',
         href: '/reference/gcp-resources/http-health-check',
       },
+      {
+        title: 'SSL Certificates',
+        href: '/reference/gcp-resources/ssl',
+      },
+      {
+        title: 'Global IP Address',
+        href: '/reference/gcp-resources/global-ip-address',
+      },
     ].sort((a, b) => a.title.localeCompare(b.title)),
   },
   {

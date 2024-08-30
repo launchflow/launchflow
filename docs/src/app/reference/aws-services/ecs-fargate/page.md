@@ -35,3 +35,4 @@ Creates a new ECS Fargate service.
 - `build_directory (str)`: The directory to build the service from. This should be a relative path from the project root where your `launchflow.yaml` is defined.
 - `dockerfile (str)`: The Dockerfile to use for building the service. This should be a relative path from the `build_directory`.
 - `build_ignore (List[str])`: A list of files to ignore when building the service. This can be in the same syntax you would use for a `.gitignore`.
+- `domain (Optional[str])`: The domain name to use for the service. This will create an ACM certificate and configure the ALB to use HTTPS.

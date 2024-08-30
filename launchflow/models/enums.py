@@ -35,6 +35,8 @@ class ResourceProduct(str, Enum):
     GCP_GKE_NODE_POOL = "gcp_gke_node_pool"
     GCP_FIREBASE_PROJECT = "gcp_firebase_project"
     GCP_FIREBASE_HOSTING_SITE = "gcp_firebase_hosting_site"
+    GCP_GLOBAL_IP_ADDRESS = "gcp_global_ip_address"
+    GCP_MANAGED_SSL_CERTIFICATE = "gcp_managed_ssl_certificate"
     # AWS product types
     AWS_RDS_POSTGRES = "aws_rds_postgres"
     AWS_ELASTICACHE_REDIS = "aws_elasticache_redis"

@@ -29,8 +29,6 @@ from launchflow.resource import Resource
 class ECSFargateInputs(Inputs):
     cpu: int = 256
     memory: int = 512
-    port: int = 80
-    desired_count: int = 1
 
 
 class ECSFargate(AWSDockerService):
@@ -150,10 +148,8 @@ class ECSFargate(AWSDockerService):
             name,
             self._ecs_cluster,
             alb=self._alb,
-            cpu=cpu,
-            memory=memory,
-            port=port,
             desired_count=desired_count,
+            port=port,
         )
         self._ecs_fargate_service_container.resource_id = (
             resource_id_with_launchflow_prefix
@@ -167,8 +163,6 @@ class ECSFargate(AWSDockerService):
         return ECSFargateInputs(
             cpu=self.cpu,
             memory=self.memory,
-            port=self.port,
-            desired_count=self.desired_count,
         )
 
     def resources(self) -> List[Resource]:
