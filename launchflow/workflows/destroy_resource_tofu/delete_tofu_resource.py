@@ -12,7 +12,7 @@ async def delete_tofu_resource(inputs: DestroyResourceTofuInputs):
     # to destroy the resource. This could happen if the user isn't logged in or something.
     # I think the fix is to just make sure the inputs are always recorded.
     state_prefix = inputs.launchflow_uri.tf_state_prefix(module=inputs.resource.product)
-    tf_vars = inputs.resource.inputs or {}
+    tf_vars = inputs.resource.inputs or inputs.resource.attempted_inputs or {}
     module_dir = inputs.resource.product
     module_dir = f"resources/{inputs.resource.product}"
     if inputs.resource.product == "unknown":

@@ -220,6 +220,10 @@ class CreateResourcePlan(ResourcePlan):
                     for dep in self.resource.inputs_depend_on(self.environment_state)
                 ]
 
+                final_inputs = self.resource.execute_inputs(
+                    self.environment_state
+                ).to_dict()
+
                 if isinstance(self.resource, DockerResource):
                     await _create_or_update_docker_resource(
                         self, resource_state_copy, self.operation_type, logs_file
@@ -246,9 +250,7 @@ class CreateResourcePlan(ResourcePlan):
                 new_resource_state.aws_arn = aws_arn
                 new_resource_state.gcp_id = gcp_id
                 # NOTE: We save the inputs only if the create was successful
-                new_resource_state.inputs = self.resource.execute_inputs(
-                    self.environment_state
-                ).to_dict()
+                new_resource_state.inputs = final_inputs
 
                 # NOTE: We save the depends_on only if the create was successful
                 new_resource_state.depends_on = [
@@ -286,6 +288,9 @@ class CreateResourcePlan(ResourcePlan):
                     new_resource_state.status = ResourceStatus.REPLACE_FAILED
                 else:
                     new_resource_state.status = ResourceStatus.UPDATE_FAILED
+                # If it failed we record what inputs were used
+                new_resource_state.attempted_inputs = final_inputs
+                print("DO NOT SUBMIT: ", new_resource_state.attempted_inputs)
                 await self.resource_manager.save_resource(
                     new_resource_state, lock_info.lock_id
                 )
