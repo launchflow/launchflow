@@ -16,7 +16,7 @@ from launchflow.kubernetes.service_container import (
 from launchflow.models.enums import ServiceProduct
 from launchflow.node import Inputs
 from launchflow.resource import Resource
-from launchflow.service import DockerServiceOutputs, ServiceOutputs
+from launchflow.service import DockerServiceOutputs
 
 
 @dataclasses.dataclass

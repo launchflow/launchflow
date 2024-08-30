@@ -8,7 +8,7 @@ from launchflow.gcp.gke import GKECluster
 from launchflow.gcp.gke_service import GKEService
 from launchflow.managers.service_manager import ServiceManager
 from launchflow.models.flow_state import GCPEnvironmentConfig
-from launchflow.service import DockerServiceOutputs, ServiceOutputs
+from launchflow.service import DockerServiceOutputs
 from launchflow.workflows.deploy_gcp_service import (
     release_docker_image_to_compute_engine,
     release_docker_image_to_gke,

@@ -8,11 +8,11 @@ import pytest
 from launchflow import exceptions
 from launchflow.aws.alb import ApplicationLoadBalancerOutputs
 from launchflow.aws.ecs_cluster import ECSClusterOutputs
-from launchflow.logger import logger
 from launchflow.aws.ecs_fargate import ECSFargate
 from launchflow.flows import deploy_flows
 from launchflow.gcp.cloud_run import CloudRun
 from launchflow.locks import LockOperation, OperationType
+from launchflow.logger import logger
 from launchflow.managers.environment_manager import EnvironmentManager
 from launchflow.models import enums, flow_state
 from launchflow.service import DockerServiceOutputs

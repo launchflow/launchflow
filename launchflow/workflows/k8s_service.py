@@ -1,7 +1,8 @@
-from typing import Dict, Optional
-from kubernetes import client
 import asyncio
 import time
+from typing import Dict, Optional
+
+from kubernetes import client
 
 
 async def update_k8s_service(

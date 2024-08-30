@@ -8,13 +8,13 @@ pip install -r requirements.txt
 python main.py
 """
 
-from collections import deque
 import os
 import re
 import subprocess
 import sys
 import tempfile
-from typing import Deque, Any, TextIO
+from collections import deque
+from typing import Any, Deque, TextIO
 
 import docspec
 from pydoc_markdown.contrib.loaders.python import PythonLoader
@@ -22,7 +22,6 @@ from pydoc_markdown.contrib.processors.filter import FilterProcessor
 from pydoc_markdown.contrib.renderers.markdown import MarkdownRenderer
 from pydoc_markdown.interfaces import Context
 from pydoc_markdown.util.misc import escape_except_blockquotes
-
 
 KNOWN_RESOURCE_SERVICE_SUPER_CLASSES = {
     "Resource",

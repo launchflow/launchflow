@@ -19,7 +19,7 @@ async def delete_tofu_resource(inputs: DestroyResourceTofuInputs):
         return
     # TODO: I don't like this hard coding but it works for now
     is_k8_resource = (
-        inputs.resource.product == ResourceProduct.KUBERNETES_SERVICE_CONTAINER
+        inputs.resource.product == ResourceProduct.KUBERNETES_SERVICE_CONTAINER.value
     )
     if is_k8_resource:
         # K8s resource are a little special cause they don't have the additional cloud provider

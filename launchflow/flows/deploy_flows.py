@@ -49,8 +49,8 @@ from launchflow.flows.plan import (
 from launchflow.flows.plan_utils import lock_plans, print_plans, select_plans
 from launchflow.gcp.cloud_run import CloudRun
 from launchflow.gcp.compute_engine_service import ComputeEngineService
-from launchflow.gcp.gke_service import GKEService
 from launchflow.gcp.firebase_site import FirebaseStaticSite
+from launchflow.gcp.gke_service import GKEService
 from launchflow.gcp.service import GCPDockerService, GCPService, GCPStaticService
 from launchflow.gcp.static_site import StaticSite
 from launchflow.locks import Lock, LockOperation, OperationType, ReleaseReason

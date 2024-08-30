@@ -7,7 +7,7 @@ from launchflow.node import Outputs
 from launchflow.resource import Resource
 from launchflow.version import __version__
 
-from . import aws, docker, fastapi, gcp, testing, kubernetes
+from . import aws, docker, fastapi, gcp, kubernetes, testing
 from .flows.create_flows import create
 from .flows.resource_flows import destroy
 

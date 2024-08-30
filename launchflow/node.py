@@ -3,8 +3,8 @@ from enum import Enum
 from functools import wraps
 from typing import Any, Dict, Generic, List, Optional, Set, TypeVar, get_args
 
-from launchflow.models.enums import CloudProvider
 from launchflow import exceptions
+from launchflow.models.enums import CloudProvider
 
 
 def _serialize_type(val: Any) -> Any:

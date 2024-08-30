@@ -1,8 +1,9 @@
 import unittest
 from unittest import mock
 
-from launchflow.workflows.k8s_service import update_k8s_service
 from kubernetes import client
+
+from launchflow.workflows.k8s_service import update_k8s_service
 
 
 class K8ServiceTest(unittest.IsolatedAsyncioTestCase):

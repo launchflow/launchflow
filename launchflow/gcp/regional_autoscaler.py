@@ -1,5 +1,6 @@
 import dataclasses
 from typing import List, Literal
+
 from typing_extensions import Optional
 
 from launchflow.gcp.regional_managed_instance_group import RegionalManagedInstanceGroup

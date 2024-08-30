@@ -7,26 +7,25 @@ import os
 import time
 import uuid
 from datetime import timedelta
-from typing import Any, Callable, List, Tuple, Dict, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Tuple
 
 import requests
 from docker.errors import APIError, BuildError
+from kubernetes import config as k8_config
 from pathspec import PathSpec
 
 from launchflow import exceptions
 from launchflow.config import config
 from launchflow.gcp.cloud_run import CloudRun
 from launchflow.gcp.compute_engine_service import ComputeEngineService
-from launchflow.gcp.gke_service import GKEService
 from launchflow.gcp.firebase_site import FirebaseStaticSite
+from launchflow.gcp.gke_service import GKEService
 from launchflow.gcp.service import GCPDockerService
 from launchflow.gcp.static_site import StaticSite
 from launchflow.managers.service_manager import ServiceManager
 from launchflow.models.flow_state import GCPEnvironmentConfig, ServiceState
 from launchflow.workflows.k8s_service import update_k8s_service
 from launchflow.workflows.utils import tar_source_in_memory
-
-from kubernetes import config as k8_config
 
 if TYPE_CHECKING:
     from google.cloud.container import Cluster
@@ -935,8 +934,8 @@ async def release_docker_image_to_compute_engine(
 def _get_gke_config(cluster_id: str, cluster: "Cluster") -> Dict[str, Any]:
     try:
         from google.auth import default
-        from google.auth.transport.requests import Request
         from google.auth.credentials import Credentials
+        from google.auth.transport.requests import Request
     except ImportError:
         raise exceptions.MissingGCPDependency()
 
