@@ -73,3 +73,27 @@ variable "service_type" {
 variable "num_replicas" {
   type = string
 }
+
+variable "container_resources" {
+  type = object({
+    limits = optional(object({
+      cpu    = optional(string, null)
+      memory = optional(string, null)
+    }), null)
+    requests = optional(object({
+      cpu    = optional(string, null)
+      memory = optional(string, null)
+    }), null)
+  })
+}
+
+variable "tolerations" {
+
+  type = list(object({
+    key      = string
+    operator = string
+    value    = string
+    effect   = optional(string, null)
+  }))
+  default = null
+}

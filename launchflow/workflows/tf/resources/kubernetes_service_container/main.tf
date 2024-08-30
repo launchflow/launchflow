@@ -62,9 +62,17 @@ resource "kubernetes_deployment_v1" "default" {
         container {
           image = var.image
           name  = var.resource_id
+
           port {
             container_port = var.container_port
             host_port      = var.host_port
+          }
+          dynamic "resources" {
+            for_each = var.container_resources != null ? [1] : []
+            content {
+              limits   = var.container_resources.limits
+              requests = var.container_resources.requests
+            }
           }
           dynamic "liveness_probe" {
 
@@ -101,6 +109,15 @@ resource "kubernetes_deployment_v1" "default" {
               failure_threshold = var.startup_probe.failure_threshold
               period_seconds    = var.startup_probe.period_seconds
             }
+          }
+        }
+        dynamic "toleration" {
+          for_each = var.tolerations != null ? var.tolerations : []
+          content {
+            key      = toleration.value.key
+            operator = toleration.value.operator
+            value    = toleration.value.value
+            effect   = toleration.value.effect
           }
         }
       }

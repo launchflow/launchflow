@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Literal, Optional
+from typing import List, Literal, Optional
 
 from launchflow.gcp.gke import GKECluster, NodePool
 from launchflow.kubernetes.resource import KubernetesResource
@@ -7,6 +7,40 @@ from launchflow.models.enums import ResourceProduct
 from launchflow.models.flow_state import EnvironmentState
 from launchflow.node import Depends, Inputs, Outputs
 from launchflow.resource import ResourceInputs
+
+
+@dataclasses.dataclass
+class Toleration:
+    key: str = ""
+    value: str = ""
+    operator: Literal["Equal", "Exists"] = "Equal"
+    effect: Optional[str] = None
+
+
+@dataclasses.dataclass
+class ResourceQuantity(Inputs):
+    """Resource information for a Kubernetes container.
+
+    **Args:**
+    - `cpu (str)`: The CPU limit or request.
+    - `memory (str)`: The memory limit or request.
+    """
+
+    cpu: Optional[str] = None
+    memory: Optional[str] = None
+
+
+@dataclasses.dataclass
+class ContainerResources(Inputs):
+    """ContainerResources used by a Kubernetes container.
+
+    **Args:**
+    - `limit (ContainerResourceInputs)`: The resource limits for the container.
+    - `request (ContainerResourceInputs)`: The resource requests for the container.
+    """
+
+    limits: Optional[ResourceQuantity] = None
+    requests: Optional[ResourceQuantity] = None
 
 
 @dataclasses.dataclass
@@ -81,6 +115,8 @@ class ServiceContainerInputs(ResourceInputs):
     readiness_probe: Optional[ReadinessProbe]
     service_type: Literal["ClusterIP", "NodePort", "LoadBalancer"]
     num_replicas: int
+    container_resources: Optional[ContainerResources]
+    tolerations: Optional[List[Toleration]]
 
 
 @dataclasses.dataclass
@@ -132,6 +168,8 @@ class ServiceContainer(KubernetesResource[ServiceContainerOutputs]):
         liveness_probe: Optional[LivenessProbe] = None,
         readiness_probe: Optional[ReadinessProbe] = None,
         service_type: Literal["ClusterIP", "NodePort", "LoadBalancer"] = "LoadBalancer",
+        container_resources: Optional[ContainerResources] = None,
+        tolerations: Optional[List[Toleration]] = None,
     ):
         super().__init__(name, cluster)
         self.namespace = namespace
@@ -144,6 +182,8 @@ class ServiceContainer(KubernetesResource[ServiceContainerOutputs]):
         self.readiness_probe = readiness_probe
         self.service_type = service_type
         self.num_replicas = num_replicas
+        self.container_resources = container_resources
+        self.toleration = tolerations
 
     def inputs(self, environment_state: EnvironmentState) -> ServiceContainerInputs:
         cluster_id = None
@@ -175,4 +215,6 @@ class ServiceContainer(KubernetesResource[ServiceContainerOutputs]):
             readiness_probe=self.readiness_probe,
             service_type=self.service_type,  # type: ignore
             num_replicas=self.num_replicas,
+            container_resources=self.container_resources,
+            tolerations=self.toleration,
         )

@@ -47,3 +47,26 @@ variable "autoscaling" {
 
   default = null
 }
+
+variable "disk_size_gb" {
+  type    = number
+  default = null
+}
+
+variable "disk_type" {
+  type    = string
+  default = null
+}
+
+variable "image_type" {
+  type    = string
+  default = null
+}
+
+variable "guest_accelerators" {
+  type = list(object({
+    type  = string
+    count = number
+  }))
+  default = null
+}

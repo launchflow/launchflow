@@ -10,15 +10,23 @@ resource "google_container_node_pool" "default" {
   node_count = 1
 
   node_config {
-    preemptible  = var.preemptible
-    machine_type = var.machine_type
-
+    preemptible     = var.preemptible
+    machine_type    = var.machine_type
+    disk_size_gb    = var.disk_size_gb
+    disk_type       = var.disk_type
     service_account = var.environment_service_account_email
     oauth_scopes = [
       "https://www.googleapis.com/auth/cloud-platform"
     ]
     labels = {
       nodepool = var.resource_id
+    }
+    dynamic "guest_accelerator" {
+      for_each = var.guest_accelerators != null ? var.guest_accelerators : []
+      content {
+        type  = guest_accelerator.value.type
+        count = guest_accelerator.value.count
+      }
     }
   }
 

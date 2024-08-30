@@ -1,6 +1,5 @@
 from launchflow import exceptions
 from launchflow.gcp_clients import get_storage_client
-from launchflow.models.enums import ResourceProduct
 from launchflow.workflows.commands.tf_commands import TFDestroyCommand
 from launchflow.workflows.destroy_resource_tofu.schemas import DestroyResourceTofuInputs
 from launchflow.workflows.utils import run_tofu
@@ -18,9 +17,7 @@ async def delete_tofu_resource(inputs: DestroyResourceTofuInputs):
     if inputs.resource.product == "unknown":
         return
     # TODO: I don't like this hard coding but it works for now
-    is_k8_resource = (
-        inputs.resource.product == ResourceProduct.KUBERNETES_SERVICE_CONTAINER.value
-    )
+    is_k8_resource = inputs.resource.product.startswith("kubernetes")
     if is_k8_resource:
         # K8s resource are a little special cause they don't have the additional cloud provider
         # specific configuration that other resources have. We only care about the inputs

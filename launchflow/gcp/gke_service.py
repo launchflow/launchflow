@@ -8,10 +8,12 @@ from launchflow.gcp.artifact_registry_repository import (
 from launchflow.gcp.gke import GKECluster, NodePool
 from launchflow.gcp.service import GCPDockerService
 from launchflow.kubernetes.service_container import (
+    ContainerResources,
     LivenessProbe,
     ReadinessProbe,
     ServiceContainer,
     StartupProbe,
+    Toleration,
 )
 from launchflow.models.enums import ServiceProduct
 from launchflow.node import Inputs
@@ -100,6 +102,8 @@ class GKEService(GCPDockerService):
         liveness_probe: Optional[LivenessProbe] = None,
         readiness_probe: Optional[ReadinessProbe] = None,
         environment_variables: Optional[Dict[str, str]] = None,
+        container_resources: Optional[ContainerResources] = None,
+        tolerations: Optional[List[Toleration]] = None,
         # TODO: add support for custom domains
     ) -> None:
         """Create a new GKE Service.
@@ -141,6 +145,8 @@ class GKEService(GCPDockerService):
             liveness_probe=liveness_probe,
             readiness_probe=readiness_probe,
             service_type=service_type,
+            container_resources=container_resources,
+            tolerations=tolerations,
         )
         self.cluster = cluster
         self.namespace = namespace

@@ -22,6 +22,7 @@ class GKEInputs(ResourceInputs):
     regional: bool
     region: Optional[str]
     zones: Optional[List[str]]
+    enable_tpu: Optional[bool]
 
 
 class GKECluster(GCPResource[GKEOutputs]):
@@ -93,6 +94,7 @@ class GKECluster(GCPResource[GKEOutputs]):
         region: Optional[str] = None,
         zones: Optional[Union[List[str], str]] = None,
         delete_protection: bool = False,
+        enable_tpu: Optional[bool] = None,
     ):
         """Creates a new GKE Cluster.
 
@@ -105,6 +107,7 @@ class GKECluster(GCPResource[GKEOutputs]):
         - `region (Optional[str])`: The region for the cluster. If not provided will default to the default region for the environment.
         - `zones (Optional[List[str]])`: The zones for the cluster. If not provided will default to the default zone for development environments, and remain unset for production environments.
         - `delete_protection (bool)`: Whether the cluster should have delete protection enabled.
+        - `enable_tpu (bool)`: Whether the cluster should have TPU resources enabled. WARNING: This changing this will delete and recreate the cluster. Defaults to False. Defaults to False.
         """
         super().__init__(
             name,
@@ -115,6 +118,7 @@ class GKECluster(GCPResource[GKEOutputs]):
                 "regional",
                 "region",
                 "zones",
+                "enable_tpu",
             },
         )
         self.subnet_ip_cidr_range = subnet_ip_cidr_range
@@ -128,6 +132,7 @@ class GKECluster(GCPResource[GKEOutputs]):
         else:
             self.zones = zones
         self.delete_protection = delete_protection
+        self.enable_tpu = enable_tpu
 
     def inputs(self, environment_state: EnvironmentState) -> GKEInputs:
         zones = self.zones
@@ -150,6 +155,7 @@ class GKECluster(GCPResource[GKEOutputs]):
             regional=regional,
             region=region,
             zones=zones,
+            enable_tpu=self.enable_tpu,
         )
 
 
@@ -177,11 +183,20 @@ class Autoscaling(Inputs):
 
 
 @dataclasses.dataclass
+class GuestAccelerator(Inputs):
+    type: str
+    count: int
+
+
+@dataclasses.dataclass
 class NodePoolInputs(ResourceInputs):
     cluster_id: str
     machine_type: str
     preemptible: bool
     autoscaling: Optional[Autoscaling] = None
+    disk_size_gb: Optional[int] = None
+    disk_type: Optional[Literal["pd-standard", "pd-balanced", "pd-ssd"]] = None
+    guest_accelerators: Optional[List[GuestAccelerator]] = None
 
 
 class NodePool(GCPResource[NodePoolOutputs]):
@@ -236,6 +251,9 @@ class NodePool(GCPResource[NodePoolOutputs]):
         machine_type: str = "e2-medium",
         preemptible: bool = False,
         autoscaling: Optional[Autoscaling] = None,
+        disk_size_gb: Optional[int] = None,
+        disk_type: Optional[Literal["pd-standard", "pd-balanced", "pd-ssd"]] = None,
+        guest_accelerators: Optional[List[GuestAccelerator]] = None,
     ):
         # TODO: add more customization options such as disk size, gpu support, etc..
         super().__init__(name)
@@ -243,6 +261,9 @@ class NodePool(GCPResource[NodePoolOutputs]):
         self.autoscaling = autoscaling
         self.machine_type = machine_type
         self.preemptible = preemptible
+        self.disk_size_gb = disk_size_gb
+        self.disk_type = disk_type
+        self.guest_accelerators = guest_accelerators
 
     def inputs(self, environment_state: EnvironmentState) -> NodePoolInputs:
         return NodePoolInputs(
@@ -251,4 +272,7 @@ class NodePool(GCPResource[NodePoolOutputs]):
             autoscaling=self.autoscaling,
             machine_type=self.machine_type,
             preemptible=self.preemptible,
+            disk_size_gb=self.disk_size_gb,
+            disk_type=self.disk_type,  # type: ignore
+            guest_accelerators=self.guest_accelerators,
         )
