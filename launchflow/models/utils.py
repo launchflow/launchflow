@@ -27,6 +27,7 @@ from launchflow.gcp.firebase import FirebaseHostingSite, FirebaseProject
 from launchflow.gcp.firebase_site import FirebaseStaticSite
 from launchflow.gcp.gcs import BackendBucket, GCSBucket
 from launchflow.gcp.gke import GKECluster, NodePool
+from launchflow.gcp.gke_custom_domain_mapping import GKECustomDomainMapping
 from launchflow.gcp.gke_service import GKEService
 from launchflow.gcp.global_ip_address import GlobalIPAddress
 from launchflow.gcp.http_health_check import HttpHealthCheck
@@ -42,7 +43,8 @@ from launchflow.gcp.secret_manager import SecretManagerSecret
 from launchflow.gcp.ssl import ManagedSSLCertificate
 from launchflow.gcp.static_site import StaticSite
 from launchflow.gcp.workbench import WorkbenchInstance
-from launchflow.kubernetes.service_container import ServiceContainer
+from launchflow.kubernetes.hpa import HorizontalPodAutoscaler
+from launchflow.kubernetes.service import ServiceContainer
 from launchflow.models.enums import ResourceProduct, ServiceProduct
 from launchflow.resource import Resource
 from launchflow.service import Service
@@ -78,6 +80,7 @@ RESOURCE_PRODUCTS_TO_RESOURCES = {
     ResourceProduct.GCP_GKE_NODE_POOL.value: NodePool,
     ResourceProduct.GCP_GLOBAL_IP_ADDRESS.value: GlobalIPAddress,
     ResourceProduct.GCP_MANAGED_SSL_CERTIFICATE.value: ManagedSSLCertificate,
+    ResourceProduct.GCP_GKE_CUSTOM_DOMAIN_MAPPING.value: GKECustomDomainMapping,
     # AWS product types
     ResourceProduct.AWS_RDS_POSTGRES.value: RDSPostgres,
     ResourceProduct.AWS_ELASTICACHE_REDIS.value: ElasticacheRedis,
@@ -95,6 +98,7 @@ RESOURCE_PRODUCTS_TO_RESOURCES = {
     ResourceProduct.AWS_LAUNCHFLOW_CLOUD_RELEASER.value: AWSReleaser,
     # K8s resource
     ResourceProduct.KUBERNETES_SERVICE_CONTAINER: ServiceContainer,
+    ResourceProduct.KUBERNETES_HORIZONTAL_POD_AUTOSCALER: HorizontalPodAutoscaler,
     # Local product types
     # TODO consider having a separate resource product for each local docker type
     ResourceProduct.LOCAL_DOCKER.value: DockerResource,

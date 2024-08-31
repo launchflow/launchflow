@@ -13,7 +13,7 @@ from launchflow.gcp.artifact_registry_repository import ArtifactRegistryOutputs
 from launchflow.gcp.cloud_run import CloudRun
 from launchflow.gcp.gke import GKECluster, GKEOutputs
 from launchflow.gcp.gke_service import GKEService
-from launchflow.kubernetes.service_container import ServiceContainerOutputs
+from launchflow.kubernetes.service import ServiceContainerOutputs
 from launchflow.locks import LockOperation, OperationType
 from launchflow.managers.docker_resource_manager import dict_to_base64
 from launchflow.managers.environment_manager import EnvironmentManager

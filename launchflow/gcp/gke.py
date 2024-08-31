@@ -69,7 +69,7 @@ class GKECluster(GCPResource[GKEOutputs]):
     cluster = lf.gcp.GKECluster("my-cluster", regional=False, zones="us-west1")
     ```
 
-    #### Specify a Custom IP Range for the K8 Subnet
+    #### Specify a Subnet
 
     If you create multiple clusters in your environment it is recommened you provide a custom IP range for the subnet for each cluster.
 
@@ -78,6 +78,7 @@ class GKECluster(GCPResource[GKEOutputs]):
 
     cluster1 = lf.gcp.GKECluster("my-cluster1", subnet_ip_cidr_range="10.90.0.0/20")
     cluster2 = lf.gcp.GKECluster("my-cluster2", subnet_ip_cidr_range="10.50.0.0/20")
+    ```
     """
 
     product = ResourceProduct.GCP_GKE_CLUSTER.value

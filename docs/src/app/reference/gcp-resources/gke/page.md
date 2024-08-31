@@ -1,45 +1,3 @@
-## NodePool
-
-A node pool for a GKE cluster.
-
-NOTE: This resource is currently in beta and may change in the future.
-
-Like all [Resources](/docs/concepts/resources), this class configures itself across multiple [Environments](/docs/concepts/environments).
-
-For more information see [the official documentation](https://cloud.google.com/kubernetes-engine/docs/concepts/node-pools).
-
-### Example Usage
-
-#### Basic Example
-
-```python
-import launchflow as lf
-
-cluster = lf.gcp.GKECluster("my-cluster")
-node_pool = lf.gcp.NodePool("my-node-pool", cluster=cluster, machine_type="e2-micro")
-```
-
-#### Autoscaling Example
-
-```python
-import launchflow as lf
-
-cluster = lf.gcp.GKECluster("my-cluster")
-autoscaling = lf.gcp.gke.Autoscaling(min_node_count=1, max_node_count=10)
-node_pool = lf.gcp.NodePool("my-node-pool", cluster=cluster, machine_type="e2-micro", autoscaling=autoscaling)
-```
-
-#### Deploy Service to Node Pool
-
-```python
-import launchflow as lf
-
-cluster = lf.gcp.GKECluster("my-cluster")
-node_pool = lf.gcp.NodePool("my-node-pool", cluster=cluster, machine_type="e2-micro")
-
-service = lf.gcp.GKEService("my-service", cluster=cluster, node_pool=node_pool)
-```
-
 ## GKECluster
 
 A Kubernetes Cluster hosted on GKE.
@@ -85,7 +43,7 @@ import launchflow as lf
 cluster = lf.gcp.GKECluster("my-cluster", regional=False, zones="us-west1")
 ```
 
-#### Specify a Custom IP Range for the K8 Subnet
+#### Specify a Subnet
 
 If you create multiple clusters in your environment it is recommened you provide a custom IP range for the subnet for each cluster.
 
@@ -94,6 +52,7 @@ import launchflow as lf
 
 cluster1 = lf.gcp.GKECluster("my-cluster1", subnet_ip_cidr_range="10.90.0.0/20")
 cluster2 = lf.gcp.GKECluster("my-cluster2", subnet_ip_cidr_range="10.50.0.0/20")
+```
 
 ### initialization
 
@@ -108,6 +67,49 @@ Creates a new GKE Cluster.
 - `region (Optional[str])`: The region for the cluster. If not provided will default to the default region for the environment.
 - `zones (Optional[List[str]])`: The zones for the cluster. If not provided will default to the default zone for development environments, and remain unset for production environments.
 - `delete_protection (bool)`: Whether the cluster should have delete protection enabled.
+- `enable_tpu (bool)`: Whether the cluster should have TPU resources enabled. WARNING: This changing this will delete and recreate the cluster. Defaults to False. Defaults to False.
+
+## NodePool
+
+A node pool for a GKE cluster.
+
+NOTE: This resource is currently in beta and may change in the future.
+
+Like all [Resources](/docs/concepts/resources), this class configures itself across multiple [Environments](/docs/concepts/environments).
+
+For more information see [the official documentation](https://cloud.google.com/kubernetes-engine/docs/concepts/node-pools).
+
+### Example Usage
+
+#### Basic Example
+
+```python
+import launchflow as lf
+
+cluster = lf.gcp.GKECluster("my-cluster")
+node_pool = lf.gcp.NodePool("my-node-pool", cluster=cluster, machine_type="e2-micro")
+```
+
+#### Autoscaling Example
+
+```python
+import launchflow as lf
+
+cluster = lf.gcp.GKECluster("my-cluster")
+autoscaling = lf.gcp.gke.Autoscaling(min_node_count=1, max_node_count=10)
+node_pool = lf.gcp.NodePool("my-node-pool", cluster=cluster, machine_type="e2-micro", autoscaling=autoscaling)
+```
+
+#### Deploy Service to Node Pool
+
+```python
+import launchflow as lf
+
+cluster = lf.gcp.GKECluster("my-cluster")
+node_pool = lf.gcp.NodePool("my-node-pool", cluster=cluster, machine_type="e2-micro")
+
+service = lf.gcp.GKEService("my-service", cluster=cluster, node_pool=node_pool)
+```
 
 ## Autoscaling
 

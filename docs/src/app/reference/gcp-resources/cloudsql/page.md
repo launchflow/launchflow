@@ -45,203 +45,6 @@ postgres_db = lf.gcp.CloudSQLDatabase("my-pg-db", cloud_sql_instance=postgres_in
 postgres_db.query("SELECT 1", user=postgres_user)
 ```
 
-## CloudSQLDatabase
-
-### initialization
-
-Create a new Cloud SQL Database resource.
-
-**Args:**
-- `name (str)`: The name of the Cloud SQL Database.
-- `cloud_sql_instance (CloudSQLPostgres)`: The Cloud SQL Postgres instance.
-
-### inputs
-
-```python
-CloudSQLDatabase.inputs(environment_state: EnvironmentState) -> CloudSQLDatabaseInputs
-```
-
-Get the inputs for the Cloud SQL Database resource.
-
-**Args:**
-- `environment_state (EnvironmentState)`: The environment to get inputs for
-
-**Returns:**
-- `CloudSQLDatabaseInputs`: The inputs for the Cloud SQL Database resource.
-
-### query
-
-```python
-CloudSQLDatabase.query(query: str, user: Optional["CloudSQLUser"] = None)
-```
-
-Executes a query on the Cloud SQL Database instance.
-
-**Args:**
-- `query (str)`: The SQL query to execute.
-- `user (CloudSQLUser)`: The `CloudSQLUser` to authenticate as. If not provided the default user for the instance will be used.
-
-**Example usage:**
-```python
-import launchflow as lf
-
-postgres = lf.gcp.CloudSQLDatabase("my-pg-db")
-
-# Executes a query on the Cloud SQL Database instance
-postgres.query("SELECT 1")
-```
-
-**NOTE**: This method is not recommended for production use. Use `sqlalchemy_engine` instead.
-
-### django\_settings
-
-```python
-CloudSQLDatabase.django_settings(user: Optional[CloudSQLUser] = None)
-```
-
-Returns a Django settings dictionary for connecting to the Cloud SQL Postgres instance.
-
-**Args:**
-- `user (CloudSQLUser)`: The `CloudSQLUser` to authenticate as. If not provided the default user for the instance will be used.
-
-**Returns:**
-- A dictionary of Django settings for connecting to the Cloud SQL Postgres instance.
-
-**Example usage:**
-```python
-import launchflow as lf
-
-postgres = lf.gcp.CloudSQLPostgres("my-pg-db")
-
-# settings.py
-DATABASES = {
-    # Connect Django's ORM to the Cloud SQL Postgres instance
-    "default": postgres.django_settings(),
-}
-```
-
-### sqlalchemy\_engine\_options
-
-```python
-CloudSQLDatabase.sqlalchemy_engine_options(*, ip_type=None, user: Optional[CloudSQLUser] = None)
-```
-
-Get the SQLAlchemy engine options for connecting to the Cloud SQL Postgres instance.
-
-**Args:**
-- `ip_type`: The IP type to use for the connection. If not provided will default to the most permisive IP address.
-    For example if your Cloud SQL instance is provisioned with a public IP address, the default will be `IPTypes.PUBLIC`.
-    Otherwise it will default to `IPTypes.PRIVATE`.
-- `user (CloudSQLUser)`: The `CloudSQLUser` to authenticate as. If not provided the default user for the instance will be used.
-
-**Returns:**
-- The SQLAlchemy engine options.
-
-### sqlalchemy\_async\_engine\_options
-
-```python
-async CloudSQLDatabase.sqlalchemy_async_engine_options(ip_type=None, user: Optional[CloudSQLUser] = None)
-```
-
-Get the async SQLAlchemy engine options for connecting to the Cloud SQL Postgres instance.
-
-**Args:**
-- `ip_type`: The IP type to use for the connection. If not provided will default to the most permisive IP address.
-    For example if your Cloud SQL instance is provisioned with a public IP address, the default will be `IPTypes.PUBLIC`.
-    Otherwise it will default to `IPTypes.PRIVATE`.
-- `user (CloudSQLUser)`: The `CloudSQLUser` to authenticate as. If not provided the default user for the instance will be used.
-
-**Returns:**
-- The async SQLAlchemy engine options.
-
-### sqlalchemy\_engine
-
-```python
-CloudSQLDatabase.sqlalchemy_engine(*, ip_type=None, user: Optional[CloudSQLUser] = None, **engine_kwargs)
-```
-
-Returns a SQLAlchemy engine for connecting to the Cloud SQL Postgres instance.
-
-**Args:**
-- `ip_type`: The IP type to use for the connection. If not provided will default to the most permisive IP address.
-    For example if your Cloud SQL instance is provisioned with a public IP address, the default will be `IPTypes.PUBLIC`.
-    Otherwise it will default to `IPTypes.PRIVATE`.
-- `user (CloudSQLUser)`: The `CloudSQLUser` to authenticate as. If not provided the default user for the instance will be used.
-- `**engine_kwargs`: Additional keyword arguments to pass to `sqlalchemy.create_engine`.
-
-**Returns:**
-- The SQLAlchemy engine.
-
-**Example usage:**
-```python
-import launchflow as lf
-
-postgres = lf.gcp.CloudSQLPostgres("my-pg-db")
-
-# Creates a SQLAlchemy engine for connecting to the Cloud SQL Postgres instance
-engine = postgres.sqlalchemy_engine()
-
-with engine.connect() as connection:
-    print(connection.execute("SELECT 1").fetchone())  # prints (1,)
-```
-
-### sqlalchemy\_async\_engine
-
-```python
-async CloudSQLDatabase.sqlalchemy_async_engine(*, ip_type=None, user: Optional["CloudSQLUser"] = None, **engine_kwargs)
-```
-
-Returns an async SQLAlchemy engine for connecting to the Cloud SQL Postgres instance.
-
-**Args:**
-- `ip_type`: The IP type to use for the connection. If not provided will default to the most permisive IP address.
-    For example if your Cloud SQL instance is provisioned with a public IP address, the default will be `IPTypes.PUBLIC`.
-    Otherwise it will default to `IPTypes.PRIVATE`.
-- `user (CloudSQLUser)`: The `CloudSQLUser` to authenticate as. If not provided the default user for the instance will be used.
-- `**engine_kwargs`: Additional keyword arguments to pass to `sqlalchemy.create_engine`.
-
-**Returns:**
-- The async SQLAlchemy engine.
-
-**Example usage:**
-```python
-import launchflow as lf
-
-postgres = lf.gcp.CloudSQLPostgres("my-pg-db")
-
-# Creates an async SQLAlchemy engine for connecting to the Cloud SQL Postgres instance
-engine = await postgres.sqlalchemy_async_engine()
-
-async with engine.begin() as connection:
-    result = await connection.execute("SELECT 1")
-    print(await result.fetchone())
-```
-
-## CloudSQLUser
-
-### initialization
-
-Create a new Cloud SQL User resource.
-
-**Args:**
-- `name (str)`: The name of the Cloud SQL User.
-- `cloud_sql_instance (CloudSQLPostgres)`: The Cloud SQL Postgres instance.
-- `password (Optional[str])`: The password for the Cloud SQL User. Defaults to `None`.
-
-### inputs
-
-```python
-CloudSQLUser.inputs(environment_state: EnvironmentState) -> CloudSQLUserInputs
-```
-
-Get the inputs for the Cloud SQL User resource.
-
-**Args:**
-- `environment_state (EnvironmentState)`: The environment to get inputs for
-
-**Returns:**
-- `CloudSQLUserInputs`: The inputs for the Cloud SQL User resource.
-
 ## CloudSQLPostgres
 
 A Postgres cluster running on Google Cloud SQL.
@@ -420,6 +223,203 @@ with engine.connect() as connection:
 
 ```python
 async CloudSQLPostgres.sqlalchemy_async_engine(*, ip_type=None, user: Optional["CloudSQLUser"] = None, **engine_kwargs)
+```
+
+Returns an async SQLAlchemy engine for connecting to the Cloud SQL Postgres instance.
+
+**Args:**
+- `ip_type`: The IP type to use for the connection. If not provided will default to the most permisive IP address.
+    For example if your Cloud SQL instance is provisioned with a public IP address, the default will be `IPTypes.PUBLIC`.
+    Otherwise it will default to `IPTypes.PRIVATE`.
+- `user (CloudSQLUser)`: The `CloudSQLUser` to authenticate as. If not provided the default user for the instance will be used.
+- `**engine_kwargs`: Additional keyword arguments to pass to `sqlalchemy.create_engine`.
+
+**Returns:**
+- The async SQLAlchemy engine.
+
+**Example usage:**
+```python
+import launchflow as lf
+
+postgres = lf.gcp.CloudSQLPostgres("my-pg-db")
+
+# Creates an async SQLAlchemy engine for connecting to the Cloud SQL Postgres instance
+engine = await postgres.sqlalchemy_async_engine()
+
+async with engine.begin() as connection:
+    result = await connection.execute("SELECT 1")
+    print(await result.fetchone())
+```
+
+## CloudSQLUser
+
+### initialization
+
+Create a new Cloud SQL User resource.
+
+**Args:**
+- `name (str)`: The name of the Cloud SQL User.
+- `cloud_sql_instance (CloudSQLPostgres)`: The Cloud SQL Postgres instance.
+- `password (Optional[str])`: The password for the Cloud SQL User. Defaults to `None`.
+
+### inputs
+
+```python
+CloudSQLUser.inputs(environment_state: EnvironmentState) -> CloudSQLUserInputs
+```
+
+Get the inputs for the Cloud SQL User resource.
+
+**Args:**
+- `environment_state (EnvironmentState)`: The environment to get inputs for
+
+**Returns:**
+- `CloudSQLUserInputs`: The inputs for the Cloud SQL User resource.
+
+## CloudSQLDatabase
+
+### initialization
+
+Create a new Cloud SQL Database resource.
+
+**Args:**
+- `name (str)`: The name of the Cloud SQL Database.
+- `cloud_sql_instance (CloudSQLPostgres)`: The Cloud SQL Postgres instance.
+
+### inputs
+
+```python
+CloudSQLDatabase.inputs(environment_state: EnvironmentState) -> CloudSQLDatabaseInputs
+```
+
+Get the inputs for the Cloud SQL Database resource.
+
+**Args:**
+- `environment_state (EnvironmentState)`: The environment to get inputs for
+
+**Returns:**
+- `CloudSQLDatabaseInputs`: The inputs for the Cloud SQL Database resource.
+
+### query
+
+```python
+CloudSQLDatabase.query(query: str, user: Optional["CloudSQLUser"] = None)
+```
+
+Executes a query on the Cloud SQL Database instance.
+
+**Args:**
+- `query (str)`: The SQL query to execute.
+- `user (CloudSQLUser)`: The `CloudSQLUser` to authenticate as. If not provided the default user for the instance will be used.
+
+**Example usage:**
+```python
+import launchflow as lf
+
+postgres = lf.gcp.CloudSQLDatabase("my-pg-db")
+
+# Executes a query on the Cloud SQL Database instance
+postgres.query("SELECT 1")
+```
+
+**NOTE**: This method is not recommended for production use. Use `sqlalchemy_engine` instead.
+
+### django\_settings
+
+```python
+CloudSQLDatabase.django_settings(user: Optional[CloudSQLUser] = None)
+```
+
+Returns a Django settings dictionary for connecting to the Cloud SQL Postgres instance.
+
+**Args:**
+- `user (CloudSQLUser)`: The `CloudSQLUser` to authenticate as. If not provided the default user for the instance will be used.
+
+**Returns:**
+- A dictionary of Django settings for connecting to the Cloud SQL Postgres instance.
+
+**Example usage:**
+```python
+import launchflow as lf
+
+postgres = lf.gcp.CloudSQLPostgres("my-pg-db")
+
+# settings.py
+DATABASES = {
+    # Connect Django's ORM to the Cloud SQL Postgres instance
+    "default": postgres.django_settings(),
+}
+```
+
+### sqlalchemy\_engine\_options
+
+```python
+CloudSQLDatabase.sqlalchemy_engine_options(*, ip_type=None, user: Optional[CloudSQLUser] = None)
+```
+
+Get the SQLAlchemy engine options for connecting to the Cloud SQL Postgres instance.
+
+**Args:**
+- `ip_type`: The IP type to use for the connection. If not provided will default to the most permisive IP address.
+    For example if your Cloud SQL instance is provisioned with a public IP address, the default will be `IPTypes.PUBLIC`.
+    Otherwise it will default to `IPTypes.PRIVATE`.
+- `user (CloudSQLUser)`: The `CloudSQLUser` to authenticate as. If not provided the default user for the instance will be used.
+
+**Returns:**
+- The SQLAlchemy engine options.
+
+### sqlalchemy\_async\_engine\_options
+
+```python
+async CloudSQLDatabase.sqlalchemy_async_engine_options(ip_type=None, user: Optional[CloudSQLUser] = None)
+```
+
+Get the async SQLAlchemy engine options for connecting to the Cloud SQL Postgres instance.
+
+**Args:**
+- `ip_type`: The IP type to use for the connection. If not provided will default to the most permisive IP address.
+    For example if your Cloud SQL instance is provisioned with a public IP address, the default will be `IPTypes.PUBLIC`.
+    Otherwise it will default to `IPTypes.PRIVATE`.
+- `user (CloudSQLUser)`: The `CloudSQLUser` to authenticate as. If not provided the default user for the instance will be used.
+
+**Returns:**
+- The async SQLAlchemy engine options.
+
+### sqlalchemy\_engine
+
+```python
+CloudSQLDatabase.sqlalchemy_engine(*, ip_type=None, user: Optional[CloudSQLUser] = None, **engine_kwargs)
+```
+
+Returns a SQLAlchemy engine for connecting to the Cloud SQL Postgres instance.
+
+**Args:**
+- `ip_type`: The IP type to use for the connection. If not provided will default to the most permisive IP address.
+    For example if your Cloud SQL instance is provisioned with a public IP address, the default will be `IPTypes.PUBLIC`.
+    Otherwise it will default to `IPTypes.PRIVATE`.
+- `user (CloudSQLUser)`: The `CloudSQLUser` to authenticate as. If not provided the default user for the instance will be used.
+- `**engine_kwargs`: Additional keyword arguments to pass to `sqlalchemy.create_engine`.
+
+**Returns:**
+- The SQLAlchemy engine.
+
+**Example usage:**
+```python
+import launchflow as lf
+
+postgres = lf.gcp.CloudSQLPostgres("my-pg-db")
+
+# Creates a SQLAlchemy engine for connecting to the Cloud SQL Postgres instance
+engine = postgres.sqlalchemy_engine()
+
+with engine.connect() as connection:
+    print(connection.execute("SELECT 1").fetchone())  # prints (1,)
+```
+
+### sqlalchemy\_async\_engine
+
+```python
+async CloudSQLDatabase.sqlalchemy_async_engine(*, ip_type=None, user: Optional["CloudSQLUser"] = None, **engine_kwargs)
 ```
 
 Returns an async SQLAlchemy engine for connecting to the Cloud SQL Postgres instance.

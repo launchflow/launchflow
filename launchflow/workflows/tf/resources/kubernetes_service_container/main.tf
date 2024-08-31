@@ -141,6 +141,8 @@ resource "kubernetes_service_v1" "default" {
     }
     type = var.service_type
   }
+
+  wait_for_load_balancer = true
 }
 
 output "external_ip" {

@@ -10,7 +10,7 @@ from launchflow.gcp.gke_custom_domain_mapping import GKECustomDomainMapping
 from launchflow.gcp.global_ip_address import GlobalIPAddress
 from launchflow.gcp.service import GCPDockerService
 from launchflow.gcp.ssl import ManagedSSLCertificate
-from launchflow.kubernetes.service_container import (
+from launchflow.kubernetes.service import (
     ContainerResources,
     LivenessProbe,
     ReadinessProbe,
@@ -32,9 +32,9 @@ class GKEServiceInputs(Inputs):
 class GKEService(GCPDockerService):
     """A service hosted on a GKE Kubernetes Cluster.
 
-    Like all [Services](/docs/concepts/services), this class configures itself across multiple [Environments](/docs/concepts/environments).
+    Like all [Services](/concepts/services), this class configures itself across multiple [Environments](/concepts/environments).
 
-    For more information see [the official documentation](https://cloud.google.com/kubernetes-engine/docs/concepts/service).
+    For more information see [the official documentation](https://cloud.google.com/kubernetes-engine/concepts/service).
 
     ### Example Usage
 
@@ -69,6 +69,19 @@ class GKEService(GCPDockerService):
     service = lf.gcp.GKEService("my-service", cluster=cluster, node_pool=node_pool)
     ```
 
+    #### Deploy to GPU Enabled Node Pool
+    ```python
+    import launchflow as lf
+
+    cluster = lf.gcp.GKECluster("my-cluster", delete_protection=False)
+    node_pool = lf.gcp.NodePool(
+        name="node-pool",
+        cluster=cluster,
+        machine_type="n1-standard-2",
+        guest_accelerators=[lf.gcp.gke.GuestAccelerator(type="nvidia-tesla-t4", count=1)],
+    )
+    ```
+
     #### Service with a Startup Probe
     ```python
     import launchflow as lf
@@ -82,6 +95,45 @@ class GKEService(GCPDockerService):
             initial_delay_seconds=5,
             period_seconds=10,
         ),
+    )
+    service = lf.gcp.GKEService(
+        name="service",
+        cluster=cluster,
+        node_pool=node_pool,
+        tolerations=[lf.kubernetes.service.Toleration(key="nvidia.com/gpu", value="present", operator="Equal")],
+    )
+    ```
+
+    #### Service with a Horizontal Pod Autoscaler
+
+    ```python
+    import launchflow as lf
+
+    cluster = lf.gcp.GKECluster("my-cluster")
+    service = lf.gcp.GKEService(
+        "my-service",
+        cluster=cluster,
+        container_resources=lf.kubernetes.service.ContainerResources(
+            requests=lf.kubernetes.service.ResourceQuantity(cpu="0.2"),
+        ),
+    )
+    hpa = lf.kubernetes.HorizontalPodAutoscaler(
+        "hpa",
+        cluster=cluster,
+        target_name=service.name
+    )
+    ```
+
+    #### Service with a Custom Domain Mapping
+    ```python
+    import launchflow as lf
+
+    cluster = lf.gcp.GKECluster("my-cluster")
+    service = lf.gcp.GKEService(
+        "my-service",
+        cluster=cluster,
+        domain="example.com"
+        service_type="NodePort",
     )
     ```
     """
@@ -108,25 +160,27 @@ class GKEService(GCPDockerService):
         container_resources: Optional[ContainerResources] = None,
         tolerations: Optional[List[Toleration]] = None,
         domain: Optional[str] = None,
-        # TODO: add support for custom domains
     ) -> None:
         """Create a new GKE Service.
 
         **Args:**
         - `name (str)`: The name of the service.
-        - `cluster ([GKECluster](/docs/reference/gcp-resources/gke#gke-cluster))`: The GKE cluster to deploy the service to.
+        - `cluster (GKECluster)`: The [GKE cluster](/reference/gcp-resources/gke#gke-cluster) to deploy the service to.
         - `build_directory (str)`: The directory to build the service from. This should be a relative path from the project root where your `launchflow.yaml` is defined.
         - `build_ignore (List[str])`: A list of files to ignore when building the service. This can be in the same syntax you would use for a `.gitignore`.
         - `dockerfile (str)`: The Dockerfile to use for building the service. This should be a relative path from the `build_directory`.
-        - `node_pool ([NodePool](/docs/reference/gcp-resources/gke#node-pool))`: The node pool to deploy the service to. If not provided, the default node pool will be used.
+        - `node_pool (Optional[NodePool])`: The [node pool](/reference/gcp-resources/gke#node-pool) to deploy the service to.
         - `container_port (int)`: The port the service will listen on inside the container.
         - `host_port (Optional[int])`: The port the service will listen on outside the container. If not provided, the service will not be exposed outside the cluster.
         - `namespace (str)`: The Kubernetes namespace to deploy the service to. Defaults to `default`. The `default` namespace is connected to your LaunchFlow environment automatically, we recommend leaving this as default unless you need to deploy an isolated service.
         - `service_type (Literal["ClusterIP", "NodePort", "LoadBalancer"])`: The type of Kubernetes service to create. Defaults to `LoadBalancer`.
-        - `startup_probe ([StartupProbe](/docs/reference/kubernetes-resources/service-container#startup-probe))`: The startup probe for the service.
-        - `liveness_probe ([LivenessProbe](/docs/reference/kubernetes-resources/service-container#liveness-probe))`: The liveness probe for the service.
-        - `readiness_probe ([ReadinessProbe](/docs/reference/kubernetes-resources/service-container#readiness-probe))`: The readiness probe for the service.
+        - `startup_probe (Optional[StartupProbe])`: The [startup probe](/reference/kubernetes-resources/service#startup-probe) for the service.
+        - `liveness_probe (Optional[LivenessProbe])`: The [liveness probe](/reference/kubernetes-resources/service#liveness-probe) for the service.
+        - `readiness_probe (Optional[ReadinessProbe])`: The [readiness probe](/reference/kubernetes-resources/service#readiness-probe) for the service.
         - `environment_variables (Optional[Dict[str, str]])`: A dictionary of environment variables to set on the service container.
+        - `container_resources (Optional[ContainerResources])`: The [container resources](/reference/kubernetes-resources/service#container-resources) for the service. NOTE: If you are creating a [HorizontalPodAutoscaler](/reference/kubernetes-resources/hpa) you will need to provide this.
+        - `tolerations (Optional[List[Toleration]])`: A list of [tolerations](/reference/kubernetes-resources/service#toleration) for the service.
+        - `domain (Optional[str])`: The domain to use for the service. `service_type` must be `NodePort` to assign a custom domain.
         """
         super().__init__(
             name=name,
@@ -172,7 +226,6 @@ class GKEService(GCPDockerService):
                 f"{name}-domain-mapping",
                 ip_address=self._ip_address,
                 ssl_certificate=self._ssl_certificate,
-                service_name=name,
                 service_container=self.container,
             )
             self._custom_domain_mapping.resource_id = name
@@ -199,8 +252,11 @@ class GKEService(GCPDockerService):
         ip_address = container_outputs.internal_ip
         if container_outputs.external_ip is not None:
             ip_address = container_outputs.external_ip
+        dns_outputs = None
+        if self._custom_domain_mapping:
+            dns_outputs = self._custom_domain_mapping.dns_outputs()
         return DockerServiceOutputs(
             service_url=f"http://{ip_address}",
             docker_repository=repo_outputs.docker_repository,
-            dns_outputs=None,
+            dns_outputs=dns_outputs,
         )

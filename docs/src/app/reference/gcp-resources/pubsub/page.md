@@ -25,53 +25,6 @@ topic = lf.gcp.PubsubTopic("my-pubsub-topic")
 subscription = lf.gcp.PubsubSubscription("my-pubsub-sub", topic=topic)
 ```
 
-## PubsubSubscription
-
-A GCP Cloud Pub/Sub Subscription.
-
-Like all [Resources](/docs/concepts/resources), this class configures itself across multiple [Environments](/docs/concepts/environments).
-
-For more information see [the official documentation](https://cloud.google.com/pubsub/docs/overview).
-
-### Example Usage
-```python
-import launchflow as lf
-
-topic = lf.gcp.PubsubTopic("my-pubsub-topic")
-# Automatically creates / connects to a PubSub Subscription in your GCP project
-subscription = lf.gcp.PubsubSubscription("my-pubsub-sub", topic=topic)
-```
-
-### initialization
-
-Create a new PubsubSubscription resource.
-
-**Args:**
-- `name (str)`: The name of the PubsubSubscription resource.
-- `topic (Union[PubsubTopic, str])`: The topic to subscribe to.
-- `push_config (Optional[PushConfig])`: The push configuration for the subscription.
-- `ack_deadline_seconds (int)`: The acknowledgment deadline for the subscription.
-- `message_retention_duration (datetime.timedelta)`: The message retention duration for the subscription.
-- `retain_acked_messages (bool)`: Whether to retain acknowledged messages.
-- `filter (Optional[str])`: The filter for the subscription.
-
-**Raises:***:
-- `ValueError`: If the topic is not a PubsubTopic or a str.
-
-### inputs
-
-```python
-PubsubSubscription.inputs(environment_state: EnvironmentState) -> PubsubSubscriptionInputs
-```
-
-Get the inputs for the PubsubSubscription resource.
-
-**Args:**
-- `environment_state (EnvironmentState)`: The environment to get inputs for
-
-**Returns:**
-- `PubsubSubscriptionInputs`: The inputs for the PubsubSubscription resource.
-
 ## PubsubTopic
 
 A GCP Cloud Pub/Sub Topic.
@@ -170,3 +123,50 @@ topic = lf.gcp.PubsubTopic("my-pubsub-topic")
 
 await topic.publish_async(b"Hello, world!")
 ```
+
+## PubsubSubscription
+
+A GCP Cloud Pub/Sub Subscription.
+
+Like all [Resources](/docs/concepts/resources), this class configures itself across multiple [Environments](/docs/concepts/environments).
+
+For more information see [the official documentation](https://cloud.google.com/pubsub/docs/overview).
+
+### Example Usage
+```python
+import launchflow as lf
+
+topic = lf.gcp.PubsubTopic("my-pubsub-topic")
+# Automatically creates / connects to a PubSub Subscription in your GCP project
+subscription = lf.gcp.PubsubSubscription("my-pubsub-sub", topic=topic)
+```
+
+### initialization
+
+Create a new PubsubSubscription resource.
+
+**Args:**
+- `name (str)`: The name of the PubsubSubscription resource.
+- `topic (Union[PubsubTopic, str])`: The topic to subscribe to.
+- `push_config (Optional[PushConfig])`: The push configuration for the subscription.
+- `ack_deadline_seconds (int)`: The acknowledgment deadline for the subscription.
+- `message_retention_duration (datetime.timedelta)`: The message retention duration for the subscription.
+- `retain_acked_messages (bool)`: Whether to retain acknowledged messages.
+- `filter (Optional[str])`: The filter for the subscription.
+
+**Raises:***:
+- `ValueError`: If the topic is not a PubsubTopic or a str.
+
+### inputs
+
+```python
+PubsubSubscription.inputs(environment_state: EnvironmentState) -> PubsubSubscriptionInputs
+```
+
+Get the inputs for the PubsubSubscription resource.
+
+**Args:**
+- `environment_state (EnvironmentState)`: The environment to get inputs for
+
+**Returns:**
+- `PubsubSubscriptionInputs`: The inputs for the PubsubSubscription resource.
