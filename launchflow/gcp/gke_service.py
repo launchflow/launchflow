@@ -235,7 +235,7 @@ class GKEService(GCPDockerService):
         return GKEServiceInputs(self.environment_variables)
 
     def resources(self) -> List[Resource[Any]]:
-        resources = [self._artifact_registry, self.container]
+        resources: List[Resource[Any]] = [self._artifact_registry, self.container]
         if self._custom_domain_mapping:
             resources.append(self._custom_domain_mapping)
         if self._ip_address:

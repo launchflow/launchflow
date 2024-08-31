@@ -186,6 +186,12 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                 status=ResourceStatus.CREATE_FAILED,
                 gcp_id=None,
                 aws_arn=None,
+                attempted_inputs={
+                    "resource_id": "test-storage-bucket",
+                    "location": "US",
+                    "force_destroy": "false",
+                    "uniform_bucket_level_access": "false",
+                },
             ),
         )
         # verify that we can aquire the lock again, this ensures
