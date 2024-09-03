@@ -26,11 +26,11 @@ data "aws_route_table" "private_route_table" {
   count = var.private_route_config != null ? 1 : 0
 
   vpc_id = var.vpc_id
-  
+
   tags = {
-    "Project" = var.launchflow_project
+    "Project"     = var.launchflow_project
     "Environment" = var.launchflow_environment
-    "Public" = "false"
+    "Public"      = "false"
   }
 }
 
@@ -46,11 +46,11 @@ resource "aws_nat_gateway" "nat_gateway" {
 }
 
 resource "aws_route" "route" {
-  count                   = var.private_route_config != null ? 1 : 0
+  count = var.private_route_config != null ? 1 : 0
 
-  route_table_id          = data.aws_route_table.private_route_table[0].id
-  nat_gateway_id          = aws_nat_gateway.nat_gateway.id
-  destination_cidr_block  = var.private_route_config.destination_cidr_block
+  route_table_id         = data.aws_route_table.private_route_table[0].id
+  nat_gateway_id         = aws_nat_gateway.nat_gateway.id
+  destination_cidr_block = var.private_route_config.destination_cidr_block
 }
 
 

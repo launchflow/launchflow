@@ -28,7 +28,7 @@ data "aws_subnet" "details" {
 
 data "aws_security_group" "default_vpc_sg" {
   vpc_id = var.vpc_id
-  name   = "default" 
+  name   = "default"
 }
 
 resource "aws_db_subnet_group" "default" {
@@ -39,15 +39,15 @@ resource "aws_db_subnet_group" "default" {
 
 resource "aws_security_group" "rds_sg" {
   name        = "${var.resource_id}-rds-sg"
-  description = "Security group for ${var.resource_id} - ${ var.publicly_accessible ? "Allow inbound traffic" : "Only VPC inbound traffic" }"
+  description = "Security group for ${var.resource_id} - ${var.publicly_accessible ? "Allow inbound traffic" : "Only VPC inbound traffic"}"
   vpc_id      = var.vpc_id
 
   ingress {
-    from_port   = var.engine == "postgres" ? 5432 : 3306
-    to_port     = var.engine == "postgres" ? 5432 : 3306
-    protocol    = "tcp"
-    cidr_blocks = var.publicly_accessible ? ["0.0.0.0/0"] : []
-    security_groups = [ data.aws_security_group.default_vpc_sg.id ]
+    from_port       = var.engine == "postgres" ? 5432 : 3306
+    to_port         = var.engine == "postgres" ? 5432 : 3306
+    protocol        = "tcp"
+    cidr_blocks     = var.publicly_accessible ? ["0.0.0.0/0"] : []
+    security_groups = [data.aws_security_group.default_vpc_sg.id]
   }
 
   tags = {
@@ -59,7 +59,7 @@ resource "aws_security_group" "rds_sg" {
 # The default parameter group does not allow setting rds.force_ssl parameter for MySQL
 resource "aws_db_parameter_group" "params" {
   name   = "${var.resource_id}-parameter-group"
-  family = "${var.engine_family}"
+  family = var.engine_family
 
   dynamic "parameter" {
     for_each = var.engine == "postgres" ? ["rds.force_ssl"] : []

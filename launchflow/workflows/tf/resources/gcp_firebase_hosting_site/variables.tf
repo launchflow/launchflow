@@ -30,6 +30,6 @@ variable "firebase_project_id" {
 }
 
 variable "custom_domain" {
-  type = string
+  type    = string
   default = null
 }

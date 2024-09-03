@@ -80,7 +80,7 @@ resource "aws_iam_role" "env_role" {
             "ec2:DescribeInstances",
             "ec2:AttachNetworkInterface"
           ]
-          Effect = "Allow"
+          Effect   = "Allow"
           Resource = "*"
         },
         {

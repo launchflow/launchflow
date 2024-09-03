@@ -23,7 +23,7 @@ RUN pip install --no-cache-dir -U pip setuptools wheel && pip install --no-cache
 # TODO(developer): Only copy the files needed for your application
 COPY . /code
 
-# Expose the port for the FastAPI app 
+# Expose the port for the FastAPI app
 ENV PORT={port}
 EXPOSE $PORT
 

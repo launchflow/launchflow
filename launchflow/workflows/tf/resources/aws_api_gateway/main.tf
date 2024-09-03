@@ -24,13 +24,13 @@ resource "aws_apigatewayv2_stage" "default" {
 
 
 output "api_gateway_id" {
-  value       = aws_apigatewayv2_api.default.id
+  value = aws_apigatewayv2_api.default.id
 }
 
 output "api_gateway_endpoint" {
-  value       = aws_apigatewayv2_api.default.api_endpoint
+  value = aws_apigatewayv2_api.default.api_endpoint
 }
 
 output "aws_arn" {
-  value       = aws_apigatewayv2_api.default.arn
+  value = aws_apigatewayv2_api.default.arn
 }

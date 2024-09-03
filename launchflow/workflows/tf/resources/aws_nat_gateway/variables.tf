@@ -46,5 +46,5 @@ variable "private_route_config" {
   type = object({
     destination_cidr_block = string
   })
-  default = null  
+  default = null
 }

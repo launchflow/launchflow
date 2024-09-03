@@ -68,12 +68,12 @@ resource "aws_lambda_function" "default" {
   memory_size   = var.memory_size
   timeout       = var.timeout
 
-  filename = data.archive_file.lambda.output_path
+  filename         = data.archive_file.lambda.output_path
   source_code_hash = data.archive_file.lambda.output_base64sha256
-  handler = "hello.lambda_handler"
-  runtime = var.runtime
+  handler          = "hello.lambda_handler"
+  runtime          = var.runtime
 
-  # NOTE: We set this to speed up the destroy process. Without this, lambda can hold 
+  # NOTE: We set this to speed up the destroy process. Without this, lambda can hold
   # onto the security group for ~30mins and block it from being deleted.
   replace_security_groups_on_destroy = true
 
@@ -130,7 +130,7 @@ resource "aws_apigatewayv2_integration" "default" {
 }
 
 resource "aws_apigatewayv2_route" "default" {
-  count     = var.api_gateway_config != null ? 1 : 0
+  count = var.api_gateway_config != null ? 1 : 0
 
   api_id    = data.aws_apigatewayv2_api.imported_api_gateway[0].id
   route_key = var.api_gateway_config.api_route_key == "/" ? "$default" : var.api_gateway_config.api_route_key
@@ -140,5 +140,5 @@ resource "aws_apigatewayv2_route" "default" {
 # TODO: Add a Lambda Function URL option
 
 output "aws_arn" {
-  value       = aws_lambda_function.default.arn
+  value = aws_lambda_function.default.arn
 }

@@ -63,9 +63,9 @@ variable "firewall_cfg" {
 }
 
 variable "associate_public_ip_address" {
-  type    = bool
+  type = bool
 }
 
 variable "publicly_accessible" {
-  type    = bool
+  type = bool
 }

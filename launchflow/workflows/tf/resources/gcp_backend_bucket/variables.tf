@@ -35,16 +35,16 @@ variable "force_destroy" {
 }
 
 variable "custom_domain" {
-  type = string
+  type    = string
   default = null
 }
 
 variable "main_page_suffix" {
-  type = string
+  type    = string
   default = "index.html"
 }
 
 variable "not_found_page" {
-  type = string
+  type    = string
   default = "index.html"
 }

@@ -57,7 +57,7 @@ variable "runtime" {
 variable "api_gateway_config" {
   type = object({
     api_gateway_id = string
-    api_route_key = string
+    api_route_key  = string
   })
   default = null
 }
