@@ -2,12 +2,12 @@ import dataclasses
 from datetime import timedelta
 from typing import Any, List, Literal, Optional, Union
 
-from launchflow import exceptions
 from launchflow.gcp.artifact_registry_repository import (
     ArtifactRegistryRepository,
     RegistryFormat,
 )
 from launchflow.gcp.custom_domain_mapping import CustomDomainMapping, GCEServiceBackend
+from launchflow.gcp.global_ip_address import GlobalIPAddress
 from launchflow.gcp.http_health_check import HttpHealthCheck
 from launchflow.gcp.networking import AllowRule, FirewallAllowRule
 from launchflow.gcp.regional_autoscaler import (
@@ -22,10 +22,11 @@ from launchflow.gcp.regional_managed_instance_group import (
     UpdatePolicy,
 )
 from launchflow.gcp.service import GCPDockerService
+from launchflow.gcp.ssl import ManagedSSLCertificate
 from launchflow.models.enums import ServiceProduct
 from launchflow.node import Inputs
 from launchflow.resource import Resource
-from launchflow.service import DNSOutputs, DNSRecord, DockerServiceOutputs
+from launchflow.service import DockerServiceOutputs
 
 
 @dataclasses.dataclass
@@ -187,14 +188,21 @@ class ComputeEngineService(GCPDockerService):
             f"{name}-repository", format=RegistryFormat.DOCKER
         )
         self.deploy_timeout = deploy_timeout
-        self._custom_domain = None
+        self._custom_domain: Optional[CustomDomainMapping] = None
+        self._ip_address: Optional[GlobalIPAddress] = None
+        self._ssl_certificate: Optional[ManagedSSLCertificate] = None
         self.domain = domain
         if self.domain:
             if self._health_check is None:
                 raise ValueError("Health check must be provided to use a custom domain")
+            self._ip_address = GlobalIPAddress(f"{name}-ip-address")
+            self._ssl_certificate = ManagedSSLCertificate(
+                f"{name}-ssl-certificate", domains=self.domain
+            )
             self._custom_domain = CustomDomainMapping(
                 name=f"{name}-domain-mapping",
-                domain=self.domain,
+                ip_address=self._ip_address,
+                ssl_certificate=self._ssl_certificate,
                 gce_service_backend=GCEServiceBackend(
                     self._mig, self._health_check, "http"
                 ),
@@ -231,20 +239,8 @@ class ComputeEngineService(GCPDockerService):
         service_url = None
         dns_outputs = None
         if self._custom_domain is not None:
-            service_url = f"https://{self._custom_domain.domain}"
-            try:
-                custom_domain_outputs = self._custom_domain.outputs()
-            except exceptions.ResourceOutputsNotFound:
-                raise exceptions.ServiceOutputsNotFound(service_name=self.name)
-            dns_outputs = DNSOutputs(
-                domain=custom_domain_outputs.registered_domain,
-                dns_records=[
-                    DNSRecord(
-                        dns_record_type="A",
-                        dns_record_value=custom_domain_outputs.ip_address,
-                    )
-                ],
-            )
+            dns_outputs = self._custom_domain.dns_outputs()
+            service_url = f"https://{self.domain}"
         return DockerServiceOutputs(
             service_url=service_url,  # type: ignore
             docker_repository=repo_outputs.docker_repository,

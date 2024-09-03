@@ -42,8 +42,8 @@ resource "aws_ecs_task_definition" "task_definition" {
   runtime_platform {
     operating_system_family = "LINUX"
   }
-  cpu    = var.cpu
-  memory = var.memory
+  cpu    = 256
+  memory = 512
 
   container_definitions = jsonencode([
     {
@@ -51,8 +51,8 @@ resource "aws_ecs_task_definition" "task_definition" {
       entryPoint = ["sh", "-c"]
       name       = var.resource_id
       image      = "httpd:2.4"
-      cpu        = var.cpu
-      memory     = var.memory
+      cpu        = 256
+      memory     = 512
       essential  = true
       portMappings = [
         {
@@ -87,12 +87,6 @@ resource "aws_security_group" "ecs_tasks_sg" {
   description = "Allow inbound traffic"
   vpc_id      = var.vpc_id
 
-  ingress {
-    from_port   = var.port
-    to_port     = var.port
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
 
   egress {
     from_port   = 0
@@ -107,16 +101,15 @@ resource "aws_security_group" "ecs_tasks_sg" {
   }
 }
 
-# TODO: Determine if we should drop this rule since we already allow all VPC traffic
 resource "aws_security_group_rule" "ecs_alb_ingress" {
-    count                       = var.alb_security_group_id != null ? 1 : 0
-    type                        = "ingress"
-    from_port                   = 0
-    to_port                     = 0
-    protocol                    = "-1"
-    description                 = "Allow inbound traffic from ALB"
-    security_group_id           = aws_security_group.ecs_tasks_sg.id
-    source_security_group_id    = var.alb_security_group_id
+  count                    = var.alb_security_group_id != null ? 1 : 0
+  type                     = "ingress"
+  from_port                = var.port
+  to_port                  = var.port
+  protocol                 = "tcp"
+  description              = "Allow inbound traffic from ALB"
+  security_group_id        = aws_security_group.ecs_tasks_sg.id
+  source_security_group_id = var.alb_security_group_id
 }
 
 resource "random_id" "rnd" {
@@ -143,6 +136,12 @@ resource "aws_ecs_service" "ecs_service" {
   launch_type             = "FARGATE"
   enable_ecs_managed_tags = true
   wait_for_steady_state   = true
+
+  lifecycle {
+    ignore_changes = [
+      task_definition
+    ]
+  }
 
   network_configuration {
     subnets          = data.aws_subnets.lf_public_vpc_subnets.ids

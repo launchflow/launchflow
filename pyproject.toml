@@ -1,6 +1,6 @@
 [project]
 name = "launchflow"
-version = "0.4.7"
+version = "0.4.8"
 description = "Python-native infrastructure for the cloud: LaunchFlow provides a Python SDK that automatically creates and connects to production-ready infrastructure (such as Postgres, Redis, etc..) in your own cloud account. LaunchFlow completely removes the need for DevOps allowing you to focus on your application logic."
 authors = [
     { name = "CalebTVanDyke", email = "caleb@launchflow.com" },
@@ -17,7 +17,7 @@ dependencies = [
     "pyyaml",
     "pathspec",
     "pydantic>=2.0",
-    "deepdiff",
+    "deepdiff!=8.0.0",
     "typer",
     "requests",
     "httpx",
@@ -28,6 +28,7 @@ dependencies = [
     "terminaltexteffects",
     "setuptools",
     "posthog",
+    "kubernetes",
 ]
 requires-python = ">=3.9"
 
@@ -54,6 +55,7 @@ gcp = [
     "google-cloud-tasks",
     "google-cloud-service-usage",
     "google-cloud-compute",
+    "google-cloud-container",
 ]
 aws = ["boto3"]
 dev = [

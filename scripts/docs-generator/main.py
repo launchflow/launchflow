@@ -13,8 +13,7 @@ import re
 import subprocess
 import sys
 import tempfile
-from collections import deque
-from typing import Any, Deque, TextIO
+from typing import TextIO
 
 import docspec
 from pydoc_markdown.contrib.loaders.python import PythonLoader
@@ -23,10 +22,17 @@ from pydoc_markdown.contrib.renderers.markdown import MarkdownRenderer
 from pydoc_markdown.interfaces import Context
 from pydoc_markdown.util.misc import escape_except_blockquotes
 
+from launchflow.aws.resource import AWSResource
+from launchflow.aws.service import AWSService
+from launchflow.gcp.resource import GCPResource
+from launchflow.gcp.service import GCPService
+from launchflow.kubernetes.resource import KubernetesResource
+
 KNOWN_RESOURCE_SERVICE_SUPER_CLASSES = {
     "Resource",
     "GCPResource",
     "AWSResource",
+    "KubernetesResource",
     "GCPService",
     "AWSService",
 }
@@ -39,7 +45,8 @@ class CustomMarkdownRenderer(MarkdownRenderer):
         self._render_object(fp, level, obj)
         level += 1
         members = getattr(obj, "members", [])
-        sorted_members: Deque[Any] = deque()
+        first_members = []
+        second_members = []
         for member in members:
             if isinstance(member, docspec.Class):
                 found_match = False
@@ -50,13 +57,13 @@ class CustomMarkdownRenderer(MarkdownRenderer):
                         found_match = True
                         break
                 if found_match:
-                    sorted_members.appendleft(member)
+                    first_members.append(member)
                 else:
-                    sorted_members.append(member)
+                    second_members.append(member)
             else:
-                sorted_members.append(member)
+                second_members.append(member)
 
-        for member in sorted_members:
+        for member in first_members + second_members:
             self._render_recursive(fp, level, member)
 
     def _render_object(self, fp: TextIO, level: int, obj: docspec.ApiObject):
@@ -113,18 +120,15 @@ def add_to_module_to_page(mapping, prefix, module_to_page):
         if product == "unknown":
             continue
 
-        cloud_provider = resource.cloud_provider()
-        if cloud_provider is None:
+        if issubclass(resource, GCPResource) or issubclass(resource, GCPService):
+            out_path = f"gcp-{prefix}"
+        elif issubclass(resource, AWSResource) or issubclass(resource, AWSService):
+            out_path = f"aws-{prefix}"
+        elif issubclass(resource, KubernetesResource):
+            out_path = f"kubernetes-{prefix}"
+        else:
             print("Skipping generating docs for", resource.__name__)
             continue
-
-        out_path = ""
-        if cloud_provider.value == "gcp":
-            out_path += f"gcp-{prefix}"
-        elif cloud_provider.value == "aws":
-            out_path += f"aws-{prefix}"
-        else:
-            ValueError("Shouldn't have reached here")
 
         directory_name = resource.__module__.split(".")[-1].replace("_", "-")
         out_path += f"/{directory_name}/page.md"

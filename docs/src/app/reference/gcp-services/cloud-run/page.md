@@ -3,10 +3,22 @@
 A service hosted on GCP Cloud Run.
 
 ### Example Usage
+
+#### Basic Usage
 ```python
 import launchflow as lf
 
 service = lf.gcp.CloudRun("my-service", cpu=4)
+```
+
+#### Custom Environment Variables
+```python
+import launchflow as lf
+
+service = lf.gcp.CloudRun(
+    "my-service",
+    environment_variables={"MY_ENV_VAR": "my-value"}
+)
 ```
 
 **NOTE:** This will create the following infrastructure in your GCP project:
@@ -35,4 +47,5 @@ Creates a new Cloud Run service.
 - `invokers (Optional[List[str]])`: A list of invokers that can access the service.
 - `custom_audiences (Optional[List[str]])`: A list of custom audiences that can access the service. See: [https://cloud.google.com/run/docs/configuring/custom-audiences](https://cloud.google.com/run/docs/configuring/custom-audiences).
 - `ingress (Optional[Literal["INGRESS_TRAFFIC_ALL", "INGRESS_TRAFFIC_INTERNAL_ONLY", "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"]])`: The ingress settings for the service. See: [https://cloud.google.com/run/docs/securing/ingress](https://cloud.google.com/run/docs/configuring/custom-audiences).
+- `environment_variables (Optional[Dict[str, str]])`: A dictionary of environment variables to set for the service.
 - `domain (Optional[str])`: The custom domain to map to the service.

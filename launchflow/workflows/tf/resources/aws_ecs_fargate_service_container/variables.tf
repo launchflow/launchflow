@@ -46,14 +46,6 @@ variable "resource_name" {
   type = string
 }
 
-variable "cpu" {
-  type = number
-}
-
-variable "memory" {
-  type = number
-}
-
 variable "port" {
   type = number
 }
@@ -63,7 +55,7 @@ variable "desired_count" {
 }
 
 variable "alb_security_group_id" {
-  type = string
+  type    = string
   default = null
 }
 

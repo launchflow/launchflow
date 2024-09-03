@@ -24,7 +24,11 @@ variable "artifact_bucket" {
 #
 # Custom domain mapping specific fields
 #
-variable "domain" {
+variable "ip_address_id" {
+  type = string
+}
+
+variable "ssl_certificate_id" {
   type = string
 }
 
@@ -51,4 +55,9 @@ variable "health_check" {
 variable "named_port" {
   type    = string
   default = null
+}
+
+variable "include_http_redirect" {
+  type    = bool
+  default = true
 }
