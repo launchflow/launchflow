@@ -28,7 +28,7 @@ except ImportError:
     sessionmaker = None
 
 try:
-    import pymysql
+    import pymysql  # type: ignore
 except ImportError:
     pymysql = None
 
