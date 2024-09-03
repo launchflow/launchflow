@@ -66,7 +66,7 @@ class NATGateway(AWSResource[NATGatewayOutputs]):
         **Returns:**
          - `NATGatewayInputs`: The inputs required for the NAT Gateway
         """
-        eip_allocation_id = Depends(self.elastic_ip).allocation_id
+        eip_allocation_id = Depends(self.elastic_ip).allocation_id  # type: ignore
         return NATGatewayInputs(
             resource_id=self.resource_id,
             eip_allocation_id=eip_allocation_id,

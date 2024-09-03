@@ -157,7 +157,7 @@ class LambdaFunction(AWSResource[LambdaFunctionOutputs]):
 
         api_gateway_config = None
         if self._api_gateway is not None:
-            api_gateway_id = Depends(self._api_gateway).api_gateway_id
+            api_gateway_id = Depends(self._api_gateway).api_gateway_id  # type: ignore
             # TODO: clean this up / throw validation error in __init__ if route is None and api_gateway is not None
             api_gateway_config = APIGatewayConfig(
                 api_gateway_id=api_gateway_id,

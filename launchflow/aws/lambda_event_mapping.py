@@ -62,8 +62,8 @@ class LambdaEventMapping(AWSResource[LambdaEventMappingOutputs]):
         **Returns:**
          - `LambdaEventMappingInputs`: The inputs required for the Lambda event mapping
         """
-        event_source_arn = Depends(self.sqs_queue).aws_arn
-        function_arn = Depends(self.lambda_container).aws_arn
+        event_source_arn = Depends(self.sqs_queue).aws_arn  # type: ignore
+        function_arn = Depends(self.lambda_container).aws_arn  # type: ignore
         return LambdaEventMappingInputs(
             resource_id=self.resource_id,
             event_source_arn=event_source_arn,
