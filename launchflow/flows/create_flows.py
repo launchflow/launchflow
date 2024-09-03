@@ -267,6 +267,7 @@ class CreateResourcePlan(ResourcePlan):
                         logs_file,
                         f"Create {self.resource.__class__.__name__}({self.resource.name}) logs",
                     )
+                new_resource_state.attempted_inputs = None
 
                 return CreateResourceResult(
                     plan=self,

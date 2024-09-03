@@ -41,7 +41,7 @@ def import_services(service_import_strs: List[str]) -> List[Service]:
             imported_service = import_from_string(service_str)
         except AttributeError as e:
             logger.debug(
-                "Failed to import resource %s",
+                "Failed to import resource %s, %s",
                 service_str,
                 e,
                 exc_info=True,
