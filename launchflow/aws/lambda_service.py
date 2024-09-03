@@ -7,7 +7,6 @@ from typing_extensions import Callable
 import launchflow as lf
 from launchflow import exceptions
 from launchflow.aws.acm import ACMCertificate
-from launchflow.aws.api_gateway import APIGateway
 from launchflow.aws.codebuild_project import (
     Cache,
     CloudWatchLogsConfig,
@@ -19,11 +18,9 @@ from launchflow.aws.codebuild_project import (
 )
 from launchflow.aws.ecr_repository import ECRRepository
 from launchflow.aws.elastic_ip import ElasticIP
-from launchflow.aws.lambda_event_mapping import LambdaEventMapping
 from launchflow.aws.lambda_function import LambdaFunction
 from launchflow.aws.nat_gateway import NATGateway
 from launchflow.aws.service import AWSDockerServiceOutputs, AWSStaticService
-from launchflow.aws.sqs import SQSQueue
 from launchflow.models.enums import ServiceProduct
 from launchflow.node import Inputs
 from launchflow.resource import Resource

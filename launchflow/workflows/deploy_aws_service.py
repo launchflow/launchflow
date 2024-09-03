@@ -1,15 +1,12 @@
 import asyncio
 import base64
 import inspect
-import json
 import logging
 import os
 import shutil
 import subprocess
-import sys
 import tempfile
 import time
-import venv
 import zipfile
 from typing import Callable, List, Tuple
 
@@ -23,7 +20,7 @@ from launchflow.aws.service import AWSDockerService
 from launchflow.config import config
 from launchflow.managers.service_manager import ServiceManager
 from launchflow.models.flow_state import AWSEnvironmentConfig, ServiceState
-from launchflow.workflows.utils import tar_source_in_memory, zip_source_in_memory
+from launchflow.workflows.utils import tar_source_in_memory
 
 
 async def _upload_source_tarball_to_s3(
