@@ -26,6 +26,9 @@ from launchflow.gcp.custom_domain_mapping import CustomDomainMapping
 from launchflow.gcp.firebase import FirebaseHostingSite, FirebaseProject
 from launchflow.gcp.firebase_site import FirebaseStaticSite
 from launchflow.gcp.gcs import BackendBucket, GCSBucket
+from launchflow.gcp.gke import GKECluster, NodePool
+from launchflow.gcp.gke_custom_domain_mapping import GKECustomDomainMapping
+from launchflow.gcp.gke_service import GKEService
 from launchflow.gcp.global_ip_address import GlobalIPAddress
 from launchflow.gcp.http_health_check import HttpHealthCheck
 from launchflow.gcp.launchflow_cloud_releaser import (
@@ -40,6 +43,8 @@ from launchflow.gcp.secret_manager import SecretManagerSecret
 from launchflow.gcp.ssl import ManagedSSLCertificate
 from launchflow.gcp.static_site import StaticSite
 from launchflow.gcp.workbench import WorkbenchInstance
+from launchflow.kubernetes.hpa import HorizontalPodAutoscaler
+from launchflow.kubernetes.service import ServiceContainer
 from launchflow.models.enums import ResourceProduct, ServiceProduct
 from launchflow.resource import Resource
 from launchflow.service import Service
@@ -71,8 +76,11 @@ RESOURCE_PRODUCTS_TO_RESOURCES = {
     ResourceProduct.GCP_FIREWALL_ALLOW_RULE.value: FirewallAllowRule,
     ResourceProduct.GCP_COMPUTE_HTTP_HEALTH_CHECK.value: HttpHealthCheck,
     ResourceProduct.GCP_REGIONAL_AUTO_SCALER.value: RegionalAutoscaler,
+    ResourceProduct.GCP_GKE_CLUSTER.value: GKECluster,
+    ResourceProduct.GCP_GKE_NODE_POOL.value: NodePool,
     ResourceProduct.GCP_GLOBAL_IP_ADDRESS.value: GlobalIPAddress,
     ResourceProduct.GCP_MANAGED_SSL_CERTIFICATE.value: ManagedSSLCertificate,
+    ResourceProduct.GCP_GKE_CUSTOM_DOMAIN_MAPPING.value: GKECustomDomainMapping,
     # AWS product types
     ResourceProduct.AWS_RDS_POSTGRES.value: RDSPostgres,
     ResourceProduct.AWS_ELASTICACHE_REDIS.value: ElasticacheRedis,
@@ -88,6 +96,9 @@ RESOURCE_PRODUCTS_TO_RESOURCES = {
     ResourceProduct.AWS_ECS_CLUSTER.value: ECSCluster,
     ResourceProduct.AWS_SQS_QUEUE.value: SQSQueue,
     ResourceProduct.AWS_LAUNCHFLOW_CLOUD_RELEASER.value: AWSReleaser,
+    # K8s resource
+    ResourceProduct.KUBERNETES_SERVICE_CONTAINER: ServiceContainer,
+    ResourceProduct.KUBERNETES_HORIZONTAL_POD_AUTOSCALER: HorizontalPodAutoscaler,
     # Local product types
     # TODO consider having a separate resource product for each local docker type
     ResourceProduct.LOCAL_DOCKER.value: DockerResource,
@@ -101,6 +112,7 @@ SERVICE_PRODUCTS_TO_SERVICES = {
     # GCP product types
     ServiceProduct.GCP_CLOUD_RUN.value: CloudRun,
     ServiceProduct.GCP_COMPUTE_ENGINE.value: ComputeEngineService,
+    ServiceProduct.GCP_GKE.value: GKEService,
     ServiceProduct.GCP_STATIC_SITE.value: StaticSite,
     ServiceProduct.GCP_FIREBASE_STATIC_SITE.value: FirebaseStaticSite,
 }

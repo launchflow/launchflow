@@ -64,12 +64,17 @@ class TestDeleteTofuResource(unittest.IsolatedAsyncioTestCase):
 
         run_tofu_mock.assert_called_once_with(
             TFDestroyCommand(
-                tf_module_dir="empty/gcp_empty",
+                tf_module_dir="resources/gcp_sql_user",
                 backend=LocalBackend(path="."),
                 tf_state_prefix=mock.ANY,
                 logs_file="logs_file",
                 launchflow_state_url=None,
-                tf_vars={"gcp_project_id": "project_id"},
+                tf_vars={
+                    "gcp_project_id": "project_id",
+                    "gcp_region": "default_region",
+                    "artifact_bucket": "artifact_bucket",
+                    "environment_service_account_email": "service_account_email",
+                },
             )
         )
         storage_mock().bucket.assert_called_once_with("artifact_bucket")
@@ -166,12 +171,20 @@ class TestDeleteTofuResource(unittest.IsolatedAsyncioTestCase):
 
             run_tofu_mock.assert_called_once_with(
                 TFDestroyCommand(
-                    tf_module_dir="empty/aws_empty",
+                    tf_module_dir="resources/aws_ec2",
                     backend=LocalBackend(path="."),
                     tf_state_prefix=mock.ANY,
                     logs_file="logs_file",
                     launchflow_state_url=None,
-                    tf_vars={"aws_region": "region"},
+                    tf_vars={
+                        "aws_account_id": "account_id",
+                        "aws_region": "region",
+                        "artifact_bucket": "artifact_bucket",
+                        "env_role_name": "iam_role_arn",
+                        "vpc_id": "vpc_id",
+                        "launchflow_project": "project_name",
+                        "launchflow_environment": "environment_name",
+                    },
                 )
             )
 

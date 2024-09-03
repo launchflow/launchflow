@@ -6,7 +6,7 @@ import importlib.util
 import json
 import os
 import shutil
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import httpx
 
@@ -172,10 +172,10 @@ class TFCommand:
         var_flags = []
         for key, value in self.tf_vars.items():
             if isinstance(value, (dict, list)):
-                value = json.dumps(value).replace('"', '\\"')
+                value = json.dumps(value)
             if isinstance(value, bool):
                 value = str(value).lower()
-            var_flags.append(f'-var "{key}={value}"')
+            var_flags.extend(["-var", f"{key}={value}"])
         return var_flags
 
 
@@ -183,14 +183,14 @@ class TFCommand:
 class TFDestroyCommand(TFCommand):
     tf_vars: Dict[str, Any] = dataclasses.field(default_factory=dict)
 
-    def tf_destroy_command(self) -> str:
-        command_lines = [
-            f"{opentofu.TOFU_PATH} destroy",
+    def tf_destroy_command(self) -> List[str]:
+        return [
+            f"{opentofu.TOFU_PATH}",
+            "destroy",
             "-auto-approve",
             "-input=false",
             *self._var_flags(),
         ]
-        return " ".join(command_lines)
 
     async def _run(self, working_dir: str):
         with logging_output(self.logs_file) as f:
@@ -212,8 +212,8 @@ class TFDestroyCommand(TFCommand):
 
             # Run tofu destroy
             logger.info(f"Running tofu destroy command: {self.tf_destroy_command()}")
-            proc = await asyncio.create_subprocess_shell(
-                self.tf_destroy_command(),
+            proc = await asyncio.create_subprocess_exec(
+                *self.tf_destroy_command(),
                 cwd=working_dir,
                 # Stops the child process from receiving signals sent to the parent
                 preexec_fn=os.setpgrp,
@@ -232,14 +232,14 @@ class TFDestroyCommand(TFCommand):
 class TFApplyCommand(TFCommand):
     tf_vars: Dict[str, Any]
 
-    def tf_apply_command(self) -> str:
-        command_lines = [
-            f"{opentofu.TOFU_PATH} apply",
+    def tf_apply_command(self) -> List[str]:
+        return [
+            f"{opentofu.TOFU_PATH}",
+            "apply",
             "-auto-approve",
             "-input=false",
             *self._var_flags(),
         ]
-        return " ".join(command_lines)
 
     async def _run(self, working_dir: str) -> Dict[str, Any]:
         self.initialize_working_dir(working_dir)
@@ -261,8 +261,8 @@ class TFApplyCommand(TFCommand):
 
             # Run tofu apply
             logger.info(f"Running tofu apply command: {self.tf_apply_command()}")
-            proc = await asyncio.create_subprocess_shell(
-                self.tf_apply_command(),
+            proc = await asyncio.create_subprocess_exec(
+                *self.tf_apply_command(),
                 cwd=working_dir,
                 # Stops the child process from receiving signals sent to the parent
                 preexec_fn=os.setpgrp,
@@ -296,16 +296,15 @@ class TFImportCommand(TFApplyCommand):
     resource_id: str
     drop_logs: bool
 
-    # TODO: make this it's own command class
-    def tf_import_command(self, resource: str, resource_id: str) -> str:
-        import_command = [
-            f"{opentofu.TOFU_PATH} import",
+    def tf_import_command(self, resource: str, resource_id: str) -> List[str]:
+        return [
+            f"{opentofu.TOFU_PATH}",
+            "import",
             "-input=false",
             *self._var_flags(),
             resource,
             resource_id,
         ]
-        return " ".join(import_command)
 
     async def _run(self, working_dir: str):
         self.initialize_working_dir(working_dir)
@@ -328,8 +327,8 @@ class TFImportCommand(TFApplyCommand):
             # Run tofu import
             command = self.tf_import_command(self.resource, self.resource_id)
             logger.info(f"Running tofu import command: {command}")
-            proc = await asyncio.create_subprocess_shell(
-                command,
+            proc = await asyncio.create_subprocess_exec(
+                *command,
                 cwd=working_dir,
                 # Stops the child process from receiving signals sent to the parent
                 preexec_fn=os.setpgrp,

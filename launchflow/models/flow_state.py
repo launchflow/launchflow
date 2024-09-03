@@ -45,6 +45,9 @@ class ResourceState(_Entity):
     aws_arn: Optional[str] = None
     inputs: Optional[Dict[str, Any]] = None
     depends_on: List[str] = Field(default_factory=list)
+    # These are the inputs that were attempted to be used to create the resource
+    # these will only be set if the resource is in a failed state
+    attempted_inputs: Optional[Dict[str, Any]] = None
 
     def to_dict(self):
         return self.model_dump(mode="json", exclude_defaults=True)

@@ -8,6 +8,8 @@ environment_manager = EnvironmentManager(
 )
 environment = environment_manager.load_environment_sync()
 
+run_service = None
+
 if environment.gcp_config is not None:
     bucket = lf.gcp.GCSBucket(f"{lf.project}-{lf.environment}-gcs-bucket")
     run_service = lf.gcp.CloudRun(
@@ -20,6 +22,10 @@ if environment.gcp_config is not None:
         dockerfile="Dockerfile.gcp",
         port=8080,
         domain="gce.launchflow.app",
+    )
+    cluster = lf.gcp.GKECluster("cluster")
+    k8_service = lf.gcp.GKEService(
+        "k8-service", dockerfile="Dockerfile.gcp", container_port=8080, cluster=cluster
     )
 elif environment.aws_config is not None:
     bucket = lf.aws.S3Bucket(f"{lf.project}-{lf.environment}-s3-bucket")

@@ -50,6 +50,7 @@ from launchflow.flows.plan_utils import lock_plans, print_plans, select_plans
 from launchflow.gcp.cloud_run import CloudRun
 from launchflow.gcp.compute_engine_service import ComputeEngineService
 from launchflow.gcp.firebase_site import FirebaseStaticSite
+from launchflow.gcp.gke_service import GKEService
 from launchflow.gcp.service import GCPDockerService, GCPService, GCPStaticService
 from launchflow.gcp.static_site import StaticSite
 from launchflow.locks import Lock, LockOperation, OperationType, ReleaseReason
@@ -78,6 +79,7 @@ from launchflow.workflows.deploy_gcp_service import (
     promote_gcp_service_image,
     release_docker_image_to_cloud_run,
     release_docker_image_to_compute_engine,
+    release_docker_image_to_gke,
     upload_local_files_to_static_site,
 )
 
@@ -334,6 +336,14 @@ class ReleaseServicePlan(ServicePlan):
                 service_manager=self.service_manager,
                 gcp_environment_config=self.gcp_environment_config,  # type: ignore
                 compute_engine_service=self.service,
+                deployment_id=self.deployment_id,
+            )
+        elif isinstance(self.service, GKEService):
+            service_url = await release_docker_image_to_gke(
+                docker_image=docker_image,
+                service_manager=self.service_manager,
+                gcp_environment_config=self.gcp_environment_config,  # type: ignore
+                gke_service=self.service,
                 deployment_id=self.deployment_id,
             )
         elif isinstance(self.service, ECSFargate):
@@ -791,6 +801,7 @@ async def plan_deploy(
                     environment_state=environment_state,
                     environment_manager=environment_manager,
                     verbose=verbose,
+                    parent_resource_plans={},
                 )
                 for service in service_nodes
             ]
@@ -1058,7 +1069,9 @@ async def deploy(
             with Live(
                 Padding(tree, (1, 0, 1, 0)), console=console, refresh_per_second=8
             ):
-                deploy_results.extend(await execute_plans(selected_deploy_plans, tree))  # type: ignore
+                deploy_results.extend(
+                    await execute_plans(selected_deploy_plans, tree)  # type: ignore
+                )
 
     # TODO: Move the print logic below to a shared utility that takes in a FlowResult
     success = all(result.success for result in create_results + deploy_results)
@@ -1583,7 +1596,7 @@ class PromoteServicePlan(ServicePlan):
                     tree,
                 )
 
-                promote_docker_image_result, release_service_result = results
+                promote_docker_image_result, release_service_result = results  # type: ignore
 
                 # We do this for type hinting purposes
                 promote_docker_image_result: PromoteDockerImageResult = (  # type: ignore

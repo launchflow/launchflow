@@ -1,9 +1,9 @@
-import logging
 import sys
 from typing import Dict, List, Tuple
 
 from launchflow import exceptions
 from launchflow.cli.utils import import_from_string
+from launchflow.logger import logger
 from launchflow.service import Service
 
 
@@ -39,8 +39,13 @@ def import_services(service_import_strs: List[str]) -> List[Service]:
     for service_str in service_import_strs:
         try:
             imported_service = import_from_string(service_str)
-        except AttributeError:
-            logging.debug("Failed to import resource %s", service_str)
+        except AttributeError as e:
+            logger.debug(
+                "Failed to import resource %s, %s",
+                service_str,
+                e,
+                exc_info=True,
+            )
             continue
         if not isinstance(imported_service, Service):
             raise ValueError(f"Service {imported_service} is not a valid Service")

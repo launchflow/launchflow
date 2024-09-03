@@ -3,8 +3,7 @@ from launchflow.service import DockerService, Service, StaticService, T
 
 
 class GCPService(Service[T]):
-    @classmethod
-    def cloud_provider(cls) -> CloudProvider:
+    def cloud_provider(self) -> CloudProvider:
         return CloudProvider.GCP
 
 

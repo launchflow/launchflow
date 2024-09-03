@@ -3,9 +3,11 @@ from typing import Any
 import yaml
 
 from launchflow import exceptions
+from launchflow.aws.resource import AWSResource
 from launchflow.backend import Backend
-from launchflow.cli import posthog
+from launchflow.gcp.resource import GCPResource
 from launchflow.gcp_clients import write_to_gcs
+from launchflow.kubernetes.resource import KubernetesResource
 from launchflow.models.flow_state import EnvironmentState
 from launchflow.models.launchflow_uri import LaunchFlowURI
 from launchflow.resource import _to_output_type
@@ -68,7 +70,10 @@ async def create_tofu_resource(
     )
 
     tf_vars = {}
-    if environment_state.gcp_config is not None:
+    if (
+        isinstance(tofu_resource, GCPResource)
+        and environment_state.gcp_config is not None
+    ):
         tf_vars.update(
             {
                 "gcp_project_id": environment_state.gcp_config.project_id,
@@ -78,7 +83,10 @@ async def create_tofu_resource(
                 **materialized_inputs.to_dict(),
             }
         )
-    if environment_state.aws_config is not None:
+    elif (
+        isinstance(tofu_resource, AWSResource)
+        and environment_state.aws_config is not None
+    ):
         tf_vars.update(
             {
                 "aws_account_id": environment_state.aws_config.account_id,
@@ -90,6 +98,13 @@ async def create_tofu_resource(
                 "vpc_id": environment_state.aws_config.vpc_id,
                 "launchflow_project": launchflow_uri.project_name,
                 "launchflow_environment": launchflow_uri.environment_name,
+                **materialized_inputs.to_dict(),
+            }
+        )
+    elif isinstance(tofu_resource, KubernetesResource):
+        tf_vars.update(
+            {
+                # TODO: add common vars here
                 **materialized_inputs.to_dict(),
             }
         )
@@ -111,7 +126,6 @@ async def create_tofu_resource(
         # read the outputs.
         _to_output_type(tf_outputs, tofu_resource._outputs_type)
     except Exception as e:
-        posthog.record_cli_unexpected_error("invalid_output")
         raise exceptions.InvalidOutputForResource(tofu_resource.name, e) from e
 
     if environment_state.gcp_config is not None:

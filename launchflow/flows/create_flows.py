@@ -85,8 +85,8 @@ class CreateResourcePlan(ResourcePlan):
 
     def __str__(self):
         if self.operation_type == "noop":
-            return f"Create {ResourceRef(self.resource_or_service)}"
-        return f"{self.operation_type.title()} {ResourceRef(self.resource_or_service)}"
+            return f"Create {ResourceRef(self.resource_or_service)}"  # type: ignore
+        return f"{self.operation_type.title()} {ResourceRef(self.resource_or_service)}"  # type: ignore
 
     # TODO: this would be better if it was encapsulated in the resource inputs
     @cached_property
@@ -220,6 +220,10 @@ class CreateResourcePlan(ResourcePlan):
                     for dep in self.resource.inputs_depend_on(self.environment_state)
                 ]
 
+                final_inputs = self.resource.execute_inputs(
+                    self.environment_state
+                ).to_dict()
+
                 if isinstance(self.resource, DockerResource):
                     await _create_or_update_docker_resource(
                         self, resource_state_copy, self.operation_type, logs_file
@@ -246,9 +250,8 @@ class CreateResourcePlan(ResourcePlan):
                 new_resource_state.aws_arn = aws_arn
                 new_resource_state.gcp_id = gcp_id
                 # NOTE: We save the inputs only if the create was successful
-                new_resource_state.inputs = self.resource.inputs(
-                    self.environment_state
-                ).to_dict()
+                new_resource_state.inputs = final_inputs
+
                 # NOTE: We save the depends_on only if the create was successful
                 new_resource_state.depends_on = [
                     dep.name
@@ -264,6 +267,7 @@ class CreateResourcePlan(ResourcePlan):
                         logs_file,
                         f"Create {self.resource.__class__.__name__}({self.resource.name}) logs",
                     )
+                new_resource_state.attempted_inputs = None
 
                 return CreateResourceResult(
                     plan=self,
@@ -285,6 +289,8 @@ class CreateResourcePlan(ResourcePlan):
                     new_resource_state.status = ResourceStatus.REPLACE_FAILED
                 else:
                     new_resource_state.status = ResourceStatus.UPDATE_FAILED
+                # If it failed we record what inputs were used
+                new_resource_state.attempted_inputs = final_inputs
                 await self.resource_manager.save_resource(
                     new_resource_state, lock_info.lock_id
                 )
@@ -440,8 +446,8 @@ class CreateServicePlan(ServicePlan):
 
     def __str__(self):
         if self.operation_type == "noop":
-            return f"Create {ServiceRef(self.resource_or_service)}"
-        return f"{self.operation_type.title()} {ServiceRef(self.resource_or_service)}"
+            return f"Create {ServiceRef(self.resource_or_service)}"  # type: ignore
+        return f"{self.operation_type.title()} {ServiceRef(self.resource_or_service)}"  # type: ignore
 
     @cached_property
     def operation_type(self) -> Literal["noop", "create", "update"]:
@@ -833,6 +839,7 @@ async def plan_create_resources(
     environment_state: EnvironmentState,
     environment_manager: EnvironmentManager,
     verbose: bool,
+    parent_resource_plans: Dict[str, CreateResourcePlan] = {},
 ) -> List[Union[CreateResourcePlan, FailedToPlan]]:
     plan_tasks = []
     for resource in resources:
@@ -862,7 +869,10 @@ async def plan_create_resources(
         if isinstance(plan, FailedToPlan):
             return plan
         for resource_dependency in plan.resource.inputs_depend_on(environment_state):
-            if resource_dependency.name not in resource_name_to_plan:
+            if (
+                resource_dependency.name not in resource_name_to_plan
+                and resource_dependency.name not in parent_resource_plans
+            ):
                 resource_manager = environment_manager.create_resource_manager(
                     resource_dependency.name
                 )
@@ -880,7 +890,12 @@ async def plan_create_resources(
                     )
 
             else:
-                dependency_plan = resource_name_to_plan[resource_dependency.name]
+                # dependency_plan = resource_name_to_plan[resource_dependency.name]
+                dependency_plan = (
+                    resource_name_to_plan.get(resource_dependency.name)
+                    or parent_resource_plans[resource_dependency.name]
+                )
+
                 if isinstance(dependency_plan, FailedToPlan):
                     return FailedToPlan(
                         resource=plan.resource,
@@ -919,6 +934,7 @@ async def plan_create_service(
     environment_state: EnvironmentState,
     environment_manager: EnvironmentManager,
     verbose: bool,
+    parent_resource_plans: Dict[str, CreateResourcePlan],
 ) -> Union[CreateServicePlan, FailedToPlan]:
     try:
         validate_service_name(service.name)
@@ -970,6 +986,7 @@ async def plan_create_service(
         environment_state=environment_state,
         environment_manager=environment_manager,
         verbose=verbose,
+        parent_resource_plans=parent_resource_plans,
     )
     failed_resource_plans = [
         plan for plan in resource_plans if isinstance(plan, FailedToPlan)
@@ -996,6 +1013,7 @@ async def plan_create_services(
     environment_state: EnvironmentState,
     environment_manager: EnvironmentManager,
     verbose: bool,
+    parent_resource_plans: Dict[str, CreateResourcePlan],
 ) -> List[Union[CreateResourcePlan, FailedToPlan]]:
     plan_tasks = []
     for service in services:
@@ -1005,6 +1023,7 @@ async def plan_create_services(
                 environment_state=environment_state,
                 environment_manager=environment_manager,
                 verbose=verbose,
+                parent_resource_plans=parent_resource_plans,
             )
         )
     return await asyncio.gather(*plan_tasks)  # type: ignore
@@ -1033,11 +1052,18 @@ async def plan_create(
         verbose=verbose,
     )
 
+    keyed_resource_plans = {
+        plan.resource.name: plan
+        for plan in resource_plans
+        if isinstance(plan, CreateResourcePlan)
+    }
+
     service_plans = await plan_create_services(
         *service_nodes,
         environment_state=environment_state,
         environment_manager=environment_manager,
         verbose=verbose,
+        parent_resource_plans=keyed_resource_plans,
     )
 
     return resource_plans + service_plans  # type: ignore
@@ -1101,6 +1127,7 @@ async def create(
 
     # Step 2: Select the plan
     print_plans(*create_plans, environment_manager=environment_manager, console=console)
+
     selected_plans = await select_plans(
         *create_plans,
         operation_type="create",

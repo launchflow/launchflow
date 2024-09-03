@@ -31,10 +31,13 @@ class ResourceProduct(str, Enum):
     GCP_FIREWALL_ALLOW_RULE = "gcp_firewall_allow_rule"
     GCP_COMPUTE_HTTP_HEALTH_CHECK = "gcp_compute_http_health_check"
     GCP_REGIONAL_AUTO_SCALER = "gcp_regional_auto_scaler"
+    GCP_GKE_CLUSTER = "gcp_gke_cluster"
+    GCP_GKE_NODE_POOL = "gcp_gke_node_pool"
     GCP_FIREBASE_PROJECT = "gcp_firebase_project"
     GCP_FIREBASE_HOSTING_SITE = "gcp_firebase_hosting_site"
     GCP_GLOBAL_IP_ADDRESS = "gcp_global_ip_address"
     GCP_MANAGED_SSL_CERTIFICATE = "gcp_managed_ssl_certificate"
+    GCP_GKE_CUSTOM_DOMAIN_MAPPING = "gcp_gke_custom_domain_mapping"
     # AWS product types
     AWS_RDS_POSTGRES = "aws_rds_postgres"
     AWS_ELASTICACHE_REDIS = "aws_elasticache_redis"
@@ -51,6 +54,9 @@ class ResourceProduct(str, Enum):
     AWS_LAUNCHFLOW_CLOUD_RELEASER = "aws_launchflow_cloud_releaser"
     # Local product types
     LOCAL_DOCKER = "local_docker"
+    # Kubernetes product types
+    KUBERNETES_SERVICE_CONTAINER = "kubernetes_service_container"
+    KUBERNETES_HORIZONTAL_POD_AUTOSCALER = "kubernetes_horizontal_pod_autoscaler"
 
 
 class ServiceProduct(str, Enum):
@@ -60,6 +66,7 @@ class ServiceProduct(str, Enum):
     GCP_FIREBASE_STATIC_SITE = "gcp_firebase_static_site"
     GCP_CLOUD_RUN = "gcp_cloud_run"
     GCP_COMPUTE_ENGINE = "gcp_compute_engine"
+    GCP_GKE = "gcp_gke"
     # AWS product types
     AWS_ECS_FARGATE = "aws_ecs_fargate"
 
