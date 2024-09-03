@@ -69,6 +69,10 @@ export const referenceNavigation = [
         title: 'GCP Compute Engine',
         href: '/reference/gcp-services/compute-engine-service',
       },
+      {
+        title: 'GKE Kubernetes Service',
+        href: '/reference/gcp-services/gke-service',
+      },
     ],
   },
   {
@@ -124,6 +128,14 @@ export const referenceNavigation = [
         title: 'Global IP Address',
         href: '/reference/gcp-resources/global-ip-address',
       },
+      {
+        title: 'Google Kubernetes Engine',
+        href: '/reference/gcp-resources/gke',
+      },
+      {
+        title: 'GKE Custom Domain Mapping',
+        href: '/reference/gcp-resources/gke-custom-domain-mapping',
+      },
     ].sort((a, b) => a.title.localeCompare(b.title)),
   },
   {
@@ -161,6 +173,16 @@ export const referenceNavigation = [
         href: '/reference/aws-resources/sqs',
       },
     ].sort((a, b) => a.title.localeCompare(b.title)),
+  },
+  {
+    title: 'Kubernetes Resources',
+    links: [
+      { title: 'Service', href: '/reference/kubernetes-resources/service' },
+      {
+        title: 'Horizonal Pod Autoscaler',
+        href: '/reference/kubernetes-resources/hpa',
+      },
+    ],
   },
   {
     title: 'Schemas',

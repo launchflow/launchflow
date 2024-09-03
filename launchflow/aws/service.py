@@ -11,8 +11,7 @@ from launchflow.service import (
 
 
 class AWSService(Service[T]):
-    @classmethod
-    def cloud_provider(cls) -> CloudProvider:
+    def cloud_provider(self) -> CloudProvider:
         return CloudProvider.AWS
 
 

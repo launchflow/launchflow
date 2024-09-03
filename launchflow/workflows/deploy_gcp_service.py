@@ -7,10 +7,11 @@ import os
 import time
 import uuid
 from datetime import timedelta
-from typing import Any, Callable, List, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Tuple
 
 import requests
 from docker.errors import APIError, BuildError
+from kubernetes import config as k8_config
 from pathspec import PathSpec
 
 from launchflow import exceptions
@@ -18,11 +19,16 @@ from launchflow.config import config
 from launchflow.gcp.cloud_run import CloudRun
 from launchflow.gcp.compute_engine_service import ComputeEngineService
 from launchflow.gcp.firebase_site import FirebaseStaticSite
+from launchflow.gcp.gke_service import GKEService
 from launchflow.gcp.service import GCPDockerService
 from launchflow.gcp.static_site import StaticSite
 from launchflow.managers.service_manager import ServiceManager
 from launchflow.models.flow_state import GCPEnvironmentConfig, ServiceState
+from launchflow.workflows.k8s_service import update_k8s_service
 from launchflow.workflows.utils import tar_source_in_memory
+
+if TYPE_CHECKING:
+    from google.cloud.container import Cluster
 
 
 async def _upload_source_tarball_to_gcs(
@@ -925,7 +931,101 @@ async def release_docker_image_to_compute_engine(
     return service_url
 
 
-# TODO: add a way to promote the docker image without cloud build
+def _get_gke_config(cluster_id: str, cluster: "Cluster") -> Dict[str, Any]:
+    try:
+        from google.auth import default
+        from google.auth.credentials import Credentials
+        from google.auth.transport.requests import Request
+    except ImportError:
+        raise exceptions.MissingGCPDependency()
+
+    results: Tuple[Credentials, Any] = default()  # type: ignore
+    credentials = results[0]
+    if not credentials.valid:
+        credentials.refresh(Request())
+    return {
+        "apiVersion": "v1",
+        "clusters": [
+            {
+                "cluster": {
+                    "certificate-authority-data": cluster.master_auth.cluster_ca_certificate,
+                    "server": f"https://{cluster.endpoint}",
+                },
+                "name": cluster_id,
+            }
+        ],
+        "contexts": [
+            {
+                "context": {
+                    "cluster": cluster_id,
+                    "user": "gke-user",
+                },
+                "name": f"{cluster_id}-context",
+            }
+        ],
+        "current-context": f"{cluster_id}-context",
+        "kind": "Config",
+        "preferences": {},
+        "users": [
+            {
+                "name": "gke-user",
+                "user": {
+                    "auth-provider": {
+                        "name": "gcp",
+                        "config": {
+                            "access-token": credentials.token,
+                            "cmd-path": "gcloud",
+                            "cmd-args": "config config-helper --format=json",
+                            "expiry-key": "{.credential.token_expiry}",
+                            "token-key": "{.credential.access_token}",
+                        },
+                    }
+                },
+            }
+        ],
+    }
+
+
+async def release_docker_image_to_gke(
+    docker_image: str,
+    service_manager: ServiceManager,
+    gcp_environment_config: GCPEnvironmentConfig,
+    gke_service: GKEService,
+    deployment_id: str,
+):
+    try:
+        from google.cloud import container_v1
+    except ImportError:
+        raise exceptions.MissingGCPDependency()
+    cluster = gke_service.cluster
+    location = None
+    if cluster.regional:
+        location = cluster.region or gcp_environment_config.default_region
+    else:
+        location = (
+            cluster.zones[0] if cluster.zones else gcp_environment_config.default_zone
+        )
+    cluster_name = f"projects/{gcp_environment_config.project_id}/locations/{location}/clusters/{gke_service.cluster.resource_id}"
+    gcp_client = container_v1.ClusterManagerAsyncClient()
+    cluster = await gcp_client.get_cluster(name=cluster_name)
+    k8_config.load_kube_config_from_dict(_get_gke_config(cluster_name, cluster))
+
+    await update_k8s_service(
+        docker_image=docker_image,
+        namespace=gke_service.namespace,
+        service_name=gke_service.name,
+        deployment_id=deployment_id,
+        launchflow_environment=service_manager.environment_name,
+        launchflow_project=service_manager.project_name,
+        artifact_bucket=f"gs://{gcp_environment_config.artifact_bucket}",  # type: ignore
+        cloud_provider="gcp",
+        k8_service_account=gcp_environment_config.service_account_email.split("@")[0],  # type: ignore
+        environment_vars=gke_service.environment_variables,
+    )
+    # The service url doesn't change between deployment
+    return gke_service.outputs().service_url
+
+
 async def promote_gcp_service_image(
     gcp_service: GCPDockerService,
     from_service_state: ServiceState,

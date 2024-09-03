@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from contextlib import asynccontextmanager
-from typing import Any, Coroutine, List, Literal, Optional, Union
+from typing import Any, Coroutine, List, Literal, Optional, Tuple, Union
 
 import beaupy  # type: ignore
 import rich
@@ -136,11 +136,14 @@ async def select_plans(
         else:
             raise NotImplementedError(f"Got an unexpected plan type {type(plan)}.")
 
-    selected_plans: List[Union[ResourcePlan, ServicePlan]] = beaupy.select_multiple(
-        options=valid_plans,
-        preprocessor=preprocessor,
+    keyed_plans = {p.id: p for p in valid_plans}
+    plans_to_print = [(key, preprocessor(plan)) for key, plan in keyed_plans.items()]
+
+    selected_plans: List[Tuple[str, str]] = beaupy.select_multiple(
+        options=plans_to_print,
+        preprocessor=lambda x: x[1],
     )
-    selected_plan_ids = set(plan.id for plan in selected_plans)
+    selected_plan_ids = set(plan[0] for plan in selected_plans)
     for plan in valid_plans:
         if plan.id in selected_plan_ids:
             if isinstance(plan, ResourcePlan):
@@ -162,7 +165,7 @@ async def select_plans(
                 )
 
     console.print()
-    return selected_plans
+    return [keyed_plans[plan_id] for plan_id, _ in selected_plans]
 
 
 def _build_lock_tasks_recursively(

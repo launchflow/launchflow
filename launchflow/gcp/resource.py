@@ -14,6 +14,5 @@ class GCPResource(TofuResource[T]):
     ):
         super().__init__(name, replacement_arguments, resource_id, ignore_arguments)
 
-    @classmethod
-    def cloud_provider(cls) -> CloudProvider:
+    def cloud_provider(self) -> CloudProvider:
         return CloudProvider.GCP

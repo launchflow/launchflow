@@ -29,8 +29,7 @@ class DockerResource(Resource[T]):
         self.ports = ports or {}
         self.running_container_id = running_container_id
 
-    @classmethod
-    def cloud_provider(cls) -> CloudProvider:
+    def cloud_provider(self) -> CloudProvider:
         return CloudProvider.UNKNOWN
 
     def _lazy_load_container_info(self) -> None:

@@ -9,7 +9,11 @@ from launchflow import exceptions
 from launchflow.docker.postgres import DockerPostgres
 from launchflow.flows import create_flows, resource_flows
 from launchflow.gcp import GCSBucket
+from launchflow.gcp.artifact_registry_repository import ArtifactRegistryOutputs
 from launchflow.gcp.cloud_run import CloudRun
+from launchflow.gcp.gke import GKECluster, GKEOutputs
+from launchflow.gcp.gke_service import GKEService
+from launchflow.kubernetes.service import ServiceContainerOutputs
 from launchflow.locks import LockOperation, OperationType
 from launchflow.managers.docker_resource_manager import dict_to_base64
 from launchflow.managers.environment_manager import EnvironmentManager
@@ -57,7 +61,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
         )
         self._mock_docker_service_available = self.docker_service_available.start()
 
-        self.environment_manager = EnvironmentManager(
+        self.dev_environment_manager = EnvironmentManager(
             backend=self.backend, project_name="unittest", environment_name="dev"
         )
         self.environment = EnvironmentState(
@@ -80,7 +84,13 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                 artifact_bucket="test-bucket",
             ),
         )
-        await self.environment_manager.save_environment(
+        await self.dev_environment_manager.save_environment(
+            environment_state=self.environment, lock_id="lock"
+        )
+        self.test_environment_manager = EnvironmentManager(
+            backend=self.backend, project_name="unittest", environment_name="test"
+        )
+        await self.test_environment_manager.save_environment(
             environment_state=self.environment, lock_id="lock"
         )
 
@@ -116,7 +126,9 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
             logs_file=mock.ANY,
         )
 
-        manager = self.environment_manager.create_resource_manager(mock_resource_name)
+        manager = self.dev_environment_manager.create_resource_manager(
+            mock_resource_name
+        )
         resource_state = await manager.load_resource()
         self.assertEqual(
             resource_state,
@@ -155,7 +167,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
 
         await create_flows.create(resource, environment="dev", prompt=False)
 
-        rm = self.environment_manager.create_resource_manager(mock_resource_name)
+        rm = self.dev_environment_manager.create_resource_manager(mock_resource_name)
         resource_state = await rm.load_resource()
         # Verify that the resource is not ready
         self.assertEqual(
@@ -174,6 +186,12 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                 status=ResourceStatus.CREATE_FAILED,
                 gcp_id=None,
                 aws_arn=None,
+                attempted_inputs={
+                    "resource_id": "test-storage-bucket",
+                    "location": "US",
+                    "force_destroy": "false",
+                    "uniform_bucket_level_access": "false",
+                },
             ),
         )
         # verify that we can aquire the lock again, this ensures
@@ -198,7 +216,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
             aws_arn="arn",
         )
 
-        rm = self.environment_manager.create_resource_manager(mock_resource_name)
+        rm = self.dev_environment_manager.create_resource_manager(mock_resource_name)
         await rm.save_resource(
             ResourceState(
                 created_at=datetime.datetime(
@@ -242,7 +260,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
             aws_arn="arn2",
         )
 
-        rm = self.environment_manager.create_resource_manager(mock_resource_name)
+        rm = self.dev_environment_manager.create_resource_manager(mock_resource_name)
         await rm.save_resource(
             ResourceState(
                 created_at=datetime.datetime(
@@ -278,7 +296,9 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
             logs_file=mock.ANY,
         )
 
-        manager = self.environment_manager.create_resource_manager(mock_resource_name)
+        manager = self.dev_environment_manager.create_resource_manager(
+            mock_resource_name
+        )
         resource_state = await manager.load_resource()
         self.assertEqual(
             resource_state,
@@ -314,7 +334,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
         mock_resource_name = "test-storage-bucket"
         resource = GCSBucket(mock_resource_name)
 
-        async with await self.environment_manager.lock_environment(
+        async with await self.dev_environment_manager.lock_environment(
             operation=LockOperation(operation_type=OperationType.CREATE_ENVIRONMENT)
         ):
             with self.assertRaises(exceptions.FailedToLockPlans):
@@ -330,7 +350,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
         mock_resource_name = "test-storage-bucket"
         resource = GCSBucket(mock_resource_name)
 
-        rm = self.environment_manager.create_resource_manager(mock_resource_name)
+        rm = self.dev_environment_manager.create_resource_manager(mock_resource_name)
         async with await rm.lock_resource(
             operation=LockOperation(operation_type=OperationType.CREATE_RESOURCE)
         ):
@@ -357,7 +377,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
 
         # Wait for the lock to be held
         await asyncio.sleep(0.1)
-        rm = self.environment_manager.create_resource_manager(mock_resource_name)
+        rm = self.dev_environment_manager.create_resource_manager(mock_resource_name)
 
         with self.assertRaises(exceptions.EntityLocked):
             async with await rm.lock_resource(
@@ -377,7 +397,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
     ):
         """Nomimal case, destroys a bucket with mocking."""
 
-        rm = self.environment_manager.create_resource_manager("bucket")
+        rm = self.dev_environment_manager.create_resource_manager("bucket")
         await rm.save_resource(
             ResourceState(
                 created_at=datetime.datetime(
@@ -440,7 +460,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
     ):
         """Nomimal case, destroys a bucket with mocking."""
 
-        rm = self.environment_manager.create_resource_manager("bucket")
+        rm = self.dev_environment_manager.create_resource_manager("bucket")
         await rm.save_resource(
             ResourceState(
                 created_at=datetime.datetime(
@@ -506,7 +526,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
         resources = []
         for ind in range(2):
             name = f"test-bucket{ind}"
-            rm = self.environment_manager.create_resource_manager(name)
+            rm = self.dev_environment_manager.create_resource_manager(name)
             await rm.save_resource(
                 ResourceState(
                     created_at=datetime.datetime(
@@ -531,11 +551,11 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
         await resource_flows.destroy("dev", resources[0], prompt=False)
 
         with self.assertRaises(exceptions.ResourceNotFound):
-            _ = await self.environment_manager.create_resource_manager(
+            _ = await self.dev_environment_manager.create_resource_manager(
                 resources[0].name
             ).load_resource()
 
-        resource1_state = await self.environment_manager.create_resource_manager(
+        resource1_state = await self.dev_environment_manager.create_resource_manager(
             resources[1].name
         ).load_resource()
         self.assertEqual(resource1_state.status, ResourceStatus.READY)
@@ -550,7 +570,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
         services = []
         for ind in range(2):
             name = f"test-bucket{ind}"
-            rm = self.environment_manager.create_resource_manager(name)
+            rm = self.dev_environment_manager.create_resource_manager(name)
             await rm.save_resource(
                 ResourceState(
                     created_at=datetime.datetime(
@@ -574,7 +594,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
 
         for ind in range(2):
             name = f"test-service{ind}"
-            sm = self.environment_manager.create_service_manager(name)
+            sm = self.dev_environment_manager.create_service_manager(name)
             await sm.save_service(
                 ServiceState(
                     created_at=datetime.datetime(
@@ -603,17 +623,17 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
         )
 
         with self.assertRaises(exceptions.ResourceNotFound):
-            _ = await self.environment_manager.create_resource_manager(
+            _ = await self.dev_environment_manager.create_resource_manager(
                 resources[0].name
             ).load_resource()
 
         # The service should still exist
-        service = await self.environment_manager.create_service_manager(
+        service = await self.dev_environment_manager.create_service_manager(
             services[0].name
         ).load_service()
         self.assertEqual(service.product, ServiceProduct.GCP_CLOUD_RUN)
 
-        resource1_state = await self.environment_manager.create_resource_manager(
+        resource1_state = await self.dev_environment_manager.create_resource_manager(
             resources[1].name
         ).load_resource()
         self.assertEqual(resource1_state.status, ResourceStatus.READY)
@@ -624,7 +644,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
         services = []
         for ind in range(2):
             name = f"test-service{ind}"
-            sm = self.environment_manager.create_service_manager(name)
+            sm = self.dev_environment_manager.create_service_manager(name)
             await sm.save_service(
                 ServiceState(
                     created_at=datetime.datetime(
@@ -653,11 +673,11 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
         )
 
         with self.assertRaises(exceptions.ServiceNotFound):
-            _ = await self.environment_manager.create_service_manager(
+            _ = await self.dev_environment_manager.create_service_manager(
                 services[0].name
             ).load_service()
 
-        service1_state = await self.environment_manager.create_service_manager(
+        service1_state = await self.dev_environment_manager.create_service_manager(
             services[1].name
         ).load_service()
         self.assertEqual(service1_state.status, ServiceStatus.READY)
@@ -673,7 +693,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
         services = []
         for ind in range(3):
             service_name = f"test-service{ind}"
-            sm = self.environment_manager.create_service_manager(service_name)
+            sm = self.dev_environment_manager.create_service_manager(service_name)
             await sm.save_service(
                 ServiceState(
                     created_at=datetime.datetime(
@@ -697,7 +717,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
             services.append(CloudRun(service_name))
 
             resource_name = f"test-bucket{ind}"
-            rm = self.environment_manager.create_resource_manager(resource_name)
+            rm = self.dev_environment_manager.create_resource_manager(resource_name)
             await rm.save_resource(
                 ResourceState(
                     created_at=datetime.datetime(
@@ -735,30 +755,30 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
 
         # test final resource states
         with self.assertRaises(exceptions.ResourceNotFound):
-            _ = await self.environment_manager.create_resource_manager(
+            _ = await self.dev_environment_manager.create_resource_manager(
                 resources[0].name
             ).load_resource()
 
-        resource1_state = await self.environment_manager.create_resource_manager(
+        resource1_state = await self.dev_environment_manager.create_resource_manager(
             resources[1].name
         ).load_resource()
         self.assertEqual(resource1_state.status, ResourceStatus.READY)
-        resource2_state = await self.environment_manager.create_resource_manager(
+        resource2_state = await self.dev_environment_manager.create_resource_manager(
             resources[2].name
         ).load_resource()
         self.assertEqual(resource2_state.status, ResourceStatus.READY)
 
         # Test final service states
         with self.assertRaises(exceptions.ServiceNotFound):
-            _ = await self.environment_manager.create_service_manager(
+            _ = await self.dev_environment_manager.create_service_manager(
                 services[0].name
             ).load_service()
 
-        service1_state = await self.environment_manager.create_service_manager(
+        service1_state = await self.dev_environment_manager.create_service_manager(
             services[1].name
         ).load_service()
         self.assertEqual(service1_state.status, ServiceStatus.READY)
-        service2_state = await self.environment_manager.create_service_manager(
+        service2_state = await self.dev_environment_manager.create_service_manager(
             services[2].name
         ).load_service()
         self.assertEqual(service2_state.status, ServiceStatus.READY)
@@ -770,7 +790,9 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
             await resource_flows.destroy("dev", mock_resource, prompt=False)
 
     async def test_destroy_gcp_service_successful(self):
-        service_manager = self.environment_manager.create_service_manager("gcp-service")
+        service_manager = self.dev_environment_manager.create_service_manager(
+            "gcp-service"
+        )
         await service_manager.save_service(
             ServiceState(
                 created_at=datetime.datetime(
@@ -799,7 +821,9 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
             await service_manager.load_service()
 
     async def test_destroy_aws_service_successful(self):
-        service_manager = self.environment_manager.create_service_manager("aws-service")
+        service_manager = self.dev_environment_manager.create_service_manager(
+            "aws-service"
+        )
         await service_manager.save_service(
             ServiceState(
                 created_at=datetime.datetime(
@@ -829,7 +853,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
     async def test_plan_resources_update_bucket(self):
         bucket = GCSBucket("test-bucket", force_destroy=True)
 
-        rm = self.environment_manager.create_resource_manager("test-bucket")
+        rm = self.dev_environment_manager.create_resource_manager("test-bucket")
         await rm.save_resource(
             ResourceState(
                 created_at=datetime.datetime(2021, 1, 1),
@@ -852,7 +876,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
         plans = await create_flows.plan_create(
             bucket,
             environment_state=self.environment,
-            environment_manager=self.environment_manager,
+            environment_manager=self.dev_environment_manager,
             verbose=False,
         )
 
@@ -864,7 +888,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
     async def test_plan_resources_replace_bucket(self):
         bucket = GCSBucket("test-bucket", location="EU")
 
-        rm = self.environment_manager.create_resource_manager("test-bucket")
+        rm = self.dev_environment_manager.create_resource_manager("test-bucket")
         await rm.save_resource(
             ResourceState(
                 created_at=datetime.datetime(2021, 1, 1),
@@ -883,7 +907,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
         plans = await create_flows.plan_create(
             bucket,
             environment_state=self.environment,
-            environment_manager=self.environment_manager,
+            environment_manager=self.dev_environment_manager,
             verbose=False,
         )
 
@@ -944,7 +968,9 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
             ]
         )
 
-        manager = self.environment_manager.create_resource_manager(mock_resource_name2)
+        manager = self.dev_environment_manager.create_resource_manager(
+            mock_resource_name2
+        )
         resource_state = await manager.load_resource()
         self.assertEqual(
             resource_state,
@@ -1080,7 +1106,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
             aws_arn="arn",
         )
 
-        rm = self.environment_manager.create_resource_manager(mock_resource_name1)
+        rm = self.dev_environment_manager.create_resource_manager(mock_resource_name1)
         await rm.save_resource(
             ResourceState(
                 created_at=datetime.datetime(
@@ -1141,7 +1167,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
             aws_arn="arn",
         )
 
-        rm = self.environment_manager.create_resource_manager(mock_resource_name1)
+        rm = self.dev_environment_manager.create_resource_manager(mock_resource_name1)
         await rm.save_resource(
             ResourceState(
                 created_at=datetime.datetime(
@@ -1383,7 +1409,9 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
     ):
         """Nomimal case, destroys a bucket with mocking."""
 
-        rm1 = self.environment_manager.create_resource_manager("test-storage-bucket")
+        rm1 = self.dev_environment_manager.create_resource_manager(
+            "test-storage-bucket"
+        )
         await rm1.save_resource(
             ResourceState(
                 created_at=datetime.datetime(
@@ -1402,7 +1430,9 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
             ),
             "test",
         )
-        rm2 = self.environment_manager.create_resource_manager("test-storage-bucket2")
+        rm2 = self.dev_environment_manager.create_resource_manager(
+            "test-storage-bucket2"
+        )
         await rm2.save_resource(
             ResourceState(
                 created_at=datetime.datetime(
@@ -1503,7 +1533,9 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
     ):
         """Nomimal case, destroys a bucket with mocking."""
 
-        rm1 = self.environment_manager.create_resource_manager("test-storage-bucket")
+        rm1 = self.dev_environment_manager.create_resource_manager(
+            "test-storage-bucket"
+        )
         await rm1.save_resource(
             ResourceState(
                 created_at=datetime.datetime(
@@ -1522,7 +1554,9 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
             ),
             "test",
         )
-        rm2 = self.environment_manager.create_resource_manager("test-storage-bucket2")
+        rm2 = self.dev_environment_manager.create_resource_manager(
+            "test-storage-bucket2"
+        )
         await rm2.save_resource(
             ResourceState(
                 created_at=datetime.datetime(
@@ -1541,7 +1575,9 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
             ),
             "test",
         )
-        rm3 = self.environment_manager.create_resource_manager("test-storage-bucket3")
+        rm3 = self.dev_environment_manager.create_resource_manager(
+            "test-storage-bucket3"
+        )
         await rm3.save_resource(
             ResourceState(
                 created_at=datetime.datetime(
@@ -1674,7 +1710,9 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
     ):
         """Nomimal case, destroys a bucket with mocking."""
 
-        rm1 = self.environment_manager.create_resource_manager("test-storage-bucket")
+        rm1 = self.dev_environment_manager.create_resource_manager(
+            "test-storage-bucket"
+        )
         await rm1.save_resource(
             ResourceState(
                 created_at=datetime.datetime(
@@ -1693,7 +1731,9 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
             ),
             "test",
         )
-        rm2 = self.environment_manager.create_resource_manager("test-storage-bucket2")
+        rm2 = self.dev_environment_manager.create_resource_manager(
+            "test-storage-bucket2"
+        )
         await rm2.save_resource(
             ResourceState(
                 created_at=datetime.datetime(
@@ -1713,7 +1753,9 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
             ),
             "test",
         )
-        rm3 = self.environment_manager.create_resource_manager("test-storage-bucket3")
+        rm3 = self.dev_environment_manager.create_resource_manager(
+            "test-storage-bucket3"
+        )
         await rm3.save_resource(
             ResourceState(
                 created_at=datetime.datetime(
@@ -1839,7 +1881,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
             await rm2.load_resource()
 
     async def test_force_unlock_resource_success(self):
-        resource_manager = self.environment_manager.create_resource_manager(
+        resource_manager = self.dev_environment_manager.create_resource_manager(
             "test-resource"
         )
 
@@ -1858,12 +1900,50 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
         await lock.release()
 
     async def test_force_unlock_resource_not_locked(self):
-        resource_manager = self.environment_manager.create_resource_manager(
+        resource_manager = self.dev_environment_manager.create_resource_manager(
             "test-resource"
         )
 
         with self.assertRaises(exceptions.LockNotFound):
             await resource_manager.force_unlock_resource()
+
+    @mock.patch("datetime.datetime", MockDateTime)
+    @mock.patch("launchflow.flows.create_flows.create_tofu_resource")
+    async def test_create_gke_service_and_cluster(
+        self, mock_create_resource: mock.AsyncMock
+    ):
+        """This test helps execute some of the more complicated DFS logic"""
+        mock_resource_name = "test-cluster"
+        mock_service_name = "test-service"
+        resource = GKECluster(mock_resource_name)
+        service = GKEService(name=mock_service_name, cluster=resource)
+        gke_outputs = GKEOutputs()
+        ar_outputs = ArtifactRegistryOutputs(docker_repository="test-repo")
+        sc_outputs = ServiceContainerOutputs(internal_ip="in", external_ip="ex")
+        gke_outputs.gcp_id = "cluster"
+        mock_create_resource.return_value = ApplyResourceTofuOutputs(
+            gcp_id=gke_outputs.gcp_id, aws_arn=None
+        )
+        resource.outputs = mock.MagicMock(return_value=gke_outputs)
+        service._artifact_registry.outputs = mock.MagicMock(return_value=ar_outputs)
+        service.container.outputs = mock.MagicMock(return_value=sc_outputs)
+
+        result = await create_flows.create(
+            resource, service, environment="test", prompt=False
+        )
+
+        self.assertTrue(result.success)
+        self.assertEqual(mock_create_resource.call_count, 3)
+        calls = mock_create_resource.mock_calls
+        # NOTE: it's important to verify that these calls happen in the correct order
+        gke_call = calls[0]
+        ar_call = calls[1]
+        sc_call = calls[2]
+        self.assertEqual(gke_call.kwargs["tofu_resource"].name, resource.name)
+        self.assertEqual(
+            ar_call.kwargs["tofu_resource"].name, service._artifact_registry.name
+        )
+        self.assertEqual(sc_call.kwargs["tofu_resource"].name, service.container.name)
 
 
 if __name__ == "__main__":

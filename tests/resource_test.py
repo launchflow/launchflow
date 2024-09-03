@@ -38,8 +38,7 @@ class FakeGCPResource(Resource[FakeResourceOutputs]):
     def __init__(self, name: str):
         super().__init__(name)
 
-    @classmethod
-    def cloud_provider(cls) -> CloudProvider:
+    def cloud_provider(self) -> CloudProvider:
         return CloudProvider.GCP
 
 
@@ -49,8 +48,7 @@ class FakeAWSResource(Resource[FakeResourceOutputs]):
     def __init__(self, name: str):
         super().__init__(name)
 
-    @classmethod
-    def cloud_provider(cls) -> CloudProvider:
+    def cloud_provider(self) -> CloudProvider:
         return CloudProvider.AWS
 
 

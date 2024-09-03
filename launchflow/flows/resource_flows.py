@@ -184,6 +184,7 @@ async def _destroy_resource(
     progress: Progress,
     verbose: bool,
     console: Console = Console(),
+    detach: bool = False,
 ):
     async with lock as lock_info:
         logs_file = None
@@ -228,7 +229,8 @@ async def _destroy_resource(
         # Save resource to push status update
         await plan.resource_manager.save_resource(plan.resource, lock_info.lock_id)
         try:
-            await fn(inputs)
+            if not detach:
+                await fn(inputs)
             await plan.resource_manager.delete_resource(lock_info.lock_id)
             progress.remove_task(task)
             if verbose:
@@ -272,7 +274,6 @@ async def _destroy_service(lock: Lock, plan: DestroyServicePlan, progress: Progr
             plan.existing_service, lock_info.lock_id
         )
         try:
-            # NOTE: We dont need to delete anything except for the service info in the flowstate
             await plan.service_manager.delete_service(lock_info.lock_id)
             progress.console.print(f"[green]✓[/green] {plan.ref} successfully deleted")
             with open(logs_file, "a") as f:
@@ -300,6 +301,7 @@ async def destroy(
     prompt: bool = True,
     verbose: bool = False,
     console: Console = Console(),
+    detach: bool = False,
 ):
     """
     Destroy resources in an environment.
@@ -312,6 +314,7 @@ async def destroy(
     - `local_only`: Whether to destroy only local resources.
     - `prompt`: Whether to prompt the user before destroying resources.
     - `verbose`: If true all output will be written to stdout.
+    - `detach`: If true, state will be deleted but no cloud resources will be touched.
 
     Returns:
         True if all resources were destroyed false otherwise.
@@ -553,7 +556,13 @@ async def destroy(
 
                 async def execute_plan_wrapper(node):
                     result = await _destroy_resource(
-                        node.lock, node.plan, environment, progress, verbose, console
+                        node.lock,
+                        node.plan,
+                        environment,
+                        progress,
+                        verbose,
+                        console,
+                        detach,
                     )
                     results.append(result)
                     completed_plans[node.plan.resource_manager.resource_name] = node
