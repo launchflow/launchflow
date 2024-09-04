@@ -215,6 +215,8 @@ class CreateResourcePlan(ResourcePlan):
                 # and tofu functions below
                 resource_state_copy = new_resource_state.model_copy(deep=True)
                 resource_state_copy.inputs = self._new_resource_inputs
+                # TODO: Dependencies are not always set correctly. See Lambda's
+                # dependency on API Gateway for example
                 resource_state_copy.depends_on = [
                     dep.name
                     for dep in self.resource.inputs_depend_on(self.environment_state)
@@ -910,9 +912,9 @@ async def plan_create_resources(
                     dependency_plan
                 )
                 if isinstance(resolved_dependency_plan, FailedToPlan):
-                    resource_name_to_plan[resource_dependency.name] = (
-                        resolved_dependency_plan
-                    )
+                    resource_name_to_plan[
+                        resource_dependency.name
+                    ] = resolved_dependency_plan
                     return FailedToPlan(
                         resource=plan.resource,
                         error_message=f"DependencyFailedToPlan: {ResourceRef(plan.resource)} depends on {ResourceRef(resource_dependency)} which failed to plan.",
