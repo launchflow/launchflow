@@ -8,6 +8,8 @@ import subprocess
 import tempfile
 import time
 import zipfile
+from concurrent.futures import ThreadPoolExecutor
+from queue import Queue
 from typing import Callable, List, Tuple
 
 import boto3
@@ -62,21 +64,35 @@ def _copy_directory_contents(src, dst):
             shutil.copy2(s, d)
 
 
-def _zip_directory(directory_path, output_path):
+def _zip_directory(directory_path, output_path, max_workers=None):
     """
-    Zip the contents of a directory.
+    Zip the contents of a directory efficiently.
 
     :param directory_path: Path to the directory to be zipped
     :param output_path: Path where the zip file should be created
+    :param max_workers: Maximum number of threads to use for file discovery
     """
-    with zipfile.ZipFile(
-        output_path, "w", zipfile.ZIP_DEFLATED, compresslevel=9
-    ) as zipf:
-        for root, dirs, files in os.walk(directory_path):
+    file_queue = Queue()
+
+    def collect_files():
+        for root, _, files in os.walk(directory_path):
             for file in files:
                 file_path = os.path.join(root, file)
                 arcname = os.path.relpath(file_path, directory_path)
-                zipf.write(file_path, arcname)
+                file_queue.put((file_path, arcname))
+
+    # Use ThreadPoolExecutor for file discovery
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future = executor.submit(collect_files)
+        future.result()  # Wait for file collection to complete
+
+    # Write to zip file sequentially
+    with zipfile.ZipFile(
+        output_path, "w", zipfile.ZIP_DEFLATED, compresslevel=9
+    ) as zipf:
+        while not file_queue.empty():
+            file_path, arcname = file_queue.get()
+            zipf.write(file_path, arcname)
 
 
 def _get_relative_import_path(func: Callable, cwd: str) -> str:
@@ -126,11 +142,23 @@ async def deploy_local_files_to_lambda_static_site(
         ):
             # TODO: Move this logic to the build step
             subprocess.check_call(
-                f"pip install --platform manylinux2014_x86_64 --target={temp_dir} --implementation cp --python-version {python_version} --only-binary=:all: -r {lambda_static_site.requirements_txt_path}".split(),
+                f"pip install --no-cache-dir --platform manylinux2014_x86_64 --target={temp_dir} --implementation cp --python-version {python_version} --only-binary=:all: -r {lambda_static_site.requirements_txt_path}".split(),
                 cwd=full_yaml_path,
                 stdout=subprocess.DEVNULL,  # TODO: Dump to the build logs file
                 stderr=subprocess.DEVNULL,  # TODO: Dump to the build logs file
             )
+
+        def clean_pycache(directory):
+            for root, dirs, files in os.walk(directory):
+                for file in files:
+                    if file.endswith(".pyc"):
+                        os.remove(os.path.join(root, file))
+                for dir in dirs:
+                    if dir == "__pycache__":
+                        shutil.rmtree(os.path.join(root, dir))
+
+        # TODO: We can remove this later
+        clean_pycache(temp_dir)
 
         # TODO: factor in files to ignore while zipping
 
@@ -145,7 +173,6 @@ async def deploy_local_files_to_lambda_static_site(
         lambda_client = boto3.client(
             "lambda", region_name=aws_environment_config.region
         )
-
         try:
             _ = lambda_client.update_function_configuration(
                 FunctionName=lambda_static_site._lambda_service_container.resource_id,

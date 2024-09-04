@@ -6,9 +6,7 @@ from typing_extensions import Callable
 import launchflow as lf
 from launchflow import exceptions
 from launchflow.aws.acm import ACMCertificate
-from launchflow.aws.elastic_ip import ElasticIP
 from launchflow.aws.lambda_function import LambdaFunction
-from launchflow.aws.nat_gateway import NATGateway
 from launchflow.aws.service import (
     AWSDockerService,
     AWSDockerServiceOutputs,
@@ -37,9 +35,10 @@ class LambdaStaticService(AWSStaticService):
         *,
         static_directory: str = ".",
         static_ignore: List[str] = [],  # type: ignore
-        enable_public_access: bool = False,  # TODO: rename this to highlight its for public egress, not ingress
         requirements_txt_path: Optional[str] = None,
-        public_route: Optional[str] = None,
+        route: str = "/",
+        # TODO: Add a `domain` parameter that can be a string or a composite resource class
+        domain: Optional[str] = None,
     ) -> None:
         """TODO"""
         super().__init__(
@@ -49,24 +48,12 @@ class LambdaStaticService(AWSStaticService):
         )
         resource_id_with_launchflow_prefix = f"{name}-{lf.project}-{lf.environment}"
 
-        self._api_gateway = None
-        if public_route is not None:
-            self._api_gateway = lf.aws.APIGateway("tanke-api-gateway")
+        self._api_gateway = lf.aws.APIGateway(f"{name}-api")
 
         self._lambda_service_container = LambdaFunction(
-            name, api_gateway=self._api_gateway, route=public_route
+            name, api_gateway=self._api_gateway, route=route
         )
         self._lambda_service_container.resource_id = resource_id_with_launchflow_prefix
-
-        self._elastic_ip = None
-        self._nat_gateway = None
-        if enable_public_access:
-            self._elastic_ip = ElasticIP(f"{name}-elastic-ip")
-            self._elastic_ip.resource_id = resource_id_with_launchflow_prefix
-            self._nat_gateway = NATGateway(
-                f"{name}-nat-gateway", elastic_ip=self._elastic_ip
-            )
-            self._nat_gateway.resource_id = resource_id_with_launchflow_prefix
 
         self.handler = handler
         self.requirements_txt_path = requirements_txt_path
@@ -75,16 +62,7 @@ class LambdaStaticService(AWSStaticService):
         return LambdaServiceInputs()
 
     def resources(self) -> List[Resource]:
-        to_return = [
-            self._lambda_service_container,
-        ]
-        if self._api_gateway:
-            to_return.append(self._api_gateway)  # type: ignore
-        if self._elastic_ip:
-            to_return.append(self._elastic_ip)  # type: ignore
-        if self._nat_gateway:
-            to_return.append(self._nat_gateway)  # type: ignore
-        return to_return  # type: ignore
+        return [self._lambda_service_container, self._api_gateway]
 
     def outputs(self) -> StaticServiceOutputs:
         try:
