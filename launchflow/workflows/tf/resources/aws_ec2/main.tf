@@ -35,7 +35,7 @@ data "aws_subnets" "lf_vpc_subnets" {
 
 data "aws_security_group" "default_vpc_sg" {
   vpc_id = var.vpc_id
-  name   = "default" 
+  name   = "default"
 }
 
 resource "aws_security_group" "docker_sg" {
@@ -47,9 +47,9 @@ resource "aws_security_group" "docker_sg" {
     for_each = var.firewall_cfg.expose_ports
 
     content {
-      from_port       = ingress.value
-      to_port         = ingress.value
-      protocol        = "tcp"
+      from_port = ingress.value
+      to_port   = ingress.value
+      protocol  = "tcp"
       # We only allow traffic outside the VPC if the instance is publicly accessible
       cidr_blocks     = var.publicly_accessible ? ["0.0.0.0/0"] : []
       security_groups = [data.aws_security_group.default_vpc_sg.id]

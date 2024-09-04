@@ -29,6 +29,7 @@ from launchflow.managers.environment_manager import EnvironmentManager
 from launchflow.managers.resource_manager import ResourceManager
 from launchflow.managers.service_manager import ServiceManager
 from launchflow.models.enums import (
+    CloudProvider,
     ResourceProduct,
     ResourceStatus,
     ServiceProduct,
@@ -413,13 +414,7 @@ async def destroy(
             )
         for name, service in services.items():
             service_manager = environment_manager.create_service_manager(name)
-            if (
-                service.product == ServiceProduct.GCP_CLOUD_RUN
-                or service.product == ServiceProduct.GCP_COMPUTE_ENGINE
-                or service.product == ServiceProduct.GCP_GKE
-                or service.product == ServiceProduct.GCP_STATIC_SITE
-                or service.product == ServiceProduct.GCP_FIREBASE_STATIC_SITE
-            ):
+            if service.cloud_provider == CloudProvider.GCP:
                 if environment.gcp_config is None:  # type: ignore
                     raise exceptions.GCPConfigNotFound(
                         environment_name=environment_name
@@ -432,7 +427,7 @@ async def destroy(
                         gcp_environment_config=environment.gcp_config,  # type: ignore
                     )
                 )
-            elif service.product == ServiceProduct.AWS_ECS_FARGATE:
+            elif service.cloud_provider == CloudProvider.AWS:
                 if environment.aws_config is None:  # type: ignore
                     raise exceptions.AWSConfigNotFound(
                         environment_name=environment_name

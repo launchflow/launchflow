@@ -28,7 +28,7 @@ data "aws_subnet" "details" {
 
 data "aws_security_group" "default_vpc_sg" {
   vpc_id = var.vpc_id
-  name   = "default" 
+  name   = "default"
 }
 
 
@@ -40,15 +40,15 @@ resource "aws_db_subnet_group" "default" {
 
 resource "aws_security_group" "rds_sg" {
   name        = "${var.resource_id}-rds-sg"
-  description = "Security group for ${var.resource_id} - ${ var.publicly_accessible ? "Allow inbound traffic" : "Only VPC inbound traffic" }"
+  description = "Security group for ${var.resource_id} - ${var.publicly_accessible ? "Allow inbound traffic" : "Only VPC inbound traffic"}"
   vpc_id      = var.vpc_id
 
   ingress {
-    from_port   = 5432
-    to_port     = 5432
-    protocol    = "tcp"
-    cidr_blocks = var.publicly_accessible ? ["0.0.0.0/0"] : []
-    security_groups = [ data.aws_security_group.default_vpc_sg.id ]
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    cidr_blocks     = var.publicly_accessible ? ["0.0.0.0/0"] : []
+    security_groups = [data.aws_security_group.default_vpc_sg.id]
   }
 
   tags = {
@@ -61,13 +61,13 @@ resource "aws_security_group" "rds_sg" {
 # The default parameter group does not allow setting rds.force_ssl parameter
 resource "aws_db_parameter_group" "params" {
   name   = "${var.resource_id}-parameter-group"
-  family = "${var.postgres_family}"
+  family = var.postgres_family
 
   parameter {
     apply_method = "immediate"
     # TODO: Add option to enable ssl for production environments
-    name         = "rds.force_ssl"
-    value        = 0
+    name  = "rds.force_ssl"
+    value = 0
   }
 
 }
@@ -76,10 +76,10 @@ resource "aws_db_instance" "default" {
   identifier_prefix      = substr(var.resource_id, 0, 30)
   allocated_storage      = var.allocated_storage_gb
   db_name                = var.database_name
-  engine                  = "postgres"
+  engine                 = "postgres"
   engine_version         = var.postgres_version
-  instance_class          = var.instance_class
-  parameter_group_name    = aws_db_parameter_group.params.name
+  instance_class         = var.instance_class
+  parameter_group_name   = aws_db_parameter_group.params.name
   username               = "${var.database_name}User"
   password               = random_password.user-password.result
   skip_final_snapshot    = true

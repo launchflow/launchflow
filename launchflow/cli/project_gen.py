@@ -8,7 +8,7 @@ import typer
 
 from launchflow import exceptions
 from launchflow.aws.elasticache import ElasticacheRedis
-from launchflow.aws.rds import RDSPostgres
+from launchflow.aws.rds import RDS
 from launchflow.aws.s3 import S3Bucket
 from launchflow.backend import BackendOptions, LaunchFlowBackend, LocalBackend
 from launchflow.clients import async_launchflow_client_ctx
@@ -92,7 +92,7 @@ AWS_RESOURCE_CHOICES = [
         "Storage bucket. Powered by Amazon S3.",
     ),
     (
-        RDSPostgres,
+        RDS,
         "PostgreSQL database. Powered by Amazon RDS.",
     ),
     (

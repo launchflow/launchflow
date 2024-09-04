@@ -18,7 +18,8 @@ from rich.tree import Tree
 import launchflow
 from launchflow import exceptions
 from launchflow.aws.ecs_fargate import ECSFargate
-from launchflow.aws.service import AWSDockerService, AWSService
+from launchflow.aws.lambda_service import LambdaStaticService
+from launchflow.aws.service import AWSDockerService, AWSService, AWSStaticService
 from launchflow.cli.resource_utils import is_secret_resource
 from launchflow.clients.docker_client import docker_service_available
 from launchflow.config import config
@@ -70,6 +71,7 @@ from launchflow.utils import generate_deployment_id
 from launchflow.validation import validate_service_name
 from launchflow.workflows.deploy_aws_service import (
     build_and_push_aws_service,
+    deploy_local_files_to_lambda_static_site,
     promote_aws_service_image,
     release_docker_image_to_ecs_fargate,
 )
@@ -146,7 +148,7 @@ class BuildServicePlan(ServicePlan):
                     self.build_local,
                 )
                 return BuildServiceResult(self, True, docker_image, logs_file_or_link)
-            elif isinstance(self.service, GCPStaticService):
+            elif isinstance(self.service, (GCPStaticService, AWSStaticService)):
                 # TODO: Add a hook to allow for custom build steps for static sites
                 return BuildServiceResult(self, True)
             else:
@@ -304,6 +306,15 @@ class ReleaseServicePlan(ServicePlan):
             service_url = await deploy_local_files_to_firebase_static_site(
                 gcp_environment_config=self.gcp_environment_config,  # type: ignore
                 firebase_static_site=self.service,
+            )
+            return ReleaseServiceResult(self, True, service_url)
+
+        if isinstance(self.service, LambdaStaticService):
+            service_url = await deploy_local_files_to_lambda_static_site(
+                aws_environment_config=self.aws_environment_config,  # type: ignore
+                lambda_static_site=self.service,
+                service_manager=self.service_manager,
+                deployment_id=self.deployment_id,
             )
             return ReleaseServiceResult(self, True, service_url)
 

@@ -22,9 +22,9 @@ resource "google_storage_bucket" "bucket" {
 }
 
 resource "google_storage_bucket_object" "index_html" {
-  name   = var.main_page_suffix
-  bucket = google_storage_bucket.bucket.name
-  content = <<EOF
+  name         = var.main_page_suffix
+  bucket       = google_storage_bucket.bucket.name
+  content      = <<EOF
 <!DOCTYPE html>
 <html>
   <head>
@@ -44,8 +44,8 @@ resource "google_compute_global_address" "default" {
 }
 
 resource "google_compute_managed_ssl_certificate" "custom_domain_cert" {
-  count  = var.custom_domain == null ? 0 : 1
-  name   = "${var.resource_id}-ssl-cert"
+  count = var.custom_domain == null ? 0 : 1
+  name  = "${var.resource_id}-ssl-cert"
   managed {
     domains = [var.custom_domain]
   }
@@ -59,7 +59,7 @@ resource "google_compute_backend_bucket" "default" {
 }
 
 resource "google_compute_url_map" "default" {
-  name          = "${var.resource_id}-url-map"
+  name            = "${var.resource_id}-url-map"
   default_service = google_compute_backend_bucket.default.id
 }
 
@@ -70,8 +70,8 @@ resource "google_compute_target_http_proxy" "default_http" {
 }
 
 resource "google_compute_target_https_proxy" "default_https" {
-  count           = var.custom_domain == null ? 0 : 1
-  name            = "${var.resource_id}-https-proxy"
+  count            = var.custom_domain == null ? 0 : 1
+  name             = "${var.resource_id}-https-proxy"
   ssl_certificates = [google_compute_managed_ssl_certificate.custom_domain_cert[0].id]
   url_map          = google_compute_url_map.default.id
 }
@@ -101,7 +101,7 @@ output "bucket_name" {
 }
 
 output "cdn_ip_address" {
-  value = google_compute_global_address.default.address
+  value       = google_compute_global_address.default.address
   description = "IP address to configure in your DNS for pointing to the Google Cloud CDN."
 }
 

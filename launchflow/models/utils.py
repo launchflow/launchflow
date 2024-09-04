@@ -1,16 +1,23 @@
 from launchflow.aws.acm import ACMCertificate
 from launchflow.aws.alb import ApplicationLoadBalancer
+from launchflow.aws.api_gateway import APIGateway
 from launchflow.aws.codebuild_project import CodeBuildProject
 from launchflow.aws.ec2 import EC2
 from launchflow.aws.ecr_repository import ECRRepository
 from launchflow.aws.ecs_cluster import ECSCluster
 from launchflow.aws.ecs_fargate import ECSFargate
 from launchflow.aws.ecs_fargate_container import ECSFargateServiceContainer
+from launchflow.aws.elastic_ip import ElasticIP
 from launchflow.aws.elasticache import ElasticacheRedis
+from launchflow.aws.lambda_event_mapping import LambdaEventMapping
+from launchflow.aws.lambda_function import LambdaFunction
+from launchflow.aws.lambda_service import LambdaDockerService, LambdaStaticService
 from launchflow.aws.launchflow_cloud_releaser import (
     LaunchFlowCloudReleaser as AWSReleaser,
 )
-from launchflow.aws.rds import RDSPostgres
+from launchflow.aws.nat_gateway import NATGateway
+from launchflow.aws.rds import RDS
+from launchflow.aws.rds_postgres import RDSPostgres
 from launchflow.aws.s3 import S3Bucket
 from launchflow.aws.secrets_manager import SecretsManagerSecret
 from launchflow.aws.sqs import SQSQueue
@@ -82,6 +89,7 @@ RESOURCE_PRODUCTS_TO_RESOURCES = {
     ResourceProduct.GCP_MANAGED_SSL_CERTIFICATE.value: ManagedSSLCertificate,
     ResourceProduct.GCP_GKE_CUSTOM_DOMAIN_MAPPING.value: GKECustomDomainMapping,
     # AWS product types
+    ResourceProduct.AWS_RDS.value: RDS,
     ResourceProduct.AWS_RDS_POSTGRES.value: RDSPostgres,
     ResourceProduct.AWS_ELASTICACHE_REDIS.value: ElasticacheRedis,
     # TODO consider having a separate resource product per EC2 instance type
@@ -96,6 +104,11 @@ RESOURCE_PRODUCTS_TO_RESOURCES = {
     ResourceProduct.AWS_ECS_CLUSTER.value: ECSCluster,
     ResourceProduct.AWS_SQS_QUEUE.value: SQSQueue,
     ResourceProduct.AWS_LAUNCHFLOW_CLOUD_RELEASER.value: AWSReleaser,
+    ResourceProduct.AWS_NAT_GATEWAY.value: NATGateway,
+    ResourceProduct.AWS_API_GATEWAY.value: APIGateway,
+    ResourceProduct.AWS_ELASTIC_IP.value: ElasticIP,
+    ResourceProduct.AWS_LAMBDA_EVENT_MAPPING.value: LambdaEventMapping,
+    ResourceProduct.AWS_LAMBDA_FUNCTION.value: LambdaFunction,
     # K8s resource
     ResourceProduct.KUBERNETES_SERVICE_CONTAINER: ServiceContainer,
     ResourceProduct.KUBERNETES_HORIZONTAL_POD_AUTOSCALER: HorizontalPodAutoscaler,
@@ -109,6 +122,8 @@ SERVICE_PRODUCTS_TO_SERVICES = {
     ServiceProduct.UNKNOWN.value: Service,
     # AWS product types
     ServiceProduct.AWS_ECS_FARGATE.value: ECSFargate,
+    ServiceProduct.AWS_STATIC_LAMBDA.value: LambdaStaticService,
+    ServiceProduct.AWS_DOCKER_LAMBDA.value: LambdaDockerService,
     # GCP product types
     ServiceProduct.GCP_CLOUD_RUN.value: CloudRun,
     ServiceProduct.GCP_COMPUTE_ENGINE.value: ComputeEngineService,

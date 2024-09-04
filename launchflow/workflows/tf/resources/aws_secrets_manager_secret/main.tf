@@ -24,7 +24,7 @@ data "aws_iam_policy_document" "secret_policy_data" {
     effect = "Allow"
 
     principals {
-      type        = "AWS"
+      type = "AWS"
       identifiers = [
         data.aws_iam_role.launchflow_env_role.arn
       ]

@@ -23,13 +23,13 @@ resource "time_sleep" "wait_30_seconds" {
 resource "google_workbench_instance" "instance" {
   depends_on = [time_sleep.wait_30_seconds]
 
-  name = var.resource_id
+  name     = var.resource_id
   location = var.zone
 
   gce_setup {
     container_image {
       repository = "us-docker.pkg.dev/deeplearning-platform-release/gcr.io/base-cu113.py310"
-      tag = "latest"
+      tag        = "latest"
     }
     service_accounts {
       email = var.environment_service_account_email
@@ -38,11 +38,11 @@ resource "google_workbench_instance" "instance" {
 }
 
 resource "google_workbench_instance_iam_member" "member" {
-  project = google_workbench_instance.instance.project
+  project  = google_workbench_instance.instance.project
   location = google_workbench_instance.instance.location
-  name = google_workbench_instance.instance.name
-  role = "roles/admin"
-  member = "serviceAccount:${var.environment_service_account_email}"
+  name     = google_workbench_instance.instance.name
+  role     = "roles/admin"
+  member   = "serviceAccount:${var.environment_service_account_email}"
 }
 
 output "instance_id" {

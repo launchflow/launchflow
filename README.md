@@ -20,7 +20,7 @@
 [LaunchFlow](https://launchflow.com/) is an open source Python SDK that lets you launch websites, APIs, and workers to AWS / GCP with minimal configuration.
 
 - [x] **Serverless Deployments**
-- [x] **Auto-Scaling VMs** 
+- [x] **Auto-Scaling VMs**
 - [ ] **Kubernetes Clusters** (in preview)
 - [ ] **Static Sites** (in preview)
 - [x] **Terraform Resources**
@@ -57,7 +57,7 @@ _Click the dropdown below to see the service types that are currently supported.
   - [ ] (AWS) Lambda Service - coming soon
   - [x] (GCP) Cloud Run Service - [Docs](https://docs.launchflow.com/docs/services/gcp/cloud-run)
 - Auto-Scaling VMs
-  - [x] (AWS) ECS Fargate Service - [Docs](https://docs.launchflow.com/docs/services/aws/ec2-fargate) 
+  - [x] (AWS) ECS Fargate Service - [Docs](https://docs.launchflow.com/docs/services/aws/ec2-fargate)
   - [x] (GCP) Compute Engine Service - [Docs](https://docs.launchflow.com/docs/services/gcp/compute-engine)
 - Kubernetes Clusters
   - [ ] (AWS) EKS - coming soon
@@ -226,7 +226,7 @@ app = FastAPI()
 def index():
     return f'Hello from {lf.environment}!'
 
-# Deploy Postgres hosted on (GCP) Cloud SQL 
+# Deploy Postgres hosted on (GCP) Cloud SQL
 api = lf.gcp.CloudRun("my-api", domain="your-domain.com")
 ```
 
@@ -286,7 +286,7 @@ if __name__ == "__main__":
 <details>
 <summary><b><font size="+1">Deploy a static React app to a CDN (GCP)</font></b></summary>
 
-> [!IMPORTANT]  
+> [!IMPORTANT]
 > This example is not yet available in the LaunchFlow Python SDK.
 
 ```python
@@ -307,7 +307,7 @@ if __name__ == "__main__":
 <details>
 <summary><b><font size="+1">Full on scripting with Python  (GCP)</font></b></summary>
 
-> [!IMPORTANT]  
+> [!IMPORTANT]
 > This example is not yet available in the LaunchFlow Python SDK.
 
 ```python

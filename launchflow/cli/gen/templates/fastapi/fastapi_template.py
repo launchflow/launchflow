@@ -4,7 +4,7 @@ from typing import List, Literal, Optional, Tuple, Type
 
 from launchflow import Resource
 from launchflow.aws.elasticache import ElasticacheRedis
-from launchflow.aws.rds import RDSPostgres
+from launchflow.aws.rds import RDS
 from launchflow.aws.s3 import S3Bucket
 from launchflow.cli.gen.template import ProjectGenerator
 from launchflow.gcp.cloudsql import CloudSQLPostgres
@@ -217,7 +217,7 @@ async def test_redis(
         "requirements": ["redis>=4.2.0"],
     },
     # AWS RDS (Postgres)
-    RDSPostgres: {
+    RDS: {
         "infra_docs_url": "https://docs.launchflow.com/reference/aws-resources/rds-postgres",
         "infra_name": "postgres",
         "infra_lf_class": "lf.aws.RDSPostgres",
@@ -368,7 +368,7 @@ To create find and create all resources in your current directory, run:
             return """from contextlib import asynccontextmanager
 
 from fastapi import FastAPI"""
-        if CloudSQLPostgres in resource_set or RDSPostgres in resource_set:
+        if CloudSQLPostgres in resource_set or RDS in resource_set:
             return """from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException"""
@@ -470,9 +470,9 @@ from fastapi import Depends, FastAPI"""
         template_dir = "launchflow.cli.gen.templates.fastapi"
         template_name = "_simple_template"
 
-        if CloudSQLPostgres in [
+        if CloudSQLPostgres in [resource for resource in self.resources] or RDS in [
             resource for resource in self.resources
-        ] or RDSPostgres in [resource for resource in self.resources]:
+        ]:
             template_name = "_postgres_template"
 
         return template_dir, template_name
