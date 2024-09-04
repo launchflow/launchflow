@@ -251,7 +251,7 @@ class RDS(AWSResource[RDSOutputs]):
                     "pymysql is not installed. Please install it with `pip install pymysql`."
                 )
             return {
-                "url": f"mysql+pymysql://root:{connection_info.password}@{connection_info.endpoint}/{connection_info.dbname}",
+                "url": f"mysql+pymysql://{connection_info.username}:{connection_info.password}@{connection_info.endpoint}/{connection_info.dbname}",
             }
 
         elif self.engine_version.engine == RDSEngine.POSTGRES:
