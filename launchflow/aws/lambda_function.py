@@ -1,9 +1,10 @@
 import enum
 from dataclasses import dataclass
-from typing import Literal, Optional
+from typing import List, Literal, Optional
 
 import launchflow as lf
 from launchflow.aws.api_gateway import APIGateway
+from launchflow.aws.lambda_layer import PythonLambdaLayer
 from launchflow.aws.resource import AWSResource
 from launchflow.models.enums import ResourceProduct
 from launchflow.models.flow_state import EnvironmentState
@@ -101,6 +102,7 @@ class LambdaFunctionInputs(ResourceInputs):
     runtime: LambdaRuntime
     # API Gateway Inputs
     api_gateway_config: Optional[APIGatewayConfig]
+    layer_arns: Optional[List[str]] = None
 
 
 @dataclass
@@ -131,6 +133,7 @@ class LambdaFunction(AWSResource[LambdaFunctionOutputs]):
         runtime: LambdaRuntime = LambdaRuntime.PYTHON3_11,
         route: Optional[str] = None,
         api_gateway: Optional[APIGateway] = None,
+        layers: Optional[List[PythonLambdaLayer]] = None,
     ) -> None:
         """TODO"""
         super().__init__(
@@ -144,6 +147,7 @@ class LambdaFunction(AWSResource[LambdaFunctionOutputs]):
         self.route = route
 
         self._api_gateway = api_gateway
+        self.layers = layers
 
     def inputs(self, environment_state: EnvironmentState) -> LambdaFunctionInputs:
         """Get the inputs for the Lambda function resource.
@@ -164,6 +168,14 @@ class LambdaFunction(AWSResource[LambdaFunctionOutputs]):
                 api_route_key=self.route or "/",
             )
 
+        layer_arns = None
+        if self.layers is not None:
+            layer_arns = []
+            for layer in self.layers:
+                layer_arn = Depends(layer).aws_arn
+                layer_arns.append(layer_arn)
+                self.depends_on(layer)
+
         return LambdaFunctionInputs(
             resource_id=self.resource_id,
             timeout=self.timeout,
@@ -171,4 +183,5 @@ class LambdaFunction(AWSResource[LambdaFunctionOutputs]):
             package_type=self.package_type,
             runtime=self.runtime,
             api_gateway_config=api_gateway_config,
+            layer_arns=layer_arns,
         )

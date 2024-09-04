@@ -38,32 +38,8 @@ variable "launchflow_environment" {
 # Lambda service container specific variables
 #
 
-variable "timeout" {
-  type = number
-}
-
-variable "memory_size" {
-  type = number
-}
-
-variable "package_type" {
-  type = string
-}
-
-variable "runtime" {
-  type = string
-  default = null
-}
-
-variable "api_gateway_config" {
-  type = object({
-    api_gateway_id = string
-    api_route_key  = string
-  })
-  default = null
-}
-
-variable "layer_arns" {
-  type = list(string)
-  default = null
+variable "packages" {
+  description = "List of Python packages to include in the Lambda layer"
+  type        = list(string)
+  default = [  ]
 }

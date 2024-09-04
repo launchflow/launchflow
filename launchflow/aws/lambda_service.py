@@ -8,6 +8,7 @@ from launchflow import exceptions
 from launchflow.aws.acm import ACMCertificate
 from launchflow.aws.elastic_ip import ElasticIP
 from launchflow.aws.lambda_function import LambdaFunction
+from launchflow.aws.lambda_layer import PythonLambdaLayer
 from launchflow.aws.nat_gateway import NATGateway
 from launchflow.aws.service import (
     AWSDockerService,
@@ -37,9 +38,11 @@ class LambdaStaticService(AWSStaticService):
         *,
         static_directory: str = ".",
         static_ignore: List[str] = [],  # type: ignore
-        enable_public_access: bool = False,  # TODO: rename this to highlight its for public egress, not ingress
         requirements_txt_path: Optional[str] = None,
-        public_route: Optional[str] = None,
+        route: str = "/",
+        # TODO: Add a `domain` parameter that can be a string or a composite resource class
+        domain: Optional[str] = None,
+        python_packages: Optional[List[str]] = None,
     ) -> None:
         """TODO"""
         super().__init__(
@@ -49,24 +52,22 @@ class LambdaStaticService(AWSStaticService):
         )
         resource_id_with_launchflow_prefix = f"{name}-{lf.project}-{lf.environment}"
 
-        self._api_gateway = None
-        if public_route is not None:
-            self._api_gateway = lf.aws.APIGateway("tanke-api-gateway")
+        self._api_gateway = lf.aws.APIGateway("tanke-api-gateway")
+
+        self.layers = None
+        if python_packages is not None:
+            self.layers = []
+            for package in python_packages:
+                package_name_no_extras = package.split("[")[0]
+                layer = PythonLambdaLayer(
+                    f"{package_name_no_extras}-layer", packages=[package]
+                )
+                self.layers.append(layer)
 
         self._lambda_service_container = LambdaFunction(
-            name, api_gateway=self._api_gateway, route=public_route
+            name, api_gateway=self._api_gateway, route=route, layers=self.layers
         )
         self._lambda_service_container.resource_id = resource_id_with_launchflow_prefix
-
-        self._elastic_ip = None
-        self._nat_gateway = None
-        if enable_public_access:
-            self._elastic_ip = ElasticIP(f"{name}-elastic-ip")
-            self._elastic_ip.resource_id = resource_id_with_launchflow_prefix
-            self._nat_gateway = NATGateway(
-                f"{name}-nat-gateway", elastic_ip=self._elastic_ip
-            )
-            self._nat_gateway.resource_id = resource_id_with_launchflow_prefix
 
         self.handler = handler
         self.requirements_txt_path = requirements_txt_path
@@ -77,31 +78,21 @@ class LambdaStaticService(AWSStaticService):
     def resources(self) -> List[Resource]:
         to_return = [
             self._lambda_service_container,
+            self._api_gateway,
         ]
-        if self._api_gateway:
-            to_return.append(self._api_gateway)  # type: ignore
-        if self._elastic_ip:
-            to_return.append(self._elastic_ip)  # type: ignore
-        if self._nat_gateway:
-            to_return.append(self._nat_gateway)  # type: ignore
+        if self.layers:
+            to_return.extend(self.layers)
         return to_return  # type: ignore
 
     def outputs(self) -> StaticServiceOutputs:
         try:
             lambda_outputs = self._lambda_service_container.outputs()
+            api_gateway_outputs = self._api_gateway.outputs()
         except exceptions.ResourceOutputsNotFound:
             raise exceptions.ServiceOutputsNotFound(service_name=self.name)
 
-        service_url = "TODO"
-        if self._api_gateway is not None:
-            try:
-                api_gateway_outputs = self._api_gateway.outputs()
-                service_url = api_gateway_outputs.api_gateway_endpoint
-            except exceptions.ResourceOutputsNotFound:
-                raise exceptions.ServiceOutputsNotFound(service_name=self.name)
-
         service_outputs = StaticServiceOutputs(
-            service_url=service_url,
+            service_url=api_gateway_outputs.api_gateway_endpoint,
             # TODO: Support custom domains for Lambda
             dns_outputs=None,
         )
@@ -115,26 +106,63 @@ class LambdaDockerService(AWSDockerService):
 
     product = ServiceProduct.AWS_DOCKER_LAMBDA.value
 
-    # TODO: Add better support for custom domains + write up a guide for different domain providers
     def __init__(
         self,
         name: str,
-        hack="",
+        handler: Callable,
+        *,
         port: int = 80,
-        build_directory: str = ".",
         dockerfile: str = "Dockerfile",
+        build_directory: str = ".",
         build_ignore: List[str] = [],
-        domain_name: Optional[str] = None,
-        certificate: Optional[ACMCertificate] = None,
+        route: str = "/",
+        # TODO: Add a `domain` parameter that can be a string or a composite resource class
+        domain: Optional[str] = None,
     ) -> None:
         """TODO"""
-        raise NotImplementedError
+        super().__init__(
+            name=name,
+            dockerfile=dockerfile,
+            build_directory=build_directory,
+            build_ignore=build_ignore,
+        )
+        resource_id_with_launchflow_prefix = f"{name}-{lf.project}-{lf.environment}"
+
+        self._api_gateway = lf.aws.APIGateway("tanke-api-gateway")
+
+        self._lambda_service_container = LambdaFunction(
+            name,
+            api_gateway=self._api_gateway,
+            route=route,
+            package_type="Image",
+        )
+        self._lambda_service_container.resource_id = resource_id_with_launchflow_prefix
+
+        self.handler = handler
+        self.port = port
 
     def inputs(self) -> LambdaServiceInputs:
-        raise NotImplementedError
+        return LambdaServiceInputs()
 
     def resources(self) -> List[Resource]:
-        raise NotImplementedError
+        to_return = [
+            self._lambda_service_container,
+            self._api_gateway,
+        ]
+        return to_return  # type: ignore
 
-    def outputs(self) -> AWSDockerServiceOutputs:
-        raise NotImplementedError
+    def outputs(self) -> StaticServiceOutputs:
+        try:
+            lambda_outputs = self._lambda_service_container.outputs()
+            api_gateway_outputs = self._api_gateway.outputs()
+        except exceptions.ResourceOutputsNotFound:
+            raise exceptions.ServiceOutputsNotFound(service_name=self.name)
+
+        service_outputs = StaticServiceOutputs(
+            service_url=api_gateway_outputs.api_gateway_endpoint,
+            # TODO: Support custom domains for Lambda
+            dns_outputs=None,
+        )
+        service_outputs.aws_arn = lambda_outputs.aws_arn
+
+        return service_outputs

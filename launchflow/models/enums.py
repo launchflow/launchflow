@@ -49,6 +49,7 @@ class ResourceProduct(str, Enum):
     AWS_ECR_REPOSITORY = "aws_ecr_repository"
     AWS_ECS_FARGATE_SERVICE_CONTAINER = "aws_ecs_fargate_service_container"
     AWS_LAMBDA_FUNCTION = "aws_lambda_function"
+    AWS_PYTHON_LAMBDA_LAYER = "aws_python_lambda_layer"
     AWS_NAT_GATEWAY = "aws_nat_gateway"
     AWS_ELASTIC_IP = "aws_elastic_ip"
     AWS_API_GATEWAY = "aws_api_gateway"

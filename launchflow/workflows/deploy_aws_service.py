@@ -146,6 +146,8 @@ async def deploy_local_files_to_lambda_static_site(
             "lambda", region_name=aws_environment_config.region
         )
 
+        breakpoint()
+
         try:
             _ = lambda_client.update_function_configuration(
                 FunctionName=lambda_static_site._lambda_service_container.resource_id,

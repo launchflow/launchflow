@@ -73,6 +73,8 @@ resource "aws_lambda_function" "default" {
   handler          = "hello.lambda_handler"
   runtime          = var.runtime
 
+  layers = var.layer_arns
+
   # NOTE: We set this to speed up the destroy process. Without this, lambda can hold
   # onto the security group for ~30mins and block it from being deleted.
   replace_security_groups_on_destroy = true
