@@ -144,6 +144,7 @@ class LambdaFunction(AWSResource[LambdaFunctionOutputs]):
         self.route = route
 
         self._api_gateway = api_gateway
+        self.depends_on(api_gateway)
 
     def inputs(self, environment_state: EnvironmentState) -> LambdaFunctionInputs:
         """Get the inputs for the Lambda function resource.
