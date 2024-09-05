@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.10](https://github.com/launchflow/launchflow/compare/v0.4.9...v0.4.10) (2024-09-05)
+
+
+### Bug Fixes
+
+* remove bad boto3 import ([#65](https://github.com/launchflow/launchflow/issues/65)) ([1b37b75](https://github.com/launchflow/launchflow/commit/1b37b75df6084f586ecbfab19eb25678de160676))
+
 ## [0.4.9](https://github.com/launchflow/launchflow/compare/v0.4.8...v0.4.9) (2024-09-05)
 
 
