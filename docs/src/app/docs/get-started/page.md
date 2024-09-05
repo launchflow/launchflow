@@ -142,7 +142,7 @@ RUN pip install --no-cache-dir -U pip setuptools wheel && pip install --no-cache
 
 COPY ./main.py /code/main.py
 
-ENV PORT=8080
+ENV PORT=80
 
 EXPOSE $PORT
 
