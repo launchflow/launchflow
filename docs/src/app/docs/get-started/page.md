@@ -182,7 +182,7 @@ You will be able to view the plan and confirm before the resources are created.
 
 If everything goes well, you should see a link to your deployed service and logs to debug any issues that may have occurred.
 
-![Deploy Plan](/images/deploy-terminal-aws.png)
+![Deploy Result](/images/deploy-terminal-aws.png)
 
   {% /tab %}
 
@@ -241,7 +241,7 @@ You will be able to view the plan and confirm before the resources are created.
 
 If everything goes well, you should see a link to your deployed service and logs to debug any issues that may have occurred.
 
-![Deploy Plan](/images/deploy-terminal.png)
+![Deploy Result](/images/deploy-terminal.png)
 
   {% /tab %}
 
