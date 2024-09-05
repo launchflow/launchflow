@@ -257,7 +257,7 @@ class CreateResourcePlan(ResourcePlan):
                 # NOTE: We save the depends_on only if the create was successful
                 new_resource_state.depends_on = [
                     dep.name
-                    for dep in self.resource.inputs_depend_on(self.environment_state)
+                    for dep in self.resource.dependencies(self.environment_state)
                 ]
 
                 await self.resource_manager.save_resource(
@@ -912,9 +912,9 @@ async def plan_create_resources(
                     dependency_plan
                 )
                 if isinstance(resolved_dependency_plan, FailedToPlan):
-                    resource_name_to_plan[
-                        resource_dependency.name
-                    ] = resolved_dependency_plan
+                    resource_name_to_plan[resource_dependency.name] = (
+                        resolved_dependency_plan
+                    )
                     return FailedToPlan(
                         resource=plan.resource,
                         error_message=f"DependencyFailedToPlan: {ResourceRef(plan.resource)} depends on {ResourceRef(resource_dependency)} which failed to plan.",
