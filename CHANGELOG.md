@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.9](https://github.com/launchflow/launchflow/compare/v0.4.8...v0.4.9) (2024-09-05)
+
+
+### Bug Fixes
+
+* add initial beta gke support ([#35](https://github.com/launchflow/launchflow/issues/35)) ([c5dad16](https://github.com/launchflow/launchflow/commit/c5dad16907ef2a25e2e89295064dcdc6ecc94a31))
+* properly record dependencies on flow state ([#64](https://github.com/launchflow/launchflow/issues/64)) ([b096521](https://github.com/launchflow/launchflow/commit/b0965217663f7298f48988c146398e48015a7003))
+* set operation timeout to 1hr ([#49](https://github.com/launchflow/launchflow/issues/49)) ([88810d4](https://github.com/launchflow/launchflow/commit/88810d4226d3b7cac65dba3d090815da1ad139db))
+
 ## [0.4.8](https://github.com/launchflow/launchflow/compare/v0.4.7...v0.4.8) (2024-08-29)
 
 
