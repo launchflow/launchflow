@@ -12,7 +12,6 @@ from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
 from typing import Callable, List, Tuple
 
-import boto3
 from docker.errors import BuildError  # type: ignore
 
 from launchflow import exceptions
@@ -120,6 +119,10 @@ async def deploy_local_files_to_lambda_static_site(
     service_manager: ServiceManager,
     deployment_id: str,
 ):
+    try:
+        import boto3
+    except ImportError:
+        raise exceptions.MissingAWSDependency()
     # 1. create a temp dir
     full_yaml_path = os.path.dirname(
         os.path.abspath(config.launchflow_yaml.config_path)
