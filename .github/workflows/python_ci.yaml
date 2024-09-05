@@ -65,7 +65,7 @@ jobs:
 
   # This verify basic functionality still works on all installs
   # without extras installed
-  extras_install:
+  no_extras_install:
     permissions:
       contents: write
       id-token: write

@@ -12,6 +12,7 @@ from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
 from typing import Callable, List, Tuple
 
+import boto3
 from docker.errors import BuildError  # type: ignore
 
 from launchflow import exceptions
@@ -30,10 +31,10 @@ async def _upload_source_tarball_to_s3(
     local_source_dir: str,
     build_ignore: List[str],
 ):
-    try:
-        import boto3
-    except ImportError:
-        raise exceptions.MissingAWSDependency()
+    # try:
+    #     import boto3
+    # except ImportError:
+    #     raise exceptions.MissingAWSDependency()
 
     def upload_async():
         source_tarball = tar_source_in_memory(local_source_dir, build_ignore)
