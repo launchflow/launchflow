@@ -6,8 +6,7 @@ nextjs:
     description: LaunchFlow Cloud
 ---
 
-{% mdimage src="/images/projects_light.svg" alt="diagram" className="block dark:hidden" height=450 width=450 /%}
-{% mdimage src="/images/projects_dark.svg" alt="diagram" className="hidden dark:block" height=450 width=450 /%}
+{% mdimage src="/images/console.png" alt="diagram"  /%}
 
 ## Overview
 

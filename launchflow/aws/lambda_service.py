@@ -37,6 +37,7 @@ class LambdaStaticService(AWSStaticService):
         static_ignore: List[str] = [],  # type: ignore
         requirements_txt_path: Optional[str] = None,
         route: str = "/",
+        timeout: int = 10,
         # TODO: Add a `domain` parameter that can be a string or a composite resource class
         domain: Optional[str] = None,
     ) -> None:
@@ -51,7 +52,10 @@ class LambdaStaticService(AWSStaticService):
         self._api_gateway = lf.aws.APIGateway(f"{name}-api")
 
         self._lambda_service_container = LambdaFunction(
-            name, api_gateway=self._api_gateway, route=route
+            name,
+            api_gateway=self._api_gateway,
+            route=route,
+            timeout=timeout,
         )
         self._lambda_service_container.resource_id = resource_id_with_launchflow_prefix
 

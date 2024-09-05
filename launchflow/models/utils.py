@@ -82,7 +82,7 @@ RESOURCE_PRODUCTS_TO_RESOURCES = {
     ResourceProduct.GCP_REGIONAL_MANAGED_INSTANCE_GROUP.value: RegionalManagedInstanceGroup,
     ResourceProduct.GCP_FIREWALL_ALLOW_RULE.value: FirewallAllowRule,
     ResourceProduct.GCP_COMPUTE_HTTP_HEALTH_CHECK.value: HttpHealthCheck,
-    ResourceProduct.GCP_REGIONAL_AUTO_SCALER.value: RegionalAutoscaler,
+    ResourceProduct.GCP_REGIONAL_AUTOSCALER.value: RegionalAutoscaler,
     ResourceProduct.GCP_GKE_CLUSTER.value: GKECluster,
     ResourceProduct.GCP_GKE_NODE_POOL.value: NodePool,
     ResourceProduct.GCP_GLOBAL_IP_ADDRESS.value: GlobalIPAddress,

@@ -65,7 +65,7 @@ if __name__ == "__main__":
 
 We've added a Postgres database and are using it a trivial way in our endpoint. To create it, we can just run `lf create`. This command searches your codebase for LaunchFlow resources, checks to see if they've already been created (or were created with different arguments that now need updating), prompts for confirmation, then creates / updates resources in the cloud.
 
-You'll also need to run your command using [lf run](/reference/cli#launchflow-run):
+You'll also need to run your command using [lf run](/reference/cli#lf-run):
 
 ```bash
 $ lf run YOUR_ENVIRONMENT_NAME -- python main.py

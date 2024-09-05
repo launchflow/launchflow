@@ -77,7 +77,7 @@ lf promote [FROM_ENVIRONMENT] [TO_ENVIRONMENT]
 
 For a full list of options see the command references:
 
-- [lf deploy](/reference/cli#launchflow-deploy)
-- [lf destroy](/reference/cli#launchflow-destroy)
-- [lf services](reference/cli#launchflow-services)
-- [lf promote](/reference/cli#launchflow-promote)
+- [lf deploy](/reference/cli#lf-deploy)
+- [lf destroy](/reference/cli#lf-destroy)
+- [lf services](reference/cli#lf-services)
+- [lf promote](/reference/cli#lf-promote)

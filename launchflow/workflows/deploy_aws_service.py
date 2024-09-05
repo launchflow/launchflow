@@ -631,7 +631,7 @@ async def release_docker_image_to_ecs_fargate(
         # TODO: Add a check to see if the task is crash looping, and maybe rollback the task definition
         raise e
 
-    return alb_outputs.alb_dns_name
+    return f"http://{alb_outputs.alb_dns_name}"
 
 
 # TODO: add a way to promote the docker image without code build

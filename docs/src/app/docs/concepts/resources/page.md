@@ -92,6 +92,6 @@ lf resources list
 
 For a full list of options see the command references:
 
-- [lf create](/reference/cli#launchflow-create)
-- [lf destroy](/reference/cli#launchflow-destroy)
-- [lf resources](/reference/cli#launchflow-resources)
+- [lf create](/reference/cli#lf-create)
+- [lf destroy](/reference/cli#lf-destroy)
+- [lf resources](/reference/cli#lf-resources)

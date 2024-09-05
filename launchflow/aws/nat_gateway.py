@@ -57,6 +57,8 @@ class NATGateway(AWSResource[NATGatewayOutputs]):
         self.elastic_ip = elastic_ip
         self.private_route_config = private_route_config
 
+        self.depends_on(self.elastic_ip)
+
     def inputs(self, environment_state: EnvironmentState) -> NATGatewayInputs:
         """Get the inputs required for the NAT Gateway.
 
