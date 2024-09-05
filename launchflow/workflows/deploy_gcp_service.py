@@ -124,7 +124,8 @@ async def _run_docker_gcp_cloud_build(
     build_url = f"https://console.cloud.google.com/cloud-build/builds/{operation.metadata.build.id}?project={gcp_project_id}"
     # Add logs to the table to the table
     try:
-        await operation.result()
+        # For some reason timeout=None is not working, so we set it to 1 hour
+        await operation.result(timeout=3600)
     except Exception as e:
         raise exceptions.ServiceBuildFailed(
             error_message=str(e), build_logs_or_link=build_url
@@ -277,7 +278,8 @@ async def _promote_docker_image(
     )
     build_url = f"https://console.cloud.google.com/cloud-build/builds/{operation.metadata.build.id}?project={target_gcp_project_id}"
     try:
-        await operation.result()
+        # For some reason timeout=None is not working, so we set it to 1 hour
+        await operation.result(timeout=3600)
     except Exception as e:
         raise exceptions.ServicePromoteFailed(
             error_message=str(e), promote_logs_or_link=build_url
