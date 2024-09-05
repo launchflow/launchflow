@@ -62,3 +62,27 @@ jobs:
         run: |
           source .venv/bin/activate
           pytest
+
+  # This verify basic functionality still works on all installs
+  # without extras installed
+  no_extras_install:
+    permissions:
+      contents: write
+      id-token: write
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.12
+
+      - name: Install dependencies
+        run: |
+          pip install -e .
+      - name: Test LaunchFlow Version
+        run: |
+          lf version
