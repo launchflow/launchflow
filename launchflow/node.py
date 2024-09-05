@@ -1,7 +1,7 @@
 import dataclasses
 from enum import Enum
 from functools import wraps
-from typing import Any, Dict, Generic, List, Optional, Set, TypeVar, get_args
+from typing import Any, Dict, Generic, List, Literal, Optional, Set, TypeVar, get_args
 
 from launchflow import exceptions
 from launchflow.models.enums import CloudProvider
@@ -61,7 +61,16 @@ class DependsOnValue:
 
 
 class Depends:
-    _mode = "plan"  # default mode
+    # The mode determines whether th dependencies should be resolved. There are three options:
+    # - maybe_resolve (default): The dependencies are resolved if the outputs are available. If not, a DependsOnValue object is returned.
+    #       - This mode is used when we are not sure if the outputs are available and we want to resolve them if they are.
+    # - always_resolve: The dependencies are resolved and the outputs are returned. This will error out if the outputs are not available.
+    #       - This mode is used when we are sure that the outputs are available and we want to resolve them.
+    # - never_resolve: The dependencies are not resolved and the DependsOnValue object is returned.
+    #      - This mode is used when we only want to know what the dependencies are without actually resolving them.
+    _mode: Literal["maybe_resolve", "always_resolve", "never_resolve"] = (
+        "maybe_resolve"  # default mode
+    )
 
     def __init__(self, node: "Node"):
         self.node = node
@@ -74,24 +83,28 @@ class Depends:
             setattr(self, field.name, self._create_field(field.name, field.type))
 
     def _create_field(self, name, field_type):
-        if Depends._mode == "plan":
+        if Depends._mode == "maybe_resolve":
             try:
                 if self._outputs is None:
                     self._outputs = self.node.outputs()
                 return getattr(self._outputs, name)
             except exceptions.ResourceOutputsNotFound:
                 return DependsOnValue(self.node, name, field_type)
-        elif Depends._mode == "execute":
+        elif Depends._mode == "always_resolve":
             if self._outputs is None:
                 self._outputs = self.node.outputs()
             return getattr(self._outputs, name)
+        elif Depends._mode == "never_resolve":
+            return DependsOnValue(self.node, name, field_type)
         else:
             raise ValueError("Invalid mode")
 
     @classmethod
     def set_mode(cls, mode):
-        if mode not in ("plan", "execute"):
-            raise ValueError("Mode must be either 'plan' or 'execute'")
+        if mode not in ("maybe_resolve", "always_resolve", "never_resolve"):
+            raise ValueError(
+                "Mode must be either 'maybe_resolve', 'always_resolve', or 'never_resolve'"
+            )
         cls._mode = mode
 
 
@@ -142,11 +155,11 @@ class Node(Generic[T]):
     def inputs(self, *args, **kwargs) -> Inputs:
         raise NotImplementedError
 
-    @mode("execute")
+    @mode("always_resolve")
     def execute_inputs(self, *args, **kwargs) -> Inputs:
         return self.inputs(*args, **kwargs)
 
-    @mode("plan")
+    @mode("maybe_resolve")
     def plan_inputs(self, *args, **kwargs) -> Inputs:
         return self.inputs(*args, **kwargs)
 
@@ -163,11 +176,11 @@ class Node(Generic[T]):
     def depends_on(self, *node: "Node") -> None:
         self._extra_dependencies.extend(node)
 
-    def _rec_inputs_depend_on(self, plan: Any, depends_on: Set["Node"]):
-        if not dataclasses.is_dataclass(plan):
+    def _rec_inputs_depend_on(self, inputs: Any, depends_on: Set["Node"]):
+        if not dataclasses.is_dataclass(inputs):
             return
-        for field in dataclasses.fields(plan):
-            value = getattr(plan, field.name)
+        for field in dataclasses.fields(inputs):
+            value = getattr(inputs, field.name)
             if isinstance(value, DependsOnValue):
                 depends_on.add(value.node)
             if dataclasses.is_dataclass(value):
@@ -177,6 +190,13 @@ class Node(Generic[T]):
         plan = self.plan_inputs(*args, **kwargs)
         depends_on = set(self._extra_dependencies)
         self._rec_inputs_depend_on(plan, depends_on)
+        return list(depends_on)
+
+    @mode("never_resolve")
+    def dependencies(self, *args, **kwargs) -> List["Node"]:
+        inputs = self.inputs(*args, **kwargs)
+        depends_on = set(self._extra_dependencies)
+        self._rec_inputs_depend_on(inputs, depends_on)
         return list(depends_on)
 
     def is_resource(self) -> bool:
