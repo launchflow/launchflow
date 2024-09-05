@@ -8,6 +8,10 @@ export const homeNavigation = [
     ],
   },
   {
+    title: 'Get Started',
+    links: [{ title: 'FastAPI', href: '/docs/get-started/fastapi' }],
+  },
+  {
     title: 'Concepts',
     links: [
       { title: 'Resources', href: '/docs/concepts/resources' },
@@ -15,6 +19,7 @@ export const homeNavigation = [
       { title: 'Environments', href: '/docs/concepts/environments' },
     ],
   },
+
   {
     title: 'User Guides',
     links: [
