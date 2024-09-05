@@ -149,9 +149,7 @@ class RDS(AWSResource[RDSOutputs]):
         - `publicly_accessible (Optional[bool])`: Whether the database should be publicly accessible. Defaults to `True` for development environments and `False` for production.
         - `engine_version (RDSEngineVersion)`: The engine version to use. Defaults to `RDSEngineVersion.POSTGRES16`.
         """
-        super().__init__(
-            name=name, resource_id=f"{name}-{lf.project}-{lf.environment}".lower()
-        )
+        super().__init__(name=name, resource_id=f"{name}-{lf.environment}".lower())
         self.allocated_storage_gb = allocated_storage_gb
         self.highly_available = highly_available
         self.instance_class = instance_class

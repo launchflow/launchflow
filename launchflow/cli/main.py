@@ -285,7 +285,9 @@ async def create(
         default_factory=list,
         help="Service name to create. If none we will scan the directory for available services. This can be specified multiple times to create multiple services.",
     ),
-    scan_directory: str = typer.Option(".", help=SCAN_DIRECTORY_HELP),
+    scan_directory: str = typer.Option(
+        ".", "--scan-directory", "-d", help=SCAN_DIRECTORY_HELP
+    ),
     auto_approve: bool = typer.Option(
         False, "--auto-approve", "-y", help="Auto approve resource creation."
     ),

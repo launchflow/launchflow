@@ -30,7 +30,7 @@ class ResourceProduct(str, Enum):
     GCP_WORKBENCH_INSTANCE = "gcp_workbench_instance"
     GCP_FIREWALL_ALLOW_RULE = "gcp_firewall_allow_rule"
     GCP_COMPUTE_HTTP_HEALTH_CHECK = "gcp_compute_http_health_check"
-    GCP_REGIONAL_AUTO_SCALER = "gcp_regional_auto_scaler"
+    GCP_REGIONAL_AUTOSCALER = "gcp_regional_autoscaler"
     GCP_GKE_CLUSTER = "gcp_gke_cluster"
     GCP_GKE_NODE_POOL = "gcp_gke_node_pool"
     GCP_FIREBASE_PROJECT = "gcp_firebase_project"
