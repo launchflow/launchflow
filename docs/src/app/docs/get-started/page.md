@@ -117,7 +117,7 @@ Then run it with:
 uvicorn main:app --port 8080
 ```
 
-If everything is set up correctly, you should see `Hello World` when you visit `http://localhost:8080/` in your browser.
+If everything is set up correctly, you should see `Hello World` when you visit [http://localhost:8080/](http://localhost:8080/) in your browser.
 
 
 ### Deploy Your Application
@@ -333,7 +333,7 @@ You can also run your application locally with the `lf run` command:
 lf run my-env -- uvicorn main:app --port 8080
 ```
 
-Visit `http://localhost:8080/` to see the updated response!
+Visit [http://localhost:8080/](http://localhost:8080/) to see the updated response!
   {% /tab %}
 
 {% /tabs %}
