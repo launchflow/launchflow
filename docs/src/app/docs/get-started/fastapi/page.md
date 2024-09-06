@@ -16,7 +16,82 @@ View the [entire source](https://github.com/launchflow/launchflow-examples/tree/
 
 {% tabProvider defaultLabel="AWS" %}
 
-## 1. Install LaunchFlow
+## 0. Setup your FastAPI Project
+
+If you already have a FastAPI Project you can skip to step [#1](#1-initialize-launch-flow).
+
+---
+
+Initialize a new directory for your project
+
+```bash
+mkdir launchflow-fastapi
+cd launchflow-fastapi
+```
+
+---
+
+Create a `main.py`:
+
+```python
+from fastapi import FastAPI
+import launchflow as lf
+
+app = FastAPI()
+
+@app.get("/")
+def index(name: str = ""):
+    return f"Hello from {lf.environment}"
+```
+
+---
+
+Create a `Dockerfile`:
+
+{% tabs %}
+{% tab label="AWS" %}
+```dockerfile
+FROM public.ecr.aws/docker/library/python:3.11-slim
+
+WORKDIR /code
+
+RUN apt-get update && apt-get install -y --no-install-recommends gcc libpq-dev && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN pip install --no-cache-dir -U pip setuptools wheel && pip install --no-cache-dir launchflow[aws] fastapi[standard]
+
+COPY ./main.py /code/main.py
+
+ENV PORT=80
+EXPOSE $PORT
+
+CMD fastapi run --host 0.0.0.0 --port $PORT
+```
+
+{% /tab %}
+{% tab label="GCP" %}
+
+```dockerfile
+FROM python:3.11-slim
+
+WORKDIR /code
+
+RUN apt-get update && apt-get install -y --no-install-recommends gcc libpq-dev && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN pip install --no-cache-dir -U pip setuptools wheel && pip install --no-cache-dir launchflow[gcp] fastapi[standard]
+
+COPY ./main.py /code/main.py
+
+ENV PORT=8080
+EXPOSE $PORT
+
+CMD fastapi run main.py --host 0.0.0.0 --port $PORT
+```
+
+{% /tab %}
+{% /tabs %}
+
+---
+
+
+## 1. Initialize LaunchFlow
 
 Install the LaunchFlow Python SDK and CLI using `pip`.
 
@@ -39,24 +114,17 @@ pip install "launchflow[gcp]"
 
 ---
 
-## 2. Setup your project
-
-#### Initialize LaunchFlow
-
-Initialize LaunchFlow in a new directory.
+Initialize LaunchFlow in your project
 
 ```bash
-mkdir launchflow-fastapi
-cd launchflow-fastapi
 lf init --backend=local
 ```
 
+Creates a `launchflow.yaml` file and stores all your launchflow state in a local directory.
+
 ---
 
-## 3. Create Your Application
-
-
-Create a new file called `infra.py` and add a bucket to it.
+Create an `infra.py` file to define your infrastructure:
 
 {% tabs %}
 {% tab label="AWS" %}
@@ -81,104 +149,18 @@ bucket = lf.gcp.GCSBucket(f"new-bucket-{lf.project}-{lf.environment}", force_des
 
 ---
 
-Create a new file called `main.py` with the following content:
-
-```python
-from typing_extensions import Optional
-from fastapi import FastAPI
-from infra import bucket
-
-app = FastAPI()
-
-@app.get("/")
-def get_name(name: str = ""):
-    if not name:
-        return "Please provide a name"
-    try:
-        name_bytes = bucket.download_file(f"{name}.txt");
-        return name_bytes.decode("utf-8")
-    except:
-        return f"{name} was not found"
-
-@app.post("/")
-def post_name(name: str):
-    bucket.upload_from_string(name, f"{name}.txt")
-    return "ok"
-```
-
----
-
-Create your bucket and cloud environment. Before running the following command, make sure you have your [AWS credentials](/docs/user-guides/aws-authentication) or [GCP credentials](/docs/user-guides/gcp-authentication) configured.
-
-```bash
-lf create
-```
-
-Name your environment, select your cloud provider (`AWS` or `GCP`), and confirm the resources to be created.
-
----
-
-Run the application locally, replace `ENV_NAME` with the name you gave your environment in the previous step:
-
-```bash
-pip install fastapi[standard]
-lf run $ENV_NAME -- fastapi dev main.py --port 8080
-```
-
----
-
-Upload and download a file to your bucket with:
-
-```bash
-curl -X POST http://localhost:8080?name=me
-curl http://localhost:8080?name=me
-```
-
----
-
-## 4. Deploy Your Application
+## 2. Deploy your Application
 
 {% tabs %}
-
-  {% tab label="AWS" %}
-
-Create a `Dockerfile` next to your `main.py` file with the following content:
-
-```Dockerfile
-FROM public.ecr.aws/docker/library/python:3.11-slim
-
-WORKDIR /code
-
-RUN apt-get update && apt-get install -y --no-install-recommends gcc libpq-dev && apt-get clean && rm -rf /var/lib/apt/lists/*
-RUN pip install --no-cache-dir -U pip setuptools wheel && pip install --no-cache-dir launchflow[aws] fastapi[standard]
-
-COPY ./main.py /code/main.py
-COPY ./infra.py /code/infra.py
-
-ENV PORT=80
-EXPOSE $PORT
-
-CMD fastapi run --host 0.0.0.0 --port $PORT
-```
-
----
-
-Add ECS Fargate to your `infra.py` file:
-
-```python,1,4+
-import launchflow as lf
-
-bucket = lf.aws.S3Bucket(f"new-bucket-{lf.project}-{lf.environment}", force_destroy=True)
-ecs_fargate = lf.aws.ECSFargate("my-ecs-fargate")
-```
-
----
+{% tab label="AWS" %}
 
 Deploy your app to AWS:
 
 ```bash
 lf deploy
 ```
+
+Name your environment, select your cloud provider (`AWS`), and confirm the resources to be created, and service to deploy.
 
 ---
 
@@ -196,45 +178,13 @@ Once complete you will see a link to your deployed service on AWS Fargate.
 
   {% tab label="GCP" %}
 
-Create a `Dockerfile` next to your `main.py` file with the following content:
-
-```Dockerfile
-FROM python:3.11-slim
-
-WORKDIR /code
-
-RUN apt-get update && apt-get install -y --no-install-recommends gcc libpq-dev && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-RUN pip install --no-cache-dir -U pip setuptools wheel && pip install --no-cache-dir launchflow[gcp] fastapi[standard]
-
-COPY ./main.py /code/main.py
-COPY ./infra.py /code/infra.py
-
-ENV PORT=8080
-
-EXPOSE $PORT
-
-CMD fastapi run main.py --host 0.0.0.0 --port $PORT
-```
-
----
-
-Add cloud run to your `infra.py` file:
-
-```python,1,4+
-import launchflow as lf
-
-bucket = lf.gcp.GCSBucket(f"new-bucket-{lf.project}-{lf.environment}", force_destroy=True)
-cloud_run = lf.gcp.CloudRun("my-cloud-run")
-```
-
----
-
 Deploy your app to GCP:
 
 ```bash
 lf deploy
 ```
+
+Name your environment, select your cloud provider (`GCP`), and confirm the resources to be created, and service to deploy.
 
 ---
 
@@ -247,14 +197,13 @@ Once complete you will see a link to your deployed service on GCP Cloud Run.
 
 ![Deploy Result](/images/deploy-terminal.png)
 
----
   {% /tab %}
 
 {% /tabs %}
 
 ---
 
-## 5. Clean up your resources
+## 3. Clean up your resources
 
 Optionally you can delete all your resources, service, and environments with:
 
@@ -263,7 +212,7 @@ lf destroy
 lf environment delete
 ```
 
-## 6. Visualize, Share, and Automate
+## 4. Visualize, Share, and Automate
 
 ![LaunchFlow Console](/images/console.png)
 
