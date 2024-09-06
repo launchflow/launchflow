@@ -226,7 +226,7 @@ app = FastAPI()
 def index():
     return f'Hello from {lf.environment}!'
 
-# Deploy Postgres hosted on (GCP) Cloud SQL
+# Deploy FastAPI to Cloud Run (GCP)
 api = lf.gcp.CloudRun("my-api", domain="your-domain.com")
 ```
 
