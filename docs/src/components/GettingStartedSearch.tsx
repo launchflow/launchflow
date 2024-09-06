@@ -1,4 +1,3 @@
-import { Card, CardHeader, CardTitle, CardDescription } from './ui/card'
 import Link from 'next/link'
 
 function SearchIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
