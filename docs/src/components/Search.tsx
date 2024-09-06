@@ -162,7 +162,8 @@ function SearchResult({
   let id = useId()
 
   let sectionTitle = homeNavigation.find((section) =>
-    section.links.find((link) => link.href === result.url.split('#')[0]),
+    // TODO: remove the !
+    section.links.find((link) => link!.href === result.url.split('#')[0]),
   )?.title
   let hierarchy = [sectionTitle, result.pageTitle].filter(
     (x): x is string => typeof x === 'string',
