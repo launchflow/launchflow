@@ -1,5 +1,16 @@
 import Link from 'next/link'
 
+const keywordColors = {
+  python:
+    'inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-600 ring-1 ring-inset ring-yellow-500/10',
+  backend:
+    'inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-600 ring-1 ring-inset ring-blue-500/10',
+  frontend:
+    'inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-600 ring-1 ring-inset ring-red-500/10',
+  'full-stack':
+    'inline-flex items-center rounded-md bg-violet-50 px-2 py-1 text-xs font-medium text-violet-600 ring-1 ring-inset ring-violet-500/10',
+}
+
 function SearchIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
   return (
     <svg aria-hidden="true" viewBox="0 0 20 20" {...props}>
@@ -10,21 +21,32 @@ function SearchIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
 
 function FrameWorkCard({
   title,
-  description,
   href,
+  keywords,
 }: {
   title: string
-  description: string
   href: string
+  keywords?: string[]
 }) {
   return (
     <Link href={href} className="no-decoration">
-      <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-md">
+      <div className="h-full rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-md">
         <div className="flex flex-col space-y-1.5 p-6">
           <h3 className="mt-0 text-2xl font-semibold leading-none tracking-tight">
             {title}
           </h3>
-          <p className="text-sm text-gray-400">{description}</p>
+          <div className="flex flex-wrap gap-1">
+            {keywords?.map((keyword) => {
+              const clz =
+                keywordColors[keyword as keyof typeof keywordColors] ||
+                'inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10'
+              return (
+                <span key={keyword} className={clz}>
+                  {keyword}
+                </span>
+              )
+            })}
+          </div>
         </div>
       </div>
     </Link>
@@ -35,13 +57,18 @@ export function GettingStartedSearch() {
   const cards = [
     {
       title: 'FastAPI',
-      description: 'Deploy a FastAPI backend application to AWS or GCP',
       href: '/docs/get-started/fastapi',
+      keywords: ['python', 'backend'],
     },
     {
       title: 'Flask',
-      description: 'Deploy a Flask backend application to AWS or GCP',
       href: '/docs/get-started/flask',
+      keywords: ['python', 'backend'],
+    },
+    {
+      title: 'SvelteKit',
+      href: '/docs/get-started/svelte',
+      keywords: ['python', 'backend', 'frontend', 'full-stack'],
     },
   ]
   return (
@@ -53,7 +80,7 @@ export function GettingStartedSearch() {
           placeholder="Find a guide..."
         />
       </span>
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
         {cards.map((card) => (
           <FrameWorkCard key={card.title} {...card} />
         ))}
