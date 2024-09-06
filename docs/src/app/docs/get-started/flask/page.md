@@ -1,9 +1,9 @@
 ---
-title: FastAPI with LaunchFlow
+title: Flask with LaunchFlow
 nextjs:
   metadata:
-    title: FastAPI with LaunchFlow
-    description: Deploy FastAPI to AWS / GCP with LAunchflow
+    title: Flask with LaunchFlow
+    description: Deploy Flask to AWS / GCP with LaunchFlow
 ---
 
 {% tabProvider defaultLabel="AWS" %}
@@ -38,15 +38,14 @@ pip install "launchflow[gcp]"
 Initialize LaunchFlow in a new directory.
 
 ```bash
-mkdir launchflow-fastapi
-cd launchflow-fastapi
+mkdir launchflow-flask
+cd launchflow-flask
 lf init --backend=local
 ```
 
 ---
 
 ## 3. Create Your Application
-
 
 Create a new file called `infra.py` and add a bucket to it.
 
@@ -73,27 +72,31 @@ bucket = lf.gcp.GCSBucket(f"new-bucket-{lf.project}-{lf.environment}")
 
 ---
 
-
-Create a new file called `main.py` with the following content:
+Create a new file called `app.py` with the following content:
 
 ```python
-from fastapi import FastAPI
+from flask import Flask, request
 from infra import bucket
 
-app = FastAPI()
+app = Flask(__name__)
 
-@app.get("/")
-def get_name(name: str):
+@app.route("/", methods=["GET"])
+def get_name():
+    name = request.args.get("name")
     try:
-        name_bytes = bucket.download_file("name.txt");
+        name_bytes = bucket.download_file("name.txt")
         return name_bytes.decode("utf-8")
     except:
         return f"{name} was not found"
 
-@app.post("/")
-def post_name(name: str):
+@app.route("/", methods=["POST"])
+def post_name():
+    name = request.args.get("name")
     bucket.upload_from_string("name.txt", name)
-    return "ok""
+    return "ok"
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8080)
 ```
 
 ---
@@ -111,8 +114,8 @@ Name your environment, select your cloud provider (`AWS` or `GCP`), and confirm 
 Run the application locally with:
 
 ```bash
-pip install fastapi[standard]
-fastapi run main.py --port 8080
+pip install flask
+python app.py
 ```
 
 ---
@@ -132,7 +135,7 @@ curl http://localhost:8080?name=me
 
   {% tab label="AWS" %}
 
-Create a `Dockerfile` next to your `main.py` file with the following content:
+Create a `Dockerfile` next to your `app.py` file with the following content:
 
 ```Dockerfile
 FROM public.ecr.aws/docker/library/python:3.11-slim
@@ -140,14 +143,14 @@ FROM public.ecr.aws/docker/library/python:3.11-slim
 WORKDIR /code
 
 RUN apt-get update && apt-get install -y --no-install-recommends gcc libpq-dev && apt-get clean && rm -rf /var/lib/apt/lists/*
-RUN pip install --no-cache-dir -U pip setuptools wheel && pip install --no-cache-dir launchflow[aws] fastapi uvicorn
+RUN pip install --no-cache-dir -U pip setuptools wheel && pip install --no-cache-dir launchflow[aws] flask
 
-COPY ./main.py /code/main.py
+COPY ./app.py /code/app.py
 
 ENV PORT=80
 EXPOSE $PORT
 
-CMD uvicorn main:app --host 0.0.0.0 --port $PORT
+CMD python app.py
 ```
 
 ---
@@ -185,7 +188,7 @@ Once complete you will see a link to your deployed service on AWS Fargate.
 
   {% tab label="GCP" %}
 
-Create a `Dockerfile` next to your `main.py` file with the following content:
+Create a `Dockerfile` next to your `app.py` file with the following content:
 
 ```Dockerfile
 FROM python:3.11-slim
@@ -194,15 +197,15 @@ WORKDIR /code
 
 RUN apt-get update && apt-get install -y --no-install-recommends gcc libpq-dev && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir -U pip setuptools wheel && pip install --no-cache-dir launchflow[gcp] fastapi uvicorn
+RUN pip install --no-cache-dir -U pip setuptools wheel && pip install --no-cache-dir launchflow[gcp] flask
 
-COPY ./main.py /code/main.py
+COPY ./app.py /code/app.py
 
 ENV PORT=8080
 
 EXPOSE $PORT
 
-CMD uvicorn main:app --host 0.0.0.0 --port $PORT
+CMD python app.py
 ```
 
 ---

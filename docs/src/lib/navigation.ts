@@ -3,13 +3,16 @@ export const homeNavigation = [
     title: 'Introduction',
     links: [
       { title: 'Welcome', href: '/' },
-      { title: 'Get Started', href: '/docs/get-started' },
       { title: 'Why LaunchFlow', href: '/docs/why-launchflow' },
     ],
   },
   {
     title: 'Get Started',
-    links: [{ title: 'FastAPI', href: '/docs/get-started/fastapi' }],
+    links: [
+      { title: 'Overview', href: '/docs/get-started' },
+      { title: 'FastAPI', href: '/docs/get-started/fastapi' },
+      { title: 'Flask', href: '/docs/get-started/flask' },
+    ],
   },
   {
     title: 'Concepts',
@@ -23,6 +26,15 @@ export const homeNavigation = [
   {
     title: 'User Guides',
     links: [
+      {
+        title: 'AWS Authentication',
+        href: '/docs/user-guides/aws-authentication',
+      },
+      {
+        title: 'GCP Authentication',
+        href: '/docs/user-guides/gcp-authentication',
+      },
+      ,
       { title: 'Secrets', href: '/docs/user-guides/secrets' },
       {
         title: 'Dynamic Resource Names',

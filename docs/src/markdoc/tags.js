@@ -6,8 +6,12 @@ import { TabProvider } from '@/components/TabProvider'
 import { Tabs } from '@/components/Tabs'
 import { Tab } from '@/components/Tab'
 import { FrameImage } from '@/components/FrameImage'
+import { GettingStartedSearch } from '@/components/GettingStartedSearch'
 
 const tags = {
+  gettingStartedSearch: {
+    render: GettingStartedSearch,
+  },
   frameImage: {
     render: FrameImage,
     attributes: {
