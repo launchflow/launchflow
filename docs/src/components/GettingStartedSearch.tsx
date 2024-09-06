@@ -19,13 +19,15 @@ function FrameWorkCard({
   href: string
 }) {
   return (
-    <Link href={href}>
-      <Card className="hover:shadow-md">
-        <CardHeader>
-          <CardTitle>{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
-        </CardHeader>
-      </Card>
+    <Link href={href} className="no-decoration">
+      <div className="rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-md">
+        <div className="flex flex-col space-y-1.5 p-6">
+          <h3 className="mt-0 text-2xl font-semibold leading-none tracking-tight">
+            {title}
+          </h3>
+          <p className="text-sm text-gray-400">{description}</p>
+        </div>
+      </div>
     </Link>
   )
 }
