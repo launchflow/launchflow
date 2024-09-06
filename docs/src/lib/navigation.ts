@@ -12,6 +12,8 @@ export const homeNavigation = [
       { title: 'Overview', href: '/docs/get-started' },
       { title: 'FastAPI', href: '/docs/get-started/fastapi' },
       { title: 'Flask', href: '/docs/get-started/flask' },
+      { title: 'Django', href: '/docs/get-started/django' },
+      { title: 'Docker Image', href: '/docs/get-started/docker-image' },
     ],
   },
   {

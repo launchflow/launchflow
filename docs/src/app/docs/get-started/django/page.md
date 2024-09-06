@@ -1,16 +1,16 @@
 ---
-title: FastAPI with LaunchFlow
+title: Django with LaunchFlow
 nextjs:
   metadata:
-    title: FastAPI with LaunchFlow
-    description: Deploy FastAPI to AWS / GCP with LAunchflow
+    title: Django with LaunchFlow
+    description: Deploy Django to AWS / GCP with LaunchFlow
 ---
 
-Create a FastAPI backend that reads and writes to a S3 or GCS bucket and deploys to AWS ECS Fargate or GCP Cloud run.
+Create a Django backend that reads and writes to a S3 or GCS bucket and deploys to AWS ECS Fargate or GCP Cloud run.
 
 {% callout type="note" %}
 
-View the [entire source](https://github.com/launchflow/launchflow-examples/tree/main/fastapi-get-started) for this in our examples repo.
+View the [entire source](https://github.com/launchflow/launchflow-examples/tree/main/django-get-started) for this in our examples repo.
 
 {% /callout %}
 
@@ -24,14 +24,14 @@ Install the LaunchFlow Python SDK and CLI using `pip`.
 {% tab label="AWS" %}
 
 ```bash
-pip install "launchflow[aws]"
+pip install "launchflow[aws]" django
 ```
 
 {% /tab %}
 {% tab label="GCP" %}
 
 ```bash
-pip install "launchflow[gcp]"
+pip install "launchflow[gcp]" django
 ```
 
 {% /tab %}
@@ -41,22 +41,23 @@ pip install "launchflow[gcp]"
 
 ## 2. Setup your project
 
-#### Initialize LaunchFlow
+#### Initialize LaunchFlow and Django
 
-Initialize LaunchFlow in a new directory.
+Initialize LaunchFlow in a new directory and create a Django project.
 
 ```bash
-mkdir launchflow-fastapi
-cd launchflow-fastapi
+mkdir launchflow-django
+cd launchflow-django
 lf init --backend=local
+django-admin startproject lfdjango .
+python manage.py startapp app
 ```
 
 ---
 
 ## 3. Create Your Application
 
-
-Create a new file called `infra.py` and add a bucket to it.
+Create a new file called `infra.py` in the `app` directory and add a bucket to it.
 
 {% tabs %}
 {% tab label="AWS" %}
@@ -81,29 +82,42 @@ bucket = lf.gcp.GCSBucket(f"new-bucket-{lf.project}-{lf.environment}", force_des
 
 ---
 
-Create a new file called `main.py` with the following content:
+Update `app/views.py` with the following content:
 
 ```python
-from typing_extensions import Optional
-from fastapi import FastAPI
-from infra import bucket
+from django.http import HttpResponse
+from app.infra import bucket
 
-app = FastAPI()
-
-@app.get("/")
-def get_name(name: str = ""):
+def get_name(request):
+    name = request.GET.get('name', '')
     if not name:
-        return "Please provide a name"
+        return HttpResponse("Please provide a name")
     try:
-        name_bytes = bucket.download_file(f"{name}.txt");
-        return name_bytes.decode("utf-8")
+        name_bytes = bucket.download_file(f"{name}.txt")
+        return HttpResponse(name_bytes.decode("utf-8"))
     except:
-        return f"{name} was not found"
+        return HttpResponse(f"{name} was not found")
 
-@app.post("/")
-def post_name(name: str):
-    bucket.upload_from_string(name, f"{name}.txt")
-    return "ok"
+def post_name(request):
+    name = request.POST.get('name', '')
+    if name:
+        bucket.upload_from_string(name, f"{name}.txt")
+        return HttpResponse("ok")
+    return HttpResponse("Please provide a name", status=400)
+```
+
+---
+
+Update `lfdjango/urls.py`:
+
+```python
+from django.urls import path
+from app import views
+
+urlpatterns = [
+    path('', views.get_name, name='get_name'),
+    path('post_name/', views.post_name, name='post_name'),
+]
 ```
 
 ---
@@ -118,11 +132,30 @@ Name your environment, select your cloud provider (`AWS` or `GCP`), and confirm 
 
 ---
 
+<!---
+TODO update this to actually set the appropriate values
+-->
+
+Update `lfdjango/settings.py` to allow hosts and remove CSRF middleware:
+
+```python
+ALLOWED_HOSTS = ["*"]
+...
+MIDDLEWARE = [
+    ...
+    # "django.middleware.csrf.CsrfViewMiddleware",
+    ...
+]
+```
+
+You will want to change these in production later, but now lets just get things working.
+
+---
+
 Run the application locally, replace `ENV_NAME` with the name you gave your environment in the previous step:
 
 ```bash
-pip install fastapi[standard]
-lf run $ENV_NAME -- fastapi dev main.py --port 8080
+lf run $ENV_NAME -- python manage.py runserver 0.0.0.0:8000
 ```
 
 ---
@@ -130,8 +163,8 @@ lf run $ENV_NAME -- fastapi dev main.py --port 8080
 Upload and download a file to your bucket with:
 
 ```bash
-curl -X POST http://localhost:8080?name=me
-curl http://localhost:8080?name=me
+curl -X POST -d "name=me" http://localhost:8000/post_name/
+curl "http://localhost:8000?name=me"
 ```
 
 ---
@@ -142,7 +175,7 @@ curl http://localhost:8080?name=me
 
   {% tab label="AWS" %}
 
-Create a `Dockerfile` next to your `main.py` file with the following content:
+Create a `Dockerfile` in your project root with the following content:
 
 ```Dockerfile
 FROM public.ecr.aws/docker/library/python:3.11-slim
@@ -150,22 +183,21 @@ FROM public.ecr.aws/docker/library/python:3.11-slim
 WORKDIR /code
 
 RUN apt-get update && apt-get install -y --no-install-recommends gcc libpq-dev && apt-get clean && rm -rf /var/lib/apt/lists/*
-RUN pip install --no-cache-dir -U pip setuptools wheel && pip install --no-cache-dir launchflow[aws] fastapi[standard]
+RUN pip install --no-cache-dir -U pip setuptools wheel && pip install --no-cache-dir launchflow[aws] django
 
-COPY ./main.py /code/main.py
-COPY ./infra.py /code/infra.py
+COPY . /code/
 
 ENV PORT=80
 EXPOSE $PORT
 
-CMD fastapi run --host 0.0.0.0 --port $PORT
+CMD python manage.py runserver 0.0.0.0:$PORT
 ```
 
 ---
 
 Add ECS Fargate to your `infra.py` file:
 
-```python,1,4+
+```python
 import launchflow as lf
 
 bucket = lf.aws.S3Bucket(f"new-bucket-{lf.project}-{lf.environment}", force_destroy=True)
@@ -180,23 +212,11 @@ Deploy your app to AWS:
 lf deploy
 ```
 
----
-
-You will be able to view the plan and confirm before the resources are created.
-![Deploy Plan](/images/plan-terminal-aws.png)
-
----
-
-Once complete you will see a link to your deployed service on AWS Fargate.
-
-![Deploy Result](/images/deploy-terminal-aws.png)
-
-
   {% /tab %}
 
   {% tab label="GCP" %}
 
-Create a `Dockerfile` next to your `main.py` file with the following content:
+Create a `Dockerfile` in your project root with the following content:
 
 ```Dockerfile
 FROM python:3.11-slim
@@ -204,24 +224,21 @@ FROM python:3.11-slim
 WORKDIR /code
 
 RUN apt-get update && apt-get install -y --no-install-recommends gcc libpq-dev && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN pip install --no-cache-dir -U pip setuptools wheel && pip install --no-cache-dir launchflow[gcp] django
 
-RUN pip install --no-cache-dir -U pip setuptools wheel && pip install --no-cache-dir launchflow[gcp] fastapi[standard]
-
-COPY ./main.py /code/main.py
-COPY ./infra.py /code/infra.py
+COPY . /code/
 
 ENV PORT=8080
-
 EXPOSE $PORT
 
-CMD fastapi run main.py --host 0.0.0.0 --port $PORT
+CMD python manage.py runserver 0.0.0.0:$PORT
 ```
 
 ---
 
 Add cloud run to your `infra.py` file:
 
-```python,1,4+
+```python
 import launchflow as lf
 
 bucket = lf.gcp.GCSBucket(f"new-bucket-{lf.project}-{lf.environment}", force_destroy=True)
@@ -236,18 +253,6 @@ Deploy your app to GCP:
 lf deploy
 ```
 
----
-
-You will be able to view the plan and confirm before the resources are created.
-![Deploy Plan](/images/plan-terminal.png)
-
----
-
-Once complete you will see a link to your deployed service on GCP Cloud Run.
-
-![Deploy Result](/images/deploy-terminal.png)
-
----
   {% /tab %}
 
 {% /tabs %}
@@ -264,6 +269,7 @@ lf environment delete
 ```
 
 ## 6. Visualize, Share, and Automate
+
 
 ![LaunchFlow Console](/images/console.png)
 
@@ -289,5 +295,3 @@ This will create a project in your LaunchFlow Cloud account and migrate your loc
 - Join the [LaunchFlow Slack community](https://join.slack.com/t/launchflowusers/shared_invite/zt-2pc3o5cbq-HZrMzlZXW2~Xs1CABbgPKQ) to ask questions and get help
 
 <!-- - Checkout out our [example applications](/examples) to see even more way to use LaunchFlow. -->
-
-{% /tabProvider %}

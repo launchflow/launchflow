@@ -6,6 +6,14 @@ nextjs:
     description: Deploy Flask to AWS / GCP with LaunchFlow
 ---
 
+Create a Flask backend that reads and writes to a S3 or GCS bucket and deploys to AWS ECS Fargate or GCP Cloud run.
+
+{% callout type="note" %}
+
+View the [entire source](https://github.com/launchflow/launchflow-examples/tree/main/flask-get-started) for this in our examples repo.
+
+{% /callout %}
+
 {% tabProvider defaultLabel="AWS" %}
 
 ## 1. Install LaunchFlow
@@ -55,7 +63,7 @@ Create a new file called `infra.py` and add a bucket to it.
 ```python
 import launchflow as lf
 
-bucket = lf.aws.S3Bucket(f"new-bucket-{lf.project}-{lf.environment}")
+bucket = lf.aws.S3Bucket(f"new-bucket-{lf.project}-{lf.environment}", force_destroy=True)
 ```
 
 {% /tab %}
@@ -64,7 +72,7 @@ bucket = lf.aws.S3Bucket(f"new-bucket-{lf.project}-{lf.environment}")
 ```python
 import launchflow as lf
 
-bucket = lf.gcp.GCSBucket(f"new-bucket-{lf.project}-{lf.environment}")
+bucket = lf.gcp.GCSBucket(f"new-bucket-{lf.project}-{lf.environment}", force_destroy=True)
 ```
 
 {% /tab %}
@@ -72,7 +80,7 @@ bucket = lf.gcp.GCSBucket(f"new-bucket-{lf.project}-{lf.environment}")
 
 ---
 
-Create a new file called `app.py` with the following content:
+Create a new file called `main.py` with the following content:
 
 ```python
 from flask import Flask, request
@@ -83,8 +91,10 @@ app = Flask(__name__)
 @app.route("/", methods=["GET"])
 def get_name():
     name = request.args.get("name")
+    if not name:
+        return "Please provide a name"
     try:
-        name_bytes = bucket.download_file("name.txt")
+        name_bytes = bucket.download_file(f"{name}.txt")
         return name_bytes.decode("utf-8")
     except:
         return f"{name} was not found"
@@ -92,11 +102,10 @@ def get_name():
 @app.route("/", methods=["POST"])
 def post_name():
     name = request.args.get("name")
-    bucket.upload_from_string("name.txt", name)
+    if not name:
+        return "Please provide a name"
+    bucket.upload_from_string(name, f"{name}.txt")
     return "ok"
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
 ```
 
 ---
@@ -111,11 +120,11 @@ Name your environment, select your cloud provider (`AWS` or `GCP`), and confirm 
 
 ---
 
-Run the application locally with:
+Run the application locally, replace `ENV_NAME` with the name you gave your environment in the previous step:
 
 ```bash
-pip install flask
-python app.py
+pip install flask gunicorn
+lf run $ENV_NAME -- gunicorn  main:app -b 0.0.0.0:8080
 ```
 
 ---
@@ -135,7 +144,7 @@ curl http://localhost:8080?name=me
 
   {% tab label="AWS" %}
 
-Create a `Dockerfile` next to your `app.py` file with the following content:
+Create a `Dockerfile` next to your `main.py` file with the following content:
 
 ```Dockerfile
 FROM public.ecr.aws/docker/library/python:3.11-slim
@@ -143,14 +152,15 @@ FROM public.ecr.aws/docker/library/python:3.11-slim
 WORKDIR /code
 
 RUN apt-get update && apt-get install -y --no-install-recommends gcc libpq-dev && apt-get clean && rm -rf /var/lib/apt/lists/*
-RUN pip install --no-cache-dir -U pip setuptools wheel && pip install --no-cache-dir launchflow[aws] flask
+RUN pip install --no-cache-dir -U pip setuptools wheel && pip install --no-cache-dir launchflow[aws] flask gunicorn
 
-COPY ./app.py /code/app.py
+COPY ./main.py /code/main.py
+COPY ./infra.py /code/infra.py
 
 ENV PORT=80
 EXPOSE $PORT
 
-CMD python app.py
+CMD gunicorn  main:app -b 0.0.0.0:$PORT
 ```
 
 ---
@@ -166,10 +176,10 @@ ecs_fargate = lf.aws.ECSFargate("my-ecs-fargate")
 
 ---
 
-Deploy your app to AWS with:
+Deploy your app to AWS:
 
 ```bash
-lf deploy my-env
+lf deploy
 ```
 
 ---
@@ -188,7 +198,7 @@ Once complete you will see a link to your deployed service on AWS Fargate.
 
   {% tab label="GCP" %}
 
-Create a `Dockerfile` next to your `app.py` file with the following content:
+Create a `Dockerfile` next to your `main.py` file with the following content:
 
 ```Dockerfile
 FROM python:3.11-slim
@@ -197,15 +207,15 @@ WORKDIR /code
 
 RUN apt-get update && apt-get install -y --no-install-recommends gcc libpq-dev && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir -U pip setuptools wheel && pip install --no-cache-dir launchflow[gcp] flask
+RUN pip install --no-cache-dir -U pip setuptools wheel && pip install --no-cache-dir launchflow[gcp] flask gunicorn
 
-COPY ./app.py /code/app.py
+COPY ./main.py /code/main.py
+COPY ./infra.py /code/infra.py
 
 ENV PORT=8080
-
 EXPOSE $PORT
 
-CMD python app.py
+CMD gunicorn  main:app -b 0.0.0.0:$PORT
 ```
 
 ---
@@ -221,10 +231,10 @@ cloud_run = lf.gcp.CloudRun("my-cloud-run")
 
 ---
 
-Deploy your app to GCP with:
+Deploy your app to GCP:
 
 ```bash
-lf deploy my-env
+lf deploy
 ```
 
 ---
@@ -245,7 +255,16 @@ Once complete you will see a link to your deployed service on GCP Cloud Run.
 
 ---
 
-## 5. Visualize, Share, and Automate
+## 5. Clean up your resources
+
+Optionally you can delete all your resources, service, and environments with:
+
+```bash
+lf destroy
+lf environment delete
+```
+
+## 6. Visualize, Share, and Automate
 
 ![LaunchFlow Console](/images/console.png)
 
