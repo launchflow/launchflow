@@ -22,7 +22,6 @@ export const homeNavigation = [
       { title: 'Environments', href: '/docs/concepts/environments' },
     ],
   },
-
   {
     title: 'User Guides',
     links: [
@@ -34,7 +33,6 @@ export const homeNavigation = [
         title: 'GCP Authentication',
         href: '/docs/user-guides/gcp-authentication',
       },
-      ,
       { title: 'Secrets', href: '/docs/user-guides/secrets' },
       {
         title: 'Dynamic Resource Names',
