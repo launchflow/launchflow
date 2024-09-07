@@ -134,3 +134,8 @@
   text-decoration: none !important;
   box-shadow: none !important;
 }
+
+.dark hr {
+  --tw-border-opacity: 0.4;
+  border-color: rgb(var(--color-secondary) / var(--tw-border-opacity));
+}

@@ -2,7 +2,7 @@ import { type Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import localFont from 'next/font/local'
 import clsx from 'clsx'
-import { Suspense } from "react";
+import { Suspense } from 'react'
 import { Providers, PHProvider, PostHogPageview } from '@/app/providers'
 import { Layout } from '@/components/Layout'
 
@@ -13,8 +13,6 @@ const inter = Inter({
   display: 'swap',
   variable: '--font-inter',
 })
-
-// useTheme("dark")
 
 // Use local version of Lexend so that we can use OpenType features
 const lexend = localFont({
@@ -30,16 +28,16 @@ export const metadata: Metadata = {
   },
   description: 'Python-native infrastructure for GCP, AWS, and Docker.',
   openGraph: {
-    url: "https://www.launchflow.com",
-    title: "LaunchFlow - Docs",
-    description: "Python-native infrastructure for GCP, AWS, and Docker.",
-    type: "website",
+    url: 'https://www.launchflow.com',
+    title: 'LaunchFlow - Docs',
+    description: 'Python-native infrastructure for GCP, AWS, and Docker.',
+    type: 'website',
     images: [
       {
-        url: "/images/environments_dark.png",
+        url: '/images/environments_dark.png',
         width: 400,
         height: 400,
-        alt: "LaunchFlow",
+        alt: 'LaunchFlow',
       },
     ],
   },
@@ -60,7 +58,7 @@ export default function RootLayout({
         <PostHogPageview />
       </Suspense>
       <PHProvider>
-        <body className="flex min-h-full bg-white dark:bg-background_dark light">
+        <body className="light flex min-h-full bg-white dark:bg-background_dark">
           <Providers>
             <Layout>{children}</Layout>
           </Providers>

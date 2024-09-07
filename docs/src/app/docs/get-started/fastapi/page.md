@@ -10,7 +10,7 @@ Create a FastAPI backend that reads and writes to a S3 or GCS bucket and deploys
 
 {% callout type="note" %}
 
-View the [entire source](https://github.com/launchflow/launchflow-examples/tree/main/fastapi-get-started) for this in our examples repo.
+View the source code for this guide in our [examples repo](https://github.com/launchflow/launchflow-examples/tree/main/fastapi-get-started).
 
 {% /callout %}
 
@@ -41,7 +41,7 @@ app = FastAPI()
 
 @app.get("/")
 def index(name: str = ""):
-    return f"Hello from {lf.environment}"
+    return f"Hello from {lf.project}/{lf.environment}"
 ```
 
 ---
@@ -120,7 +120,7 @@ Initialize LaunchFlow in your project
 lf init --backend=local
 ```
 
-Creates a `launchflow.yaml` file and stores all your launchflow state in a local directory.
+This command creates a `launchflow.yaml` file and stores all your launchflow state in a local directory.
 
 ---
 

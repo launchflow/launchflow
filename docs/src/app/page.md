@@ -1,5 +1,6 @@
 ---
-title: Welcome
+title: LaunchFlow Docs
+subtitle: Launch websites, APIs, and workers to AWS / GCP with minimal configuration
 ---
 
 LaunchFlow is an open source Python SDK that lets you launch websites, APIs, and workers to AWS / GCP with minimal configuration.
@@ -25,13 +26,12 @@ Python is just the language for your cloud configuration, similar to how Terrafo
 [Environments](/docs/concepts/environments) manage the networking, permissions, and configuration of your **Services** and **Resources** inside a dedicated VPC. You can switch between environments with a single command.
 
 
-{% quick-links %}
+## Get Started
 
-{% quick-link title="Get Started" icon="lightbulb" href="/docs/get-started" description="Get Started with LaunchFlow" /%}
+Get started with the framework of your choice or any Docker image.
 
-{% quick-link title="Example Backend" icon="lightbulb" href="/examples/fastapi/simple-crud-api" description="Create a simple API with LaunchFlow" /%}
+{% gettingStartedSearch /%}
 
-{% /quick-links %}
 
 ## Framework Integrations
 
