@@ -3,7 +3,7 @@ title: LaunchFlow Docs
 subtitle: Launch websites, APIs, and workers to AWS / GCP with minimal configuration
 ---
 
-LaunchFlow is an open source command line tool that deploys applications to AWS, GCP, and Docker (local) with minimal setup. All of the deployment options are configured by default, but fully customizable.
+LaunchFlow is an open source command line tool that deploys applications to AWS and GCP with minimal setup. All of the deployment options are configured by default, but fully customizable.
 
 Use the Python SDK to define your infrastructure in code, then run `lf deploy` to deploy everything to a dedicated VPC environment in your cloud account.
 
