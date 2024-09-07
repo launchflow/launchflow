@@ -2,14 +2,14 @@ import Link from 'next/link'
 
 const keywordColors = {
   python:
-    'inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-600 ring-1 ring-inset ring-yellow-500/10',
+    'inline-flex items-center rounded-md bg-yellow-50 dark:bg-yellow-400/10 px-2 py-1 text-xs font-medium text-yellow-600 dark:text-yellow-500 ring-1 ring-inset ring-yellow-500/10 dark:ring-yellow-400/20',
   javascript:
-    'inline-flex items-center rounded-md bg-orange-50 px-2 py-1 text-xs font-medium text-orange-600 ring-1 ring-inset ring-orange-500/10',
-  api: 'inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-600 ring-1 ring-inset ring-blue-500/10',
+    'inline-flex items-center rounded-md bg-orange-50 dark:bg-orange-400/10 px-2 py-1 text-xs font-medium text-orange-600 dark:text-orange-500 ring-1 ring-inset ring-orange-500/10 dark:ring-orange-400/20',
+  api: 'inline-flex items-center rounded-md bg-blue-50 dark:bg-blue-400/10 px-2 py-1 text-xs font-medium text-blue-600 dark:text-blue-500 ring-1 ring-inset ring-blue-500/10 dark:ring-blue-400/20',
   website:
-    'inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-600 ring-1 ring-inset ring-red-500/10',
+    'inline-flex items-center rounded-md bg-red-50 dark:bg-green-400/10 px-2 py-1 text-xs font-medium text-green-600 dark:text-green-500 ring-1 ring-inset ring-red-500/10 dark:ring-green-400/20',
   worker:
-    'inline-flex items-center rounded-md bg-violet-50 px-2 py-1 text-xs font-medium text-violet-600 ring-1 ring-inset ring-violet-500/10',
+    'inline-flex items-center rounded-md bg-violet-50 dark:bg-violet-400/10 px-2 py-1 text-xs font-medium text-violet-600 dark:text-violet-500 ring-1 ring-inset ring-violet-500/10 dark:ring-violet-400/20',
 }
 
 function SearchIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
