@@ -7,7 +7,7 @@ LaunchFlow is an open source command line tool that deploys applications to AWS,
 
 Use the Python SDK to define your infrastructure in code, then run `lf deploy` to deploy everything to a dedicated VPC environment in your cloud account.
 
-LaunchFlow runs entirely on your local machine and everything is created in your own cloud account. Follow the [Get Started Guide](/docs/get-started) to launch an example API in minutes.
+LaunchFlow runs entirely on your local machine and everything is created in your own cloud account.
 
 ## Get Started
 
