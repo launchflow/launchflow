@@ -4,4 +4,4 @@ import launchflow
 bucket = launchflow.gcp.GCSBucket("bucket")
 
 # Services in this directory should be ignored
-service = launchflow.gcp.CloudRun("service")
+service = launchflow.gcp.CloudRunService("service")

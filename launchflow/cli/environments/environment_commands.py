@@ -375,6 +375,7 @@ async def unlock(
         environment_name=name,
         backend=config.launchflow_yaml.backend,
     )
+    to_raise = None
     if not auto_approve:
         rich.print(
             f"[yellow]Are you sure you want to force unlock environment '{name}'? This can lead to data corruption or conflicts.[/yellow]"

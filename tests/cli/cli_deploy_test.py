@@ -7,7 +7,7 @@ from typer.testing import CliRunner
 
 from launchflow.cli.main import app
 from launchflow.clients.response_schemas import EnvironmentResponse, EnvironmentType
-from launchflow.gcp.cloud_run import CloudRun
+from launchflow.gcp.cloud_run import CloudRunService
 from launchflow.gcp.gcs import GCSBucket
 
 
@@ -42,8 +42,8 @@ class CLIDeployTest(unittest.IsolatedAsyncioTestCase):
             ),
         )
         import_services_mock.return_value = [
-            CloudRun(name="cloud_run_a"),
-            CloudRun(name="cloud_run_b", cpu=2, memory="2G", region="us-central1"),
+            CloudRunService(name="cloud_run_a"),
+            CloudRunService(name="cloud_run_b", cpu=2, memory="2G", region="us-central1"),
         ]
 
         import_resources_mock.return_value = [GCSBucket(name="bucket")]
@@ -56,8 +56,8 @@ class CLIDeployTest(unittest.IsolatedAsyncioTestCase):
 
         deploy_services.assert_called_once_with(
             GCSBucket(name="bucket"),
-            CloudRun(name="cloud_run_a"),
-            CloudRun(
+            CloudRunService(name="cloud_run_a"),
+            CloudRunService(
                 name="cloud_run_b",
                 region="us-central1",
                 cpu=2,
@@ -101,7 +101,7 @@ class CLIDeployTest(unittest.IsolatedAsyncioTestCase):
             ),
         )
         import_services_mock.return_value = [
-            CloudRun(name="cloud_run_a"),
+            CloudRunService(name="cloud_run_a"),
         ]
 
         results = self.runner.invoke(
@@ -119,7 +119,7 @@ class CLIDeployTest(unittest.IsolatedAsyncioTestCase):
         find_launchflow_services_mock.assert_called_once()
 
         deploy_services.assert_called_once_with(
-            CloudRun(name="cloud_run_a"),
+            CloudRunService(name="cloud_run_a"),
             environment="dev",
             prompt=True,
             verbose=False,

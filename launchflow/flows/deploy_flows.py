@@ -48,7 +48,7 @@ from launchflow.flows.plan import (
     execute_plans,
 )
 from launchflow.flows.plan_utils import lock_plans, print_plans, select_plans
-from launchflow.gcp.cloud_run import CloudRun
+from launchflow.gcp.cloud_run import CloudRunService
 from launchflow.gcp.compute_engine_service import ComputeEngineService
 from launchflow.gcp.firebase_site import FirebaseStaticSite
 from launchflow.gcp.gke_service import GKEService
@@ -332,7 +332,7 @@ class ReleaseServicePlan(ServicePlan):
                 result.error_message = "Service does not yet have a docker image. Ensure you have run `lf deploy` first."
                 return result
         # TODO: refactor this so that the service "owns" the release step so its not hardcoded to individual service types
-        if isinstance(self.service, CloudRun):
+        if isinstance(self.service, CloudRunService):
             service_url = await release_docker_image_to_cloud_run(
                 docker_image=docker_image,
                 service_manager=self.service_manager,

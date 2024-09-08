@@ -10,7 +10,7 @@ environment = environment_manager.load_environment_sync()
 
 if environment.gcp_config is not None:
     bucket = lf.gcp.GCSBucket(f"{lf.project}-{lf.environment}-gcs-bucket")
-    run_service = lf.gcp.CloudRun("fastapi-service", dockerfile="Dockerfile.gcp")
+    run_service = lf.gcp.CloudRunService("fastapi-service", dockerfile="Dockerfile.gcp")
     gce_service = lf.gcp.compute_engine_service.ComputeEngineService(
         "gce-service", dockerfile="Dockerfile.gcp", port=8080
     )

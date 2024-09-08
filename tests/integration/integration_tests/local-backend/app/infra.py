@@ -12,7 +12,7 @@ run_service = None
 
 if environment.gcp_config is not None:
     bucket = lf.gcp.GCSBucket(f"{lf.project}-{lf.environment}-gcs-bucket")
-    run_service = lf.gcp.CloudRun(
+    run_service = lf.gcp.CloudRunService(
         "fastapi-service",
         dockerfile="Dockerfile.gcp",
         domain="cr.launchflow.app",

@@ -24,7 +24,7 @@ from launchflow.aws.sqs import SQSQueue
 from launchflow.docker.resource import DockerResource
 from launchflow.gcp.artifact_registry_repository import ArtifactRegistryRepository
 from launchflow.gcp.bigquery import BigQueryDataset
-from launchflow.gcp.cloud_run import CloudRun, CloudRunServiceContainer
+from launchflow.gcp.cloud_run import CloudRunService, CloudRunServiceContainer
 from launchflow.gcp.cloud_tasks import CloudTasksQueue
 from launchflow.gcp.cloudsql import CloudSQLDatabase, CloudSQLPostgres, CloudSQLUser
 from launchflow.gcp.compute_engine import ComputeEngine
@@ -125,7 +125,7 @@ SERVICE_PRODUCTS_TO_SERVICES = {
     ServiceProduct.AWS_LAMBDA.value: LambdaService,
     ServiceProduct.AWS_DOCKER_LAMBDA.value: LambdaDockerService,
     # GCP product types
-    ServiceProduct.GCP_CLOUD_RUN.value: CloudRun,
+    ServiceProduct.GCP_CLOUD_RUN.value: CloudRunService,
     ServiceProduct.GCP_COMPUTE_ENGINE.value: ComputeEngineService,
     ServiceProduct.GCP_GKE.value: GKEService,
     ServiceProduct.GCP_STATIC_SITE.value: StaticSite,

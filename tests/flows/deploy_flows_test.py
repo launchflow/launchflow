@@ -10,7 +10,7 @@ from launchflow.aws.alb import ApplicationLoadBalancerOutputs
 from launchflow.aws.ecs_cluster import ECSClusterOutputs
 from launchflow.aws.ecs_fargate import ECSFargateService
 from launchflow.flows import deploy_flows
-from launchflow.gcp.cloud_run import CloudRun
+from launchflow.gcp.cloud_run import CloudRunService
 from launchflow.locks import LockOperation, OperationType
 from launchflow.logger import logger
 from launchflow.managers.environment_manager import EnvironmentManager
@@ -84,7 +84,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
         logger.setLevel("DEBUG")
 
     async def test_deploy_gcp_service_no_environment(self):
-        service = CloudRun("my-gcp-service")
+        service = CloudRunService("my-gcp-service")
         with pytest.raises(exceptions.EnvironmentNotFound):
             await deploy_flows.deploy(
                 service, environment="does-not-exist", prompt=False
@@ -98,7 +98,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
             )
 
     async def test_deploy_gcp_service_no_gcp_config(self):
-        service = CloudRun("my-gcp-service")
+        service = CloudRunService("my-gcp-service")
         manager = EnvironmentManager(
             project_name="unittest",
             environment_name="no-gcp-config",
@@ -175,7 +175,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
             with open(f"{tmpdirname}/Dockerfile", "w") as f:
                 f.write("FROM python:3.11\n")
             # Call the deploy service flow with the build_local flag on and verify the inputs / outputs
-            service = CloudRun("my-gcp-service", build_directory=tmpdirname)
+            service = CloudRunService("my-gcp-service", build_directory=tmpdirname)
             service.outputs = mock.Mock(return_value=service_outputs)
             result = await deploy_flows.deploy(
                 service,
@@ -237,7 +237,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
             with open(f"{tmpdirname}/Dockerfile", "w") as f:
                 f.write("FROM python:3.11\n")
             # Call the deploy service flow with the build_local flag on and verify the inputs / outputs
-            service = CloudRun("my-gcp-service", build_directory=tmpdirname)
+            service = CloudRunService("my-gcp-service", build_directory=tmpdirname)
             service.outputs = mock.Mock(return_value=service_outputs)
             result = await deploy_flows.deploy(
                 service,
@@ -302,7 +302,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
             with open(f"{tmpdirname}/Dockerfile", "w") as f:
                 f.write("FROM python:3.11\n")
             # Call the deploy service flow with the build_local flag on and verify the inputs / outputs
-            service = CloudRun("my-gcp-service", build_directory=tmpdirname)
+            service = CloudRunService("my-gcp-service", build_directory=tmpdirname)
             service.outputs = mock.Mock(return_value=service_outputs)
             result = await deploy_flows.deploy(
                 service,
@@ -435,7 +435,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
         with tempfile.TemporaryDirectory() as tmpdirname:
             with open(f"{tmpdirname}/Dockerfile", "w") as f:
                 f.write("FROM python:3.11\n")
-            service = CloudRun(
+            service = CloudRunService(
                 "my-gcp-service", build_directory=tmpdirname, dockerfile="Dockerfile"
             )
             service.outputs = mock.Mock(return_value=service_outputs)
@@ -533,7 +533,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
         time_mock,
         uuid_mock,
     ):
-        service = CloudRun("my-gcp-service")
+        service = CloudRunService("my-gcp-service")
         result = await deploy_flows.promote(
             service,
             from_environment=self.dev_environment_manager.environment_name,
@@ -554,7 +554,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
     ):
         # Tests the case where the new service definition in code / yaml doesnt match
         # the existing service in the source environment
-        from_service = CloudRun("my-service")
+        from_service = CloudRunService("my-service")
         to_service = ECSFargateService("my-service")
 
         from_service_manager = self.dev_environment_manager.create_service_manager(
@@ -599,8 +599,8 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
     ):
         # Tests the case where the new service definition doesnt match
         # what's currently deployed in the target environment
-        from_service = CloudRun("my-service")
-        existing_to_service = CloudRun("my-service")
+        from_service = CloudRunService("my-service")
+        existing_to_service = CloudRunService("my-service")
         new_to_service = ECSFargateService("my-service")
 
         from_service_manager = self.dev_environment_manager.create_service_manager(
@@ -668,7 +668,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
         mock_promote_gcp_service.side_effect = exceptions.MissingGCPDependency()
 
         # Create a dev service to promote to prod
-        service = CloudRun("my-gcp-service")
+        service = CloudRunService("my-gcp-service")
         service_outputs = DockerServiceOutputs(
             service_url="https://service-1234-uc.a.run.app",
             docker_repository="gcr.io/project/service",
@@ -744,7 +744,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
         )
 
         # Create a dev service to promote to prod
-        service = CloudRun("my-gcp-service")
+        service = CloudRunService("my-gcp-service")
         service_outputs = DockerServiceOutputs(
             service_url="https://service-1234-uc.a.run.app",
             docker_repository="gcr.io/project/service",

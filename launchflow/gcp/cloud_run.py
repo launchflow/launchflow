@@ -22,7 +22,7 @@ class CloudRunInputs(Inputs):
     pass
 
 
-class CloudRun(GCPDockerService):
+class CloudRunService(GCPDockerService):
     """A service hosted on GCP Cloud Run.
 
     ### Example Usage

@@ -10,7 +10,7 @@ from launchflow.docker.postgres import DockerPostgres
 from launchflow.flows import create_flows, resource_flows
 from launchflow.gcp import GCSBucket
 from launchflow.gcp.artifact_registry_repository import ArtifactRegistryOutputs
-from launchflow.gcp.cloud_run import CloudRun
+from launchflow.gcp.cloud_run import CloudRunService
 from launchflow.gcp.gke import GKECluster, GKEOutputs
 from launchflow.gcp.gke_service import GKEService
 from launchflow.kubernetes.service import ServiceContainerOutputs
@@ -616,7 +616,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                 "test",
             )
 
-            services.append(CloudRun(name))
+            services.append(CloudRunService(name))
 
         await resource_flows.destroy(
             "dev", resources_to_destroy=set([resources[0].name]), prompt=False
@@ -666,7 +666,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                 "test",
             )
 
-            services.append(CloudRun(name))
+            services.append(CloudRunService(name))
 
         await resource_flows.destroy(
             "dev", services_to_destroy=set([services[0].name]), prompt=False
@@ -714,7 +714,7 @@ class ResourceFlowTest(unittest.IsolatedAsyncioTestCase):
                 ),
                 "test",
             )
-            services.append(CloudRun(service_name))
+            services.append(CloudRunService(service_name))
 
             resource_name = f"test-bucket{ind}"
             rm = self.dev_environment_manager.create_resource_manager(resource_name)

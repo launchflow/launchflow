@@ -16,7 +16,7 @@ from pathspec import PathSpec
 
 from launchflow import exceptions
 from launchflow.config import config
-from launchflow.gcp.cloud_run import CloudRun
+from launchflow.gcp.cloud_run import CloudRunService
 from launchflow.gcp.compute_engine_service import ComputeEngineService
 from launchflow.gcp.firebase_site import FirebaseStaticSite
 from launchflow.gcp.gke_service import GKEService
@@ -705,7 +705,7 @@ async def release_docker_image_to_cloud_run(
     docker_image: str,
     service_manager: ServiceManager,
     gcp_environment_config: GCPEnvironmentConfig,
-    cloud_run_service: CloudRun,
+    cloud_run_service: CloudRunService,
     deployment_id: str,
 ) -> str:
     try:
