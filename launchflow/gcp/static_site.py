@@ -3,11 +3,11 @@ from typing import List, Optional
 
 from launchflow import exceptions
 from launchflow.gcp.gcs import BackendBucket
-from launchflow.gcp.service import GCPStaticService
+from launchflow.gcp.service import GCPService
 from launchflow.models.enums import ServiceProduct
 from launchflow.node import Inputs
 from launchflow.resource import Resource
-from launchflow.service import DNSOutputs, DNSRecord, StaticServiceOutputs
+from launchflow.service import DNSOutputs, DNSRecord, ServiceOutputs
 
 
 @dataclass
@@ -16,14 +16,14 @@ class StaticSiteInputs(Inputs):
 
 
 # TODO: Add docs
-class StaticSite(GCPStaticService):
+class StaticSite(GCPService):
     """A service hosted on Google Cloud Platform that serves static files.
 
     ### Example Usage
     ```python
     import launchflow as lf
 
-    website = lf.gcp.StaticSite("my-website", static_directory="path/to/local/files")
+    website = lf.gcp.StaticSite("my-website", build_directory="path/to/local/files")
     ```
     """
 
@@ -33,9 +33,9 @@ class StaticSite(GCPStaticService):
         self,
         name: str,
         # static inputs
-        static_directory: str,
+        build_directory: str,
         *,
-        static_ignore: List[str] = [],
+        build_ignore: List[str] = [],
         wait_for_cdn_invalidation: bool = False,
         # backend bucket inputs
         region: Optional[str] = None,
@@ -45,15 +45,15 @@ class StaticSite(GCPStaticService):
 
         **Args:**
         - `name (str)`: The name of the service.
-        - `static_directory (str)`: The directory of static files to serve. This should be a relative path from the project root where your `launchflow.yaml` is defined.
-        - `static_ignore (List[str])`: A list of files to ignore when deploying the service. This can be in the same syntax you would use for a `.gitignore`.
+        - `build_directory (str)`: The directory of static files to serve. This should be a relative path from the project root where your `launchflow.yaml` is defined.
+        - `build_ignore (List[str])`: A list of files to ignore when deploying the service. This can be in the same syntax you would use for a `.gitignore`.
         - `region (Optional[str])`: The region to deploy the service to.
         - `domain (Optional[str])`: The custom domain to map to the service.
         """
         super().__init__(
             name=name,
-            static_directory=static_directory,
-            static_ignore=static_ignore,
+            build_directory=build_directory,
+            build_ignore=build_ignore,
         )
         self.region = region
         self.domain = domain
@@ -74,7 +74,7 @@ class StaticSite(GCPStaticService):
     def resources(self) -> List[Resource]:
         return [self._backend_bucket]
 
-    def outputs(self) -> StaticServiceOutputs:
+    def outputs(self) -> ServiceOutputs:
         try:
             backend_bucket_outputs = self._backend_bucket.outputs()
         except exceptions.ResourceOutputsNotFound:
@@ -95,7 +95,7 @@ class StaticSite(GCPStaticService):
                 ],
             )
 
-        service_outputs = StaticServiceOutputs(
+        service_outputs = ServiceOutputs(
             service_url=service_url,
             dns_outputs=dns_outputs,
         )

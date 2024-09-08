@@ -75,7 +75,7 @@ class ServiceProduct(str, Enum):
     GCP_GKE = "gcp_gke"
     # AWS product types
     AWS_ECS_FARGATE = "aws_ecs_fargate"
-    AWS_STATIC_LAMBDA = "aws_static_lambda"
+    AWS_LAMBDA = "aws_static_lambda"
     AWS_DOCKER_LAMBDA = "aws_docker_lambda"
 
 

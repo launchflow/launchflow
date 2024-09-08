@@ -26,12 +26,12 @@ from launchflow.resource import Resource
 
 
 @dataclass
-class ECSFargateInputs(Inputs):
+class ECSFargateServiceInputs(Inputs):
     cpu: int = 256
     memory: int = 512
 
 
-class ECSFargate(AWSDockerService):
+class ECSFargateService(AWSDockerService):
     """A service hosted on AWS ECS Fargate.
 
     Like all [Services](/docs/concepts/services), this class configures itself across multiple [Environments](/docs/concepts/environments).
@@ -69,12 +69,12 @@ class ECSFargate(AWSDockerService):
         build_ignore: List[str] = [],
         domain: Optional[str] = None,
         certificate: Optional[ACMCertificate] = None,
+        cluster: Optional[ECSCluster] = None,
     ) -> None:
         """Creates a new ECS Fargate service.
 
         **Args:**
         - `name (str)`: The name of the service.
-        - `ecs_cluster (Union[ECSCluster, str])`: The ECS cluster or the name of the ECS cluster.
         - `cpu (int)`: The CPU units to allocate to the container. Defaults to 256.
         - `memory (int)`: The memory to allocate to the container. Defaults to 512.
         - `port (int)`: The port the container listens on. Defaults to 80.
@@ -83,6 +83,8 @@ class ECSFargate(AWSDockerService):
         - `dockerfile (str)`: The Dockerfile to use for building the service. This should be a relative path from the `build_directory`.
         - `build_ignore (List[str])`: A list of files to ignore when building the service. This can be in the same syntax you would use for a `.gitignore`.
         - `domain (Optional[str])`: The domain name to use for the service. This will create an ACM certificate and configure the ALB to use HTTPS.
+        - `certificate (Optional[ACMCertificate])`: An existing ACM certificate to use for the service. This will configure the ALB to use HTTPS.
+        - `cluster (Optional[ECSCluster])`: The ECS cluster to use for the service. If not provided, a new cluster will be created.
         """
         if domain is not None and certificate is not None:
             raise ValueError(
@@ -132,8 +134,11 @@ class ECSFargate(AWSDockerService):
         self._code_build_project.resource_id = resource_id_with_launchflow_prefix
         self._code_build_project.ignore_arguments.add("build_source.buildspec_path")
 
-        self._ecs_cluster = ECSCluster(f"{name}-cluster")
-        self._ecs_cluster.resource_id = resource_id_with_launchflow_prefix
+        if cluster:
+            self._ecs_cluster = cluster
+        else:
+            self._ecs_cluster = ECSCluster(f"{name}-cluster")
+            self._ecs_cluster.resource_id = resource_id_with_launchflow_prefix
 
         self._https_certificate = None
         if domain:
@@ -159,8 +164,8 @@ class ECSFargate(AWSDockerService):
         self.port = port
         self.desired_count = desired_count
 
-    def inputs(self) -> ECSFargateInputs:
-        return ECSFargateInputs(
+    def inputs(self) -> ECSFargateServiceInputs:
+        return ECSFargateServiceInputs(
             cpu=self.cpu,
             memory=self.memory,
         )

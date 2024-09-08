@@ -5,12 +5,11 @@ from launchflow.service import (
     DockerService,
     DockerServiceOutputs,
     Service,
-    StaticService,
-    T,
+    ServiceOutputs,
 )
 
 
-class AWSService(Service[T]):
+class AWSService(Service[ServiceOutputs]):
     def cloud_provider(self) -> CloudProvider:
         return CloudProvider.AWS
 
@@ -23,7 +22,3 @@ class AWSDockerServiceOutputs(DockerServiceOutputs):
 class AWSDockerService(DockerService, AWSService):
     def outputs(self) -> AWSDockerServiceOutputs:
         raise NotImplementedError
-
-
-class AWSStaticService(StaticService, AWSService):
-    pass

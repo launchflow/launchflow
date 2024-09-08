@@ -5,13 +5,13 @@ from launchflow.aws.codebuild_project import CodeBuildProject
 from launchflow.aws.ec2 import EC2
 from launchflow.aws.ecr_repository import ECRRepository
 from launchflow.aws.ecs_cluster import ECSCluster
-from launchflow.aws.ecs_fargate import ECSFargate
+from launchflow.aws.ecs_fargate import ECSFargateService
 from launchflow.aws.ecs_fargate_container import ECSFargateServiceContainer
 from launchflow.aws.elastic_ip import ElasticIP
 from launchflow.aws.elasticache import ElasticacheRedis
 from launchflow.aws.lambda_event_mapping import LambdaEventMapping
 from launchflow.aws.lambda_function import LambdaFunction
-from launchflow.aws.lambda_service import LambdaDockerService, LambdaStaticService
+from launchflow.aws.lambda_service import LambdaDockerService, LambdaService
 from launchflow.aws.launchflow_cloud_releaser import (
     LaunchFlowCloudReleaser as AWSReleaser,
 )
@@ -121,8 +121,8 @@ RESOURCE_PRODUCTS_TO_RESOURCES = {
 SERVICE_PRODUCTS_TO_SERVICES = {
     ServiceProduct.UNKNOWN.value: Service,
     # AWS product types
-    ServiceProduct.AWS_ECS_FARGATE.value: ECSFargate,
-    ServiceProduct.AWS_STATIC_LAMBDA.value: LambdaStaticService,
+    ServiceProduct.AWS_ECS_FARGATE.value: ECSFargateService,
+    ServiceProduct.AWS_LAMBDA.value: LambdaService,
     ServiceProduct.AWS_DOCKER_LAMBDA.value: LambdaDockerService,
     # GCP product types
     ServiceProduct.GCP_CLOUD_RUN.value: CloudRun,

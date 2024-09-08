@@ -1,10 +1,12 @@
 import os
+import re
 from enum import Enum
-from typing import Optional
+from typing import Optional, Union
 
 import beaupy  # type: ignore
 import rich
 import typer
+from rich.syntax import Syntax
 
 from launchflow import exceptions
 from launchflow.aws.elasticache import ElasticacheRedis
@@ -115,18 +117,20 @@ DOCKER_RESOURCE_CHOICES = [
 
 def _select_backend() -> Optional[BackendType]:
     options = [
-        "Local - State will be saved in your project directory",
-        "LaunchFlow Cloud - State will be managed for you and shared with teammates",
+        "LaunchFlow Cloud",
+        "Local Directory",
+        # "GCS Bucket - State will be saved in a Google Cloud Storage bucket",
+        # "S3 Bucket - State will be saved in an Amazon S3 bucket",
     ]
-    rich.print("How would you like to manage your infrastructure state?")
+    rich.print("How would you like to manage your deployment state?")
     answer = beaupy.select(options=options, return_index=True)
     if answer is None:
-        typer.echo("No backend selected. Exiting.")
-        raise typer.Exit(1)
-    if answer == 0:
-        rich.print("[pink1]>[/pink1] Local\n")
+        rich.print("[pink1]No backend selected.[/pink1]")
+        return None
+    if answer == 1:
+        rich.print("[pink1]>[/pink1] Local Directory\n")
         return BackendType.LOCAL
-    rich.print("[pink1]>[/pink1] LaunchFlow Cloud\n")
+    rich.print("[pink1]>[/pink1] LaunchFlow Cloud")
     return BackendType.LAUNCHFLOW
 
 
@@ -150,6 +154,7 @@ def maybe_append_file_to_gitignore(file_name: str, gitignore_path=".gitignore"):
 
 async def generate_launchflow_yaml(
     default_backend_type: Optional[BackendType],
+    console: rich.console.Console = rich.console.Console(),
 ):
     try:
         existing_backend = config.launchflow_yaml.backend
@@ -164,70 +169,88 @@ async def generate_launchflow_yaml(
     if existing_backend_options is not None:
         backend_options = existing_backend_options
 
-    print("Welcome to LaunchFlow! 🚀")
-    print("This tool will help you configure your launchflow.yaml file.\n")
+    console.print("[bold]Welcome to LaunchFlow![/bold] 🚀")
+    console.print(
+        "This tool will help you configure your project to deploy to AWS or GCP.\n"
+    )
 
     if existing_backend is not None:
-        rich.print("[yellow]A launchflow.yaml file already exists.[/yellow]")
+        console.print("[yellow]A launchflow.yaml file already exists.[/yellow]")
         overwrite = beaupy.confirm(
-            "Would you like to reconfigure the existing launchflow.yaml?",
+            "Would you like to reconfigure the existing [bold]launchflow.yaml[/bold]?",
             default_is_yes=False,
         )
+
+        console.print(
+            "Would you like to reconfigure the existing [bold]launchflow.yaml[/bold]?"
+        )
         if not overwrite:
-            typer.echo("Reusing the existing launchflow.yaml. No changes will be made.")
+            console.print("[pink1]>[/pink1] No\n")
             return
-        print("Would you like to reconfigure the existing launchflow.yaml?")
-        rich.print("[pink1]>[/pink1] Yes\n")
+        console.print("[pink1]>[/pink1] Yes\n")
 
     backend_type = default_backend_type
     if backend_type is None:
         backend_type = _select_backend()
+        if backend_type is None:
+            console.print("\n[red]✗ Selecting a backend is required.[/red]")
+            raise typer.Exit(1)
 
     if backend_type == BackendType.LAUNCHFLOW:
-        if isinstance(existing_backend, LaunchFlowBackend):
-            rich.print(
-                "[yellow]This project is already configured to use LaunchFlow Cloud. No changes will be made.[/yellow]"
-            )
-            return
-
         login_or_signup = False
         if config.credentials is None:
-            rich.print("[yellow]No LaunchFlow Cloud credentials found.[/yellow]")
+            console.print("[yellow]No LaunchFlow Cloud credentials found.[/yellow]")
             login_or_signup = beaupy.confirm(
                 "Would you like to login / sign up for LaunchFlow Cloud? It's free!",
                 default_is_yes=True,
             )
+            console.print(
+                "Would you like to login / sign up for LaunchFlow Cloud? It's free!"
+            )
             if not login_or_signup:
-                typer.echo("Exiting.")
-                raise typer.Exit(1)
-            print("Would you like to login / sign up for LaunchFlow Cloud? It's free!")
-            rich.print("[pink1]>[/pink1] Yes")
+                console.print("[pink1]>[/pink1] No")
+                backend_type = BackendType.LOCAL
+                console.print(
+                    "\n[italic]Switching to [bold]local[/bold] backend.[/italic]"
+                )
+            else:
+                console.print("[pink1]>[/pink1] Yes")
         else:
             # NOTE: We only try to refresh creds if the user is already logged in.
             try:
                 config.get_access_token()
             except exceptions.LaunchFlowRequestFailure:
-                rich.print("[red]Failed to refresh LaunchFlow credentials.[/red]")
+                console.print("[red]Failed to refresh LaunchFlow credentials.[/red]")
                 login_or_signup = beaupy.confirm(
                     "Would you like to re-login to LaunchFlow?",
                     default_is_yes=True,
                 )
+                console.print("Would you like to re-login to LaunchFlow?")
                 if not login_or_signup:
-                    typer.echo("Exiting.")
-                    raise typer.Exit(1)
-                print("Would you like to re-login to LaunchFlow?")
-                rich.print("[pink1]>[/pink1] Yes")
+                    console.print("[pink1]>[/pink1] No")
+                    backend_type = BackendType.LOCAL
+                    console.print(
+                        "\n[italic]Switching to [bold]local[/bold] backend.[/italic]"
+                    )
+                else:
+                    console.print("[pink1]>[/pink1] Yes")
             except exceptions.NoLaunchFlowCredentials:
-                rich.print("[red]No LaunchFlow credentials found.[/red]")
+                console.print("[red]No LaunchFlow credentials found.[/red]")
                 login_or_signup = beaupy.confirm(
                     "Would you like to login / sign up for LaunchFlow? It's free!",
                     default_is_yes=True,
                 )
+                console.print(
+                    "Would you like to login / sign up for LaunchFlow? It's free!"
+                )
                 if not login_or_signup:
-                    typer.echo("Exiting.")
-                    raise typer.Exit(1)
-                print("Would you like to login / sign up for LaunchFlow? It's free!")
-                rich.print("[pink1]>[/pink1] Yes")
+                    console.print("[pink1]>[/pink1] No")
+                    backend_type = BackendType.LOCAL
+                    console.print(
+                        "\n[italic]Switching to [bold]local[/bold] backend.[/italic]"
+                    )
+                else:
+                    console.print("[pink1]>[/pink1] Yes")
 
         if login_or_signup:
             async with async_launchflow_client_ctx(None) as client:
@@ -236,20 +259,20 @@ async def generate_launchflow_yaml(
         async with async_launchflow_client_ctx(None) as client:
             accounts = await client.accounts.list()
             if len(accounts) == 0:
-                rich.print("[red]Failed to fetch LaunchFlow accounts.[/red]")
-                rich.print(
+                console.print("[red]Failed to fetch LaunchFlow accounts.[/red]")
+                console.print(
                     "Please contact team@launchflow.com if the issue persists.\n"
                 )
                 raise typer.Exit(1)
             elif len(accounts) > 1:
-                rich.print("Which LaunchFlow account would you like to use?")
+                console.print("Which LaunchFlow account would you like to use?")
                 account_id = beaupy.select(
                     [account.id for account in accounts], strict=True
                 )
                 if account_id is None:
-                    rich.print("No account selected. Exiting.")
+                    console.print("No account selected. Exiting.")
                     raise typer.Exit(1)
-                rich.print(f"[pink1]>[/pink1] {account_id}")
+                console.print(f"[pink1]>[/pink1] {account_id}")
                 account_id_for_config = account_id
             else:
                 account_id = accounts[0].id
@@ -268,18 +291,18 @@ async def generate_launchflow_yaml(
                 "Would you like to migrate your local project state to LaunchFlow Cloud?",
                 default_is_yes=True,
             )
-            rich.print(
+            console.print(
                 "Would you like to migrate your local project state to LaunchFlow Cloud?"
             )
             if migrate_to_launchflow:
-                rich.print("[pink1]>[/pink1] Yes")
+                console.print("[pink1]>[/pink1] Yes")
                 await migrate(source=existing_backend, target=backend)
-                rich.print(
+                console.print(
                     "[green]Project state successfully migrated to LaunchFlow Cloud.[/green]"
                 )
                 project_name = existing_project_name
             else:
-                rich.print("[pink1]>[/pink1] No")
+                console.print("[pink1]>[/pink1] No")
 
         if not migrate_to_launchflow:
             async with async_launchflow_client_ctx(
@@ -290,22 +313,15 @@ async def generate_launchflow_yaml(
                     account_id=account_id,
                     project_name=None,
                     prompt_for_creation=True,
-                    custom_selection_prompt="Select an existing LaunchFlow Cloud project to use, or create a new one:",
+                    custom_selection_prompt="Select a project to deploy to:",
+                    console=console,
                 )
-                if project is None:
-                    typer.echo("Project creation canceled.")
-                    raise typer.Exit(1)
                 project_name = project.name
 
-    else:
-        if isinstance(existing_backend, LocalBackend):
-            rich.print(
-                "[yellow]This project is already configured to use local state. No changes will be made.[/yellow]"
-            )
-            return
-
+    if backend_type == BackendType.LOCAL:
         project_name = beaupy.prompt(
-            "What would you like to name your LaunchFlow project?"
+            "What would you like to name your LaunchFlow project?",
+            initial_value=existing_project_name,
         )
         while True:
             try:
@@ -313,10 +329,10 @@ async def generate_launchflow_yaml(
                 break
             except ValueError as e:
                 reason = str(e)
-                rich.print(f"[red]{reason}[/red]")
+                console.print(f"[red]{reason}[/red]")
                 project_name = beaupy.prompt("Please enter a new project name.")
-        print("What would you like to name your LaunchFlow project?")
-        rich.print(f"[pink1]>[/pink1] {project_name}\n")
+        console.print("What would you like to name your LaunchFlow project?")
+        console.print(f"[pink1]>[/pink1] {project_name}\n")
 
         backend = LocalBackend.parse_backend("file://.launchflow")  # type: ignore
 
@@ -330,11 +346,282 @@ async def generate_launchflow_yaml(
     )
     launchflow_yaml.save()
 
+    with open(config_path, "r") as config_file:
+        contents = config_file.read()
+
+    console.print("\n[green]✓ launchflow.yaml created[/green]\n")
+    syntax = Syntax(
+        f"""# launchflow.yaml
+{contents.rstrip()}""",
+        "yaml",
+        padding=(1, 1, 1, 1),
+    )
+    console.print(syntax)
+    console.print("")
+
     # Append to the gitignore (if .launchflow is not already in the gitignore)
     gitignore_path = os.path.join(os.getcwd(), ".gitignore")
     maybe_append_file_to_gitignore(
         file_name=".launchflow", gitignore_path=gitignore_path
     )
+
+
+class DeploymentType(Enum):
+    SERVICE = "Service (API)"
+    WEBSITE = "Website"
+    # JOB = "Scheduled Job"
+    # WORKER = "Worker"
+    # SERVER = "Server"
+    # AGENT = "AI Agent"
+
+
+def _select_deployment() -> Optional[DeploymentType]:
+    rich.print("What would you like to deploy?")
+    options = [d.value for d in DeploymentType]
+    answer = beaupy.select(options=options, return_index=True)
+    if answer is None:
+        typer.echo("No deployment selected. Exiting.")
+        raise typer.Exit(1)
+    rich.print(f"[pink1]>[/pink1] {options[answer]}\n")
+    return DeploymentType(options[answer])
+
+
+class CloudProvider(Enum):
+    AWS = "AWS"
+    GCP = "GCP"
+
+
+def _select_cloud_provider() -> Optional[CloudProvider]:
+    rich.print("Which cloud provider would you like to deploy to?")
+    options = [cp.value for cp in CloudProvider]
+    answer = beaupy.select(options=options, return_index=True)
+    if answer is None:
+        rich.print("[pink1]No cloud provider selected.[/pink1]")
+        return None
+    rich.print(f"[pink1]>[/pink1] {options[answer]}\n")
+    return CloudProvider(options[answer])
+
+
+class AWSServices(Enum):
+    LAMBDA = "Lambda (Serverless)"
+    LAMBDA_DOCKER = "Lambda with Docker (Serverless)"
+    ECS = "ECS Fargate (Autoscaling VMs)"
+    # EKS = "EKS (Kubernetes)"
+
+    def title(self):
+        if self == AWSServices.LAMBDA:
+            return "Lambda"
+        elif self == AWSServices.LAMBDA_DOCKER:
+            return "Lambda with Docker"
+        elif self == AWSServices.ECS:
+            return "ECS"
+        # elif self == AWSServices.EKS:
+        #     return "EKS"
+
+    def infra_dot_py_code(self):
+        if self == AWSServices.LAMBDA:
+            return """
+# LambdaService Docs: https://docs.launchflow.com/reference/aws-services/lambda
+service = lf.aws.LambdaService("my-lambda-service", handler="TODO")
+"""
+        if self == AWSServices.LAMBDA_DOCKER:
+            return """
+# LambdaDockerService Docs: https://docs.launchflow.com/reference/aws-services/lambda-docker
+service = lf.aws.LambdaDockerService("my-lambda-service", handler="TODO")
+"""
+        if self == AWSServices.ECS:
+            return """
+# ECSFargate Docs: https://docs.launchflow.com/reference/aws-services/ecs-fargate
+service = lf.aws.ECSFargate("my-ecs-service")
+"""
+
+
+#         elif self == AWSServices.EKS:
+#             return """
+# # EKS Docs: https://docs.launchflow.com/reference/aws-services/eks
+# cluster = lf.aws.EKSCluster("my-eks-cluster")
+# service = lf.aws.EKSService("my-eks-service", cluster=cluster)
+# """
+
+
+class GCPServices(Enum):
+    CLOUD_RUN = "Cloud Run (Serverless)"
+    GCE = "Compute Engine (Autoscaling VMs)"
+    GKE = "GKE (Kubernetes)"
+
+    def title(self):
+        if self == GCPServices.CLOUD_RUN:
+            return "Cloud Run"
+        elif self == GCPServices.GCE:
+            return "Compute Engine"
+        elif self == GCPServices.GKE:
+            return "GKE"
+
+    def infra_dot_py_code(self):
+        if self == GCPServices.CLOUD_RUN:
+            return """
+# Cloud Run Docs: https://docs.launchflow.com/reference/gcp-services/cloud-run
+service = lf.gcp.CloudRunService("my-cloud-run-service")
+"""
+        elif self == GCPServices.GCE:
+            return """
+# Compute Engine Docs: https://docs.launchflow.com/reference/gcp-services/compute-engine
+service = lf.gcp.ComputeEngineService("my-compute-engine-service")
+"""
+        elif self == GCPServices.GKE:
+            return """
+# GKE Docs: https://docs.launchflow.com/reference/gcp-services/gke
+service = lf.gcp.GKEService("my-gke-service")
+"""
+
+
+def _select_service(cloud_provider: CloudProvider) -> Union[AWSServices, GCPServices]:
+    if cloud_provider == CloudProvider.AWS:
+        rich.print("Which AWS service would you like to use?")
+        options = [s.value for s in AWSServices]
+        answer = beaupy.select(options=options, return_index=True)
+        if answer is None:
+            typer.echo("No AWS service selected. Exiting.")
+            raise typer.Exit(1)
+        rich.print(f"[pink1]>[/pink1] {options[answer]}")
+        return AWSServices(options[answer])
+    elif cloud_provider == CloudProvider.GCP:
+        rich.print("Which GCP service would you like to use?")
+        options = [s.value for s in GCPServices]
+        answer = beaupy.select(options=options, return_index=True)
+        if answer is None:
+            typer.echo("No GCP service selected. Exiting.")
+            raise typer.Exit(1)
+        rich.print(f"[pink1]>[/pink1] {options[answer]}")
+        return GCPServices(options[answer])
+
+
+class AWSWebsites(Enum):
+    S3 = "S3 (Static Website)"
+    # EC2 = "EC2 + Nginx (Dynamic Website)"
+
+    def infra_dot_py_code(self):
+        return """
+# S3 Static Website Docs: https://docs.launchflow.com/reference/aws-websites/s3
+website = lf.aws.S3Website(
+    name="my-static-website",
+    bucket_name="my-static-website-bucket",
+    index_html="index.html",
+    error_html="error.html",
+)
+"""
+
+    def title(self):
+        return "S3"
+
+
+class GCPWebsites(Enum):
+    GCS = "GCS (Static Website)"
+    # GCE = "GCE + Nginx (Dynamic Website)"
+
+    def infra_dot_py_code(self):
+        return """
+# GCS Static Website Docs: https://docs.launchflow.com/reference/gcp-websites/gcs
+website = lf.gcp.GCSWebsite(
+    name="my-static-website",
+    bucket_name="my-static-website-bucket",
+    index_html="index.html",
+    error_html="error.html",
+)
+"""
+
+    def title(self):
+        return "GCS"
+
+
+def _select_website(cloud_provider: CloudProvider) -> Union[AWSWebsites, GCPWebsites]:
+    if cloud_provider == CloudProvider.AWS:
+        rich.print("Which AWS service would you like to use?")
+        options = [s.value for s in AWSWebsites]
+        answer = beaupy.select(options=options, return_index=True)
+        if answer is None:
+            typer.echo("No AWS service selected. Exiting.")
+            raise typer.Exit(1)
+        rich.print(f"[pink1]>[/pink1] {options[answer]}")
+        return AWSWebsites(options[answer])
+    elif cloud_provider == CloudProvider.GCP:
+        rich.print("Which GCP service would you like to use?")
+        options = [s.value for s in GCPWebsites]
+        answer = beaupy.select(options=options, return_index=True)
+        if answer is None:
+            typer.echo("No GCP service selected. Exiting.")
+            raise typer.Exit(1)
+        rich.print(f"[pink1]>[/pink1] {options[answer]}")
+        return GCPWebsites(options[answer])
+
+
+def generate_infra_dot_py():
+    infra_py_path = os.path.join(os.getcwd(), "infra.py")
+    if os.path.isfile(infra_py_path):
+        rich.print("[yellow]An infra.py file already exists.[/yellow]")
+        overwrite = beaupy.confirm(
+            "Would you like to overwrite the existing [bold]infra.py[/bold]?",
+            default_is_yes=False,
+        )
+        rich.print("Would you like to overwrite the existing [bold]infra.py[/bold]?")
+        if not overwrite:
+            rich.print("[pink1]>[/pink1] No")
+            return
+        rich.print("[pink1]>[/pink1] Yes\n")
+
+    # deployment_type = _select_deployment()
+    deployment_type = DeploymentType.SERVICE
+    cloud_provider = _select_cloud_provider()
+    if cloud_provider is None:
+        rich.print("\n[italic]Skipping [bold]infra.py[/bold] creation.[/italic]")
+        return
+    if deployment_type == DeploymentType.SERVICE:
+        deployment_option = _select_service(cloud_provider)
+    # elif deployment_type == DeploymentType.WEBSITE:
+    #     deployment_option = _select_website(cloud_provider)
+
+    with open(infra_py_path, "w") as infra_py_file:
+        infra_py_file.write(
+            f"""\"\"\"infra.py
+
+This file is used to customize the infrastructure your application deploys to.
+
+Create your cloud infrastructure with:
+    lf create
+
+Deploy your application with:
+    lf deploy
+
+For more information, visit https://docs.launchflow.com/project-structure
+\"\"\"
+
+import launchflow as lf
+{deployment_option.infra_dot_py_code()}"""
+        )
+
+    rich.print("\n[green]✓ infra.py created[/green]\n")
+
+    with open(infra_py_path, "r") as infra_py_file:
+        contents = infra_py_file.read()
+
+    # Remove docstrings (""" or ''')
+    contents = re.sub(
+        r"\"\"\"(.*?)\"\"\"|\'\'\'(.*?)\'\'\'", "", contents, flags=re.DOTALL
+    )
+
+    # Remove single-line comments (#)
+    contents = re.sub(r"#.*", "", contents)
+
+    # Remove double newlines
+    contents = re.sub(r"\n\n", "\n", contents)
+
+    syntax = Syntax(
+        f"""# infra.py
+{contents.strip()}""",
+        "python",
+        padding=(1, 1, 1, 1),
+    )
+    rich.print(syntax)
 
 
 def _select_framework() -> Framework:

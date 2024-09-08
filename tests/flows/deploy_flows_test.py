@@ -8,7 +8,7 @@ import pytest
 from launchflow import exceptions
 from launchflow.aws.alb import ApplicationLoadBalancerOutputs
 from launchflow.aws.ecs_cluster import ECSClusterOutputs
-from launchflow.aws.ecs_fargate import ECSFargate
+from launchflow.aws.ecs_fargate import ECSFargateService
 from launchflow.flows import deploy_flows
 from launchflow.gcp.cloud_run import CloudRun
 from launchflow.locks import LockOperation, OperationType
@@ -91,7 +91,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
             )
 
     async def test_deploy_aws_service_no_environment(self):
-        service = ECSFargate("my-aws-service")
+        service = ECSFargateService("my-aws-service")
         with pytest.raises(exceptions.EnvironmentNotFound):
             await deploy_flows.deploy(
                 service, environment="does-not-exist", prompt=False
@@ -119,7 +119,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
         self.assertIn("CloudProviderMismatch", result.failed_plans[0].error_message)
 
     async def test_deploy_aws_service_no_aws_config(self):
-        service = ECSFargate("my-aws-service")
+        service = ECSFargateService("my-aws-service")
         manager = EnvironmentManager(
             project_name="unittest",
             environment_name="no-aws-config",
@@ -368,7 +368,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
             with open(f"{tmpdirname}/Dockerfile", "w") as f:
                 f.write("FROM python:3.11\n")
             # Call the deploy service flow with the build_local flag on and verify the inputs / outputs
-            service = ECSFargate("my-aws-service", build_directory=tmpdirname)
+            service = ECSFargateService("my-aws-service", build_directory=tmpdirname)
             service.outputs = mock.Mock(return_value=service_outputs)
             service._ecs_cluster.outputs = mock.Mock(return_value=cluster_outputs)
             service._alb.outputs = mock.Mock(return_value=lb_outputs)
@@ -497,7 +497,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
             with open(f"{tmpdirname}/Dockerfile", "w") as f:
                 f.write("FROM python:3.11\n")
             # Call the deploy service flow with the build_local flag off and verify the inputs / outputs
-            service = ECSFargate(
+            service = ECSFargateService(
                 "my-aws-service",
                 build_directory=tmpdirname,
                 dockerfile="Dockerfile",
@@ -555,7 +555,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
         # Tests the case where the new service definition in code / yaml doesnt match
         # the existing service in the source environment
         from_service = CloudRun("my-service")
-        to_service = ECSFargate("my-service")
+        to_service = ECSFargateService("my-service")
 
         from_service_manager = self.dev_environment_manager.create_service_manager(
             from_service.name
@@ -601,7 +601,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
         # what's currently deployed in the target environment
         from_service = CloudRun("my-service")
         existing_to_service = CloudRun("my-service")
-        new_to_service = ECSFargate("my-service")
+        new_to_service = ECSFargateService("my-service")
 
         from_service_manager = self.dev_environment_manager.create_service_manager(
             from_service.name
@@ -833,7 +833,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
         mock_promote_aws_service.side_effect = exceptions.MissingAWSDependency()
 
         # Create a dev service to promote to prod
-        service = ECSFargate("my-aws-service")
+        service = ECSFargateService("my-aws-service")
         service_outputs = DockerServiceOutputs(
             service_url="http://service-1234-alb.us-east-1.elb.amazonaws.com",
             docker_repository="ecr.io/project/service",
@@ -909,7 +909,7 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
         )
 
         # Create a dev service to promote to prod
-        service = ECSFargate("my-aws-service")
+        service = ECSFargateService("my-aws-service")
         service_outputs = DockerServiceOutputs(
             service_url="http://service-1234-alb.us-east-1.elb.amazonaws.com",
             docker_repository="ecr.io/project/service",

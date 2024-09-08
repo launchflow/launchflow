@@ -15,8 +15,8 @@ from typing import Callable, List, Tuple
 from docker.errors import BuildError  # type: ignore
 
 from launchflow import exceptions
-from launchflow.aws.ecs_fargate import ECSFargate
-from launchflow.aws.lambda_service import LambdaStaticService
+from launchflow.aws.ecs_fargate import ECSFargateService
+from launchflow.aws.lambda_service import LambdaService
 from launchflow.aws.service import AWSDockerService
 from launchflow.config import config
 from launchflow.managers.service_manager import ServiceManager
@@ -115,7 +115,7 @@ def _get_relative_import_path(func: Callable, cwd: str) -> str:
 
 async def deploy_local_files_to_lambda_static_site(
     aws_environment_config: AWSEnvironmentConfig,
-    lambda_static_site: LambdaStaticService,
+    lambda_static_site: LambdaService,
     service_manager: ServiceManager,
     deployment_id: str,
 ):
@@ -127,13 +127,18 @@ async def deploy_local_files_to_lambda_static_site(
     full_yaml_path = os.path.dirname(
         os.path.abspath(config.launchflow_yaml.config_path)
     )
-    static_directory_path = os.path.abspath(
-        os.path.join(full_yaml_path, lambda_static_site.static_directory)
+    build_directory_path = os.path.abspath(
+        os.path.join(full_yaml_path, lambda_static_site.build_directory)
     )
-    handler_path = _get_relative_import_path(lambda_static_site.handler, full_yaml_path)
+    if isinstance(lambda_static_site.handler, str):
+        handler_path = lambda_static_site.handler
+    else:
+        handler_path = _get_relative_import_path(
+            lambda_static_site.handler, full_yaml_path
+        )
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        _copy_directory_contents(static_directory_path, temp_dir)
+        _copy_directory_contents(build_directory_path, temp_dir)
 
         # 2. Install packages from requirements.txt (if specified)
         python_version = (
@@ -546,7 +551,7 @@ async def release_docker_image_to_ecs_fargate(
     docker_image: str,
     service_manager: ServiceManager,
     aws_environment_config: AWSEnvironmentConfig,
-    ecs_fargate_service: ECSFargate,
+    ecs_fargate_service: ECSFargateService,
     deployment_id: str,
 ) -> str:
     try:

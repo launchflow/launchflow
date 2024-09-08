@@ -43,18 +43,17 @@ async def run_tofu(command: TFCommand):
         return await command.run(tempdir)
 
 
-_DEFAULT_IGNORE_PATTERNS = [
+DEFAULT_IGNORE_PATTERNS = [
     "*.log",
     "__pycache__/",
     ".env",
     ".git/",
     ".terraform/",
-    ".terraform.lock.hcl",
 ]
 
 
 def tar_source_in_memory(directory: str, ignore_patterns: List[str]):
-    ignore_patterns = list(set(ignore_patterns + _DEFAULT_IGNORE_PATTERNS))
+    ignore_patterns = list(set(ignore_patterns + DEFAULT_IGNORE_PATTERNS))
 
     def should_include_file(pathspec: PathSpec, file_path: str, root_dir: str):
         relative_path = os.path.relpath(file_path, root_dir)
@@ -81,7 +80,7 @@ def tar_source_in_memory(directory: str, ignore_patterns: List[str]):
 
 
 def zip_source_in_memory(directory: str, ignore_patterns: List[str]):
-    ignore_patterns = list(set(ignore_patterns + _DEFAULT_IGNORE_PATTERNS))
+    ignore_patterns = list(set(ignore_patterns + DEFAULT_IGNORE_PATTERNS))
 
     def should_include_file(pathspec: PathSpec, file_path: str, root_dir: str):
         relative_path = os.path.relpath(file_path, root_dir)

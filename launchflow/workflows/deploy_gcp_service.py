@@ -44,7 +44,6 @@ async def _upload_source_tarball_to_gcs(
 
     def upload_async():
         source_tarball = tar_source_in_memory(local_source_dir, build_ignore)
-
         try:
             bucket = storage.Client().get_bucket(artifact_bucket)
             blob = bucket.blob(source_tarball_gcs_path)
@@ -463,14 +462,14 @@ async def upload_local_files_to_static_site(
 
     local_dir = os.path.join(
         os.path.dirname(os.path.abspath(config.launchflow_yaml.config_path)),
-        static_site.static_directory,
+        static_site.build_directory,
     )
 
     def should_include_file(pathspec: PathSpec, file_path: str, root_dir: str):
         relative_path = os.path.relpath(file_path, root_dir)
         return not pathspec.match_file(relative_path)
 
-    pathspec = PathSpec.from_lines("gitwildmatch", static_site.static_ignore)
+    pathspec = PathSpec.from_lines("gitwildmatch", static_site.build_ignore)
     for root, _, files in os.walk(local_dir):
         for file in files:
             file_path = os.path.join(root, file)
@@ -543,7 +542,7 @@ async def deploy_local_files_to_firebase_static_site(
 
     local_dir = os.path.join(
         os.path.dirname(os.path.abspath(config.launchflow_yaml.config_path)),
-        firebase_static_site.static_directory,
+        firebase_static_site.build_directory,
     )
 
     # Authenticate with the docker registry
@@ -584,7 +583,7 @@ async def deploy_local_files_to_firebase_static_site(
     if not VERSION_ID:
         raise ValueError("Failed to create a new version. VERSION_ID not found.")
 
-    pathspec = PathSpec.from_lines("gitwildmatch", firebase_static_site.static_ignore)
+    pathspec = PathSpec.from_lines("gitwildmatch", firebase_static_site.build_ignore)
 
     # Function to determine if a file should be included based on pathspec rules
     def should_include_file(pathspec: PathSpec, file_path: str, root_dir: str):

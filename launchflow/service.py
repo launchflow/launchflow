@@ -27,10 +27,18 @@ class ServiceOutputs(Outputs):
 class Service(Node[T]):
     product = ServiceProduct.UNKNOWN.value
 
-    def __init__(self, name: str) -> None:
+    def __init__(
+        self,
+        name: str,
+        *,
+        build_directory: str = ".",
+        build_ignore: List[str] = [],  # type: ignore
+    ) -> None:
         super().__init__(name, NodeType.SERVICE)
 
         self.name = name
+        self.build_directory = build_directory
+        self.build_ignore = build_ignore
 
     def outputs(self) -> ServiceOutputs:
         raise NotImplementedError
@@ -67,12 +75,11 @@ class DockerService(Service[ServiceOutputs]):
         build_directory: str = ".",
         build_ignore: List[str] = [],  # type: ignore
     ) -> None:
-        super().__init__(name)
+        super().__init__(
+            name, build_directory=build_directory, build_ignore=build_ignore
+        )
 
-        self.name = name
         self.dockerfile = dockerfile
-        self.build_directory = build_directory
-        self.build_ignore = build_ignore
 
     def outputs(self) -> DockerServiceOutputs:
         raise NotImplementedError
@@ -89,40 +96,4 @@ class DockerService(Service[ServiceOutputs]):
             and value.dockerfile == self.dockerfile
             and value.build_directory == self.build_directory
             and value.build_ignore == self.build_ignore
-        )
-
-
-@dataclass
-class StaticServiceOutputs(ServiceOutputs):
-    pass
-
-
-class StaticService(Service[StaticServiceOutputs]):
-    def __init__(
-        self,
-        name: str,
-        static_directory: str,
-        *,
-        static_ignore: List[str] = [],  # type: ignore
-    ) -> None:
-        super().__init__(name)
-
-        self.name = name
-        self.static_directory = static_directory
-        self.static_ignore = static_ignore
-
-    def outputs(self) -> StaticServiceOutputs:
-        raise NotImplementedError
-
-    async def outputs_async(self) -> StaticServiceOutputs:
-        raise NotImplementedError
-
-    def __eq__(self, value) -> bool:
-        return (
-            isinstance(value, StaticService)
-            and value.name == self.name
-            and value.product == self.product
-            and value.inputs() == self.inputs()
-            and value.static_directory == self.static_directory
-            and value.static_ignore == self.static_ignore
         )

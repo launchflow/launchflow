@@ -17,9 +17,9 @@ from rich.tree import Tree
 
 import launchflow
 from launchflow import exceptions
-from launchflow.aws.ecs_fargate import ECSFargate
-from launchflow.aws.lambda_service import LambdaStaticService
-from launchflow.aws.service import AWSDockerService, AWSService, AWSStaticService
+from launchflow.aws.ecs_fargate import ECSFargateService
+from launchflow.aws.lambda_service import LambdaService
+from launchflow.aws.service import AWSDockerService, AWSService
 from launchflow.cli.resource_utils import is_secret_resource
 from launchflow.clients.docker_client import docker_service_available
 from launchflow.config import config
@@ -52,7 +52,7 @@ from launchflow.gcp.cloud_run import CloudRun
 from launchflow.gcp.compute_engine_service import ComputeEngineService
 from launchflow.gcp.firebase_site import FirebaseStaticSite
 from launchflow.gcp.gke_service import GKEService
-from launchflow.gcp.service import GCPDockerService, GCPService, GCPStaticService
+from launchflow.gcp.service import GCPDockerService, GCPService
 from launchflow.gcp.static_site import StaticSite
 from launchflow.locks import Lock, LockOperation, OperationType, ReleaseReason
 from launchflow.managers.environment_manager import EnvironmentManager
@@ -66,7 +66,7 @@ from launchflow.models.flow_state import (
 )
 from launchflow.node import Node
 from launchflow.resource import Resource
-from launchflow.service import DockerService, Service, StaticService
+from launchflow.service import DockerService, Service
 from launchflow.utils import generate_deployment_id
 from launchflow.validation import validate_service_name
 from launchflow.workflows.deploy_aws_service import (
@@ -84,6 +84,7 @@ from launchflow.workflows.deploy_gcp_service import (
     release_docker_image_to_gke,
     upload_local_files_to_static_site,
 )
+from launchflow.workflows.utils import DEFAULT_IGNORE_PATTERNS
 
 
 @dataclasses.dataclass
@@ -148,7 +149,7 @@ class BuildServicePlan(ServicePlan):
                     self.build_local,
                 )
                 return BuildServiceResult(self, True, docker_image, logs_file_or_link)
-            elif isinstance(self.service, (GCPStaticService, AWSStaticService)):
+            elif isinstance(self.service, (GCPService, AWSService)):
                 # TODO: Add a hook to allow for custom build steps for static sites
                 return BuildServiceResult(self, True)
             else:
@@ -179,26 +180,24 @@ class BuildServicePlan(ServicePlan):
             os.path.abspath(config.launchflow_yaml.config_path)
         )
 
+        build_directory_path = os.path.abspath(
+            os.path.join(full_yaml_path, self.service.build_directory)
+        )
+        build_ignore = list(set(DEFAULT_IGNORE_PATTERNS + self.service.build_ignore))
+        build_inputs_dict = {
+            "build_directory": build_directory_path,
+            "build_ignore": build_ignore,
+        }
         if isinstance(self.service, DockerService):
-            build_directory_path = os.path.abspath(
-                os.path.join(full_yaml_path, self.service.build_directory)
-            )
-            build_inputs_dict = {
-                "dockerfile": self.service.dockerfile,
-                "build_directory": build_directory_path,
-                "build_ignore": self.service.build_ignore,
-                "build_local": self.build_local,
-            }
-        elif isinstance(self.service, StaticService):
-            static_directory_path = os.path.abspath(
-                os.path.join(full_yaml_path, self.service.static_directory)
-            )
-            build_inputs_dict = {
-                "static_directory": static_directory_path,
-                "static_ignore": self.service.static_ignore,
-            }
-        else:
-            build_inputs_dict = {}
+            build_inputs_dict["dockerfile"] = self.service.dockerfile
+            build_inputs_dict["build_local"] = self.build_local
+        if isinstance(self.service, LambdaService):
+            build_inputs_dict["handler"] = self.service.handler
+            if self.service.requirements_txt_path is not None:
+                build_inputs_dict[
+                    "requirements_txt_path"
+                ] = self.service.requirements_txt_path
+
         build_inputs_str = format_configuration_dict(build_inputs_dict)
         console.print()
         console.print(
@@ -309,7 +308,7 @@ class ReleaseServicePlan(ServicePlan):
             )
             return ReleaseServiceResult(self, True, service_url)
 
-        if isinstance(self.service, LambdaStaticService):
+        if isinstance(self.service, LambdaService):
             service_url = await deploy_local_files_to_lambda_static_site(
                 aws_environment_config=self.aws_environment_config,  # type: ignore
                 lambda_static_site=self.service,
@@ -357,7 +356,7 @@ class ReleaseServicePlan(ServicePlan):
                 gke_service=self.service,
                 deployment_id=self.deployment_id,
             )
-        elif isinstance(self.service, ECSFargate):
+        elif isinstance(self.service, ECSFargateService):
             service_url = await release_docker_image_to_ecs_fargate(
                 docker_image=docker_image,
                 service_manager=self.service_manager,
