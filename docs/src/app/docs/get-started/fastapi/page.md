@@ -8,7 +8,7 @@ nextjs:
 
 {% gettingStartedSelector %}
 
-Create a FastAPI backend that reads and writes to a S3 or GCS bucket and deploys to AWS ECS Fargate or GCP Cloud run.
+Deploy a FastAPI application to AWS or GCP with LaunchFlow.
 
 {% callout type="note" %}
 
@@ -127,7 +127,7 @@ Create an `infra.py` file to define your service:
 ```python
 import launchflow as lf
 
-bucket = lf.aws.ECSFargate("my-service")
+service = lf.aws.ECSFargate("my-service")
 ```
 
 {% /gettingStartedSection %}
