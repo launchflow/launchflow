@@ -117,63 +117,18 @@ export function GettingStartedSelector({
   const [selectedCloudProvider, setSelectedCloudProvider] = useState(
     cloudProviders[0],
   )
-  const [isFixed, setIsFixed] = useState(false)
-  const selectorRef = useRef<HTMLDivElement>(null)
-  const [selectorOgTop, setSelectorOgTop] = useState<number | undefined>(
-    undefined,
-  )
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const mainHeader = document.getElementById('mainHeader')
-      const selector = selectorRef.current
-
-      if (selectorOgTop === undefined && selector) {
-        setSelectorOgTop(selector.getBoundingClientRect().top)
-      }
-
-      if (mainHeader && selector && selectorOgTop) {
-        const mainHeaderRect = mainHeader.getBoundingClientRect()
-        const selectorRect = selector.getBoundingClientRect()
-
-        console.log(window.scrollY)
-        console.log(mainHeaderRect.bottom)
-        console.log(selectorOgTop)
-
-        setIsFixed(
-          mainHeaderRect.bottom >= selectorRect.top &&
-            window.scrollY > selectorOgTop - mainHeaderRect.bottom,
-        )
-      }
-    }
-
-    window.addEventListener('scroll', handleScroll)
-
-    handleScroll()
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll)
-    }
-  })
 
   return (
     <GettingStartedContext.Provider
       value={{ selectedCloudProvider, setSelectedCloudProvider }}
     >
-      <div
-        ref={selectorRef}
-        className={clsx(
-          'not-prose z-10 -mx-4 h-[52.5px] w-full bg-slate-50 p-1 py-2 pl-4 lg:-mx-8 lg:pl-8 xl:-mx-16 dark:bg-slate-800',
-          isFixed ? 'fixed top-[93px] md:top-[109px]' : '',
-        )}
-      >
+      <div className="not-prose sticky top-[93px] z-10  w-full rounded-md bg-transparent p-1 py-2 ring-1 ring-inset backdrop-blur md:top-[109px]">
         <Selector
           selected={selectedCloudProvider}
           setSelected={setSelectedCloudProvider}
           options={cloudProviders}
         />
       </div>
-      <div className="h-[52.5px]" />
       {children}
     </GettingStartedContext.Provider>
   )
