@@ -7,10 +7,23 @@ import { Tabs } from '@/components/Tabs'
 import { Tab } from '@/components/Tab'
 import { FrameImage } from '@/components/FrameImage'
 import { GettingStartedSearch } from '@/components/GettingStartedSearch'
+import { GettingStartedSelector } from '@/components/GettingStartedSelector'
+import { GettingStartedSection } from '@/components/GettingStartedSection'
 
 const tags = {
   gettingStartedSearch: {
     render: GettingStartedSearch,
+  },
+  gettingStartedSelector: {
+    render: GettingStartedSelector,
+  },
+  gettingStartedSection: {
+    render: GettingStartedSection,
+    attributes: {
+      cloudProvider: {
+        type: String,
+      },
+    },
   },
   frameImage: {
     render: FrameImage,

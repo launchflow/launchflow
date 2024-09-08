@@ -6,6 +6,8 @@ nextjs:
     description: Deploy FastAPI to AWS / GCP with LAunchflow
 ---
 
+{% gettingStartedSelector %}
+
 Create a FastAPI backend that reads and writes to a S3 or GCS bucket and deploys to AWS ECS Fargate or GCP Cloud run.
 
 {% callout type="note" %}
@@ -13,8 +15,6 @@ Create a FastAPI backend that reads and writes to a S3 or GCS bucket and deploys
 View the source code for this guide in our [examples repo](https://github.com/launchflow/launchflow-examples/tree/main/fastapi-get-started).
 
 {% /callout %}
-
-{% tabProvider defaultLabel="AWS" %}
 
 ## 0. Setup your FastAPI Project
 
@@ -48,8 +48,7 @@ def index(name: str = ""):
 
 Create a `Dockerfile`:
 
-{% tabs %}
-{% tab label="AWS" %}
+{% gettingStartedSection cloudProvider="AWS" %}
 ```dockerfile
 FROM public.ecr.aws/docker/library/python:3.11-slim
 
@@ -66,8 +65,8 @@ EXPOSE $PORT
 CMD fastapi run --host 0.0.0.0 --port $PORT
 ```
 
-{% /tab %}
-{% tab label="GCP" %}
+{% /gettingStartedSection %}
+{% gettingStartedSection cloudProvider="GCP" %}
 
 ```dockerfile
 FROM python:3.11-slim
@@ -85,8 +84,7 @@ EXPOSE $PORT
 CMD fastapi run main.py --host 0.0.0.0 --port $PORT
 ```
 
-{% /tab %}
-{% /tabs %}
+{% /gettingStartedSection %}
 
 ---
 
@@ -95,22 +93,20 @@ CMD fastapi run main.py --host 0.0.0.0 --port $PORT
 
 Install the LaunchFlow Python SDK and CLI using `pip`.
 
-{% tabs %}
-{% tab label="AWS" %}
+{% gettingStartedSection cloudProvider="AWS" %}
 
 ```bash
 pip install "launchflow[aws]"
 ```
 
-{% /tab %}
-{% tab label="GCP" %}
+{% /gettingStartedSection %}
+{% gettingStartedSection cloudProvider="GCP" %}
 
 ```bash
 pip install "launchflow[gcp]"
 ```
 
-{% /tab %}
-{% /tabs %}
+{% /gettingStartedSection %}
 
 ---
 
@@ -124,35 +120,32 @@ This command creates a `launchflow.yaml` file and stores all your launchflow sta
 
 ---
 
-Create an `infra.py` file to define your infrastructure:
+Create an `infra.py` file to define your service:
 
-{% tabs %}
-{% tab label="AWS" %}
-
-```python
-import launchflow as lf
-
-bucket = lf.aws.S3Bucket(f"new-bucket-{lf.project}-{lf.environment}", force_destroy=True)
-```
-
-{% /tab %}
-{% tab label="GCP" %}
+{% gettingStartedSection cloudProvider="AWS" %}
 
 ```python
 import launchflow as lf
 
-bucket = lf.gcp.GCSBucket(f"new-bucket-{lf.project}-{lf.environment}", force_destroy=True)
+bucket = lf.aws.ECSFargate("my-service")
 ```
 
-{% /tab %}
-{% /tabs %}
+{% /gettingStartedSection %}
+{% gettingStartedSection cloudProvider="GCP" %}
+
+```python
+import launchflow as lf
+
+service = lf.gcp.CloudRun("my-service")
+```
+
+{% /gettingStartedSection %}
 
 ---
 
 ## 2. Deploy your Application
 
-{% tabs %}
-{% tab label="AWS" %}
+{% gettingStartedSection cloudProvider="AWS" %}
 
 Deploy your app to AWS:
 
@@ -174,9 +167,8 @@ Once complete you will see a link to your deployed service on AWS Fargate.
 ![Deploy Result](/images/deploy-terminal-aws.png)
 
 
-  {% /tab %}
-
-  {% tab label="GCP" %}
+  {% /gettingStartedSection %}
+  {% gettingStartedSection cloudProvider="GCP" %}
 
 Deploy your app to GCP:
 
@@ -239,4 +231,4 @@ This will create a project in your LaunchFlow Cloud account and migrate your loc
 
 <!-- - Checkout out our [example applications](/examples) to see even more way to use LaunchFlow. -->
 
-{% /tabProvider %}
+{% /gettingStartedSelector %}

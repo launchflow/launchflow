@@ -31,7 +31,7 @@ function FrameWorkCard({
 }) {
   return (
     <Link href={href} className="no-decoration">
-      <div className="bg-card text-card-foreground h-full rounded-lg border shadow-sm hover:shadow-md">
+      <div className="bg-card text-card-foreground h-full rounded-lg border shadow-sm hover:shadow-md dark:border-white/5 dark:hover:shadow-slate-800">
         <div className="flex flex-col space-y-1.5 p-6">
           <h3 className="mt-0 text-2xl font-semibold leading-none tracking-tight">
             {title}
@@ -76,11 +76,11 @@ export function GettingStartedSearch() {
       href: '/docs/get-started/docker-image',
       keywords: ['api', 'website', 'worker'],
     },
-    // {
-    //   title: 'SvelteKit',
-    //   href: '/docs/get-started/svelte',
-    //   keywords: ['javascript', 'backend', 'frontend', 'full-stack'],
-    // },
+    {
+      title: 'SvelteKit',
+      href: '/docs/get-started/svelte',
+      keywords: ['javascript', 'api', 'website'],
+    },
   ]
   return (
     <div>

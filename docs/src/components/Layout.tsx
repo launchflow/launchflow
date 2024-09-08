@@ -9,7 +9,6 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
-import { Hero } from '@/components/Hero'
 import { MobileNavigation } from '@/components/MobileNavigation'
 import { Navigation } from '@/components/Navigation'
 import { Search } from '@/components/Search'
@@ -58,6 +57,7 @@ function Header() {
 
   return (
     <header
+      id="mainHeader"
       className={clsx(
         'sticky top-0 z-50  justify-between bg-white shadow-md shadow-background_dark/5 transition duration-500 sm:px-6 lg:px-8 dark:bg-background_dark/95 dark:shadow-none dark:backdrop-blur dark:[@supports(backdrop-filter:blur(0))]:bg-background_dark/75',
         isScrolled
