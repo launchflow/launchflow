@@ -45,7 +45,7 @@ Permissions & roles are managed for you, so you can easily create / connect to i
 
 ## CLI Commands
 
-For a full list of commands and options, see the [Environments Reference](/reference/cli#launchflow-environments).
+For a full list of commands and options, see the [Environments Reference](/reference/cli#lf-environments).
 
 ### Create an Environment
 

@@ -103,7 +103,7 @@ class ComputeEngineService(GCPDockerService):
         health_check: Optional[Union[Literal[False], HttpHealthCheck]] = None,
         auto_healing_policy_initial_delay: int = 360,
         # autoscaler
-        auto_scaler: Optional[Union[Literal[False], RegionalAutoscaler]] = None,
+        autoscaler: Optional[Union[Literal[False], RegionalAutoscaler]] = None,
         # custom domain
         domain: Optional[str] = None,
         # deploy configuraiton
@@ -123,7 +123,7 @@ class ComputeEngineService(GCPDockerService):
         - `update_policy (UpdatePolicy)`: The [update policy](/reference/gcp-resources/regional-managed-instance-group#update-policy) for the managed instance group. Defaults to `UpdatePolicy(max_surge_fixed=3)`.
         - `health_check (Optional[Union[Literal[False], HttpHealthCheck]])`: The [health check](/reference/gcp-resources/http-health-check) to use for the service. If `False`, no health check will be used. If `None`, a default health check will be created that performs a health check on the `/` endpoint every 5 seconds. Defaults to `None`.
         - `auto_healing_policy_initial_delay (int)`: The initial delay in seconds for the [auto healing policy](/reference/gcp-resources/regional-managed-instance-group#auto-healing-policy). Defaults to 360.
-        - `auto_scaler (Optional[Union[Literal[False], RegionalAutoscaler]])`: The [autoscaler](/reference/gcp-resources/regional-autoscaler) to use for the service. If `False`, no autoscaler will be used. If `None` a default autoscaler will be used that scales between 1-10 VMs with a target CPU utilization of .75. Defaults to `None`.
+        - `autoscaler (Optional[Union[Literal[False], RegionalAutoscaler]])`: The [autoscaler](/reference/gcp-resources/regional-autoscaler) to use for the service. If `False`, no autoscaler will be used. If `None` a default autoscaler will be used that scales between 1-10 VMs with a target CPU utilization of .75. Defaults to `None`.
         - `domain (Optional[str])`: The custom domain to use for the service. If not provided no load balancer will be setup in front of the managed instance group.
         - `deploy_timeout (timedelta)`: The amount of time to wait for the service to deploy before timing out. Defaults to 15 minutes.
         """
@@ -160,10 +160,10 @@ class ComputeEngineService(GCPDockerService):
             named_ports=[NamedPort("http", port)],
         )
 
-        if auto_scaler is False:
+        if autoscaler is False:
             self._health_check = None
-        elif auto_scaler is None:
-            self._auto_scaler = RegionalAutoscaler(
+        elif autoscaler is None:
+            self._autoscaler = RegionalAutoscaler(
                 f"{name}-auto-scaler",
                 group_manager=self._mig,
                 autoscaling_policies=[
@@ -176,7 +176,7 @@ class ComputeEngineService(GCPDockerService):
                 ],
             )
         else:
-            self._auto_scaler = auto_scaler
+            self._autoscaler = autoscaler
         self._firewall_rule = FirewallAllowRule(
             name=f"{self.name}-allow",
             direction="INGRESS",
@@ -219,8 +219,8 @@ class ComputeEngineService(GCPDockerService):
         # now we just show it twice cause it's not the worst thing in the world
         if self._health_check is not None:
             resources.append(self._health_check)
-        if self._auto_scaler is not None:
-            resources.append(self._auto_scaler)
+        if self._autoscaler is not None:
+            resources.append(self._autoscaler)
         if self._custom_domain is not None:
             resources.append(self._custom_domain)
         return resources

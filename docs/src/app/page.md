@@ -36,7 +36,7 @@ Python is just the language for your cloud configuration, similar to how Terrafo
 ## Framework Integrations
 
 {% callout type="note" %}
-The integrations below are only available for Python applications. 
+The integrations below are only available for Python applications.
 
 LaunchFlow can deploy any type of application, but Python applications benefit from deeper integrations with the SDK.
 

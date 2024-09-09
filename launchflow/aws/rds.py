@@ -1,9 +1,9 @@
 # Handling imports and missing dependencies
+
 try:
     import asyncpg  # type: ignore
 except ImportError:
     asyncpg = None
-
 try:
     import pg8000  # type: ignore
 except ImportError:
@@ -13,30 +13,37 @@ try:
     import psycopg2  # type: ignore
 except ImportError:
     psycopg2 = None
-
 try:
     from sqlalchemy.ext.asyncio import create_async_engine
 except ImportError:
+    async_sessionmaker = None
     create_async_engine = None  # type: ignore
 
 try:
-    from sqlalchemy import create_engine, event, text
+    from sqlalchemy import create_engine, text
 except ImportError:
     text = None  # type: ignore
-    event = None  # type: ignore
     create_engine = None  # type: ignore
     DeclarativeBase = None
     sessionmaker = None
 
-import dataclasses
+try:
+    import pymysql  # type: ignore
+except ImportError:
+    pymysql = None
 
-# Importing the required modules
+try:
+    import aiomysql
+except ImportError:
+    aiomysql = None
+
+
+import dataclasses
 import enum
 from typing import Optional
 
 import launchflow as lf
 from launchflow.aws.resource import AWSResource
-from launchflow.generic_clients import PostgresClient
 from launchflow.models.enums import EnvironmentType, ResourceProduct
 from launchflow.models.flow_state import EnvironmentState
 from launchflow.node import Outputs
@@ -51,7 +58,7 @@ def _convert_resource_id_to_camel_case(s: str) -> str:
 
 
 @dataclasses.dataclass
-class RDSPostgresOutputs(Outputs):
+class RDSOutputs(Outputs):
     endpoint: str
     username: str
     password: str
@@ -60,34 +67,52 @@ class RDSPostgresOutputs(Outputs):
     region: str
 
 
-class PostgresVersion(enum.Enum):
-    POSTGRES9_3 = "9.3"
-    POSTGRES9_4 = "9.4"
-    POSTGRES9_5 = "9.5"
-    POSTGRES9_6 = "9.6"
-    POSTGRES10 = "10"
-    POSTGRES11 = "11"
-    POSTGRES12 = "12"
-    POSTGRES13 = "13"
-    POSTGRES14 = "14"
-    POSTGRES15 = "15"
-    POSTGRES16 = "16"
+class RDSEngine(enum.Enum):
+    POSTGRES = "postgres"
+    MYSQL = "mysql"
+
+
+class RDSEngineVersion(enum.Enum):
+    # PostgreSQL versions
+    POSTGRES9_3 = ("9.3", RDSEngine.POSTGRES)
+    POSTGRES9_4 = ("9.4", RDSEngine.POSTGRES)
+    POSTGRES9_5 = ("9.5", RDSEngine.POSTGRES)
+    POSTGRES9_6 = ("9.6", RDSEngine.POSTGRES)
+    POSTGRES10 = ("10", RDSEngine.POSTGRES)
+    POSTGRES11 = ("11", RDSEngine.POSTGRES)
+    POSTGRES12 = ("12", RDSEngine.POSTGRES)
+    POSTGRES13 = ("13", RDSEngine.POSTGRES)
+    POSTGRES14 = ("14", RDSEngine.POSTGRES)
+    POSTGRES15 = ("15", RDSEngine.POSTGRES)
+    POSTGRES16 = ("16", RDSEngine.POSTGRES)
+
+    # MySQL versions
+    MYSQL5_6 = ("5.6", RDSEngine.MYSQL)
+    MYSQL5_7 = ("5.7", RDSEngine.MYSQL)
+    MYSQL8_0 = ("8.0", RDSEngine.MYSQL)
+
+    def __init__(self, version: str, engine: RDSEngine):
+        self.version = version
+        self.engine = engine
+
+    def family(self) -> str:
+        return f"{self.engine.value}{self.version}"
 
 
 @dataclasses.dataclass
-class RDSPostgresInputs(ResourceInputs):
+class RDSInputs(ResourceInputs):
     database_name: str
     publicly_accessible: bool
     instance_class: str
     allocated_storage_gb: int
-    # If true the database will be made available in multiple availability zones
     highly_available: bool
-    postgres_version: str
-    postgres_family: str
+    engine: str
+    engine_version: str
+    engine_family: str
 
 
-class RDSPostgres(AWSResource[RDSPostgresOutputs], PostgresClient):
-    """A Postgres cluster running on AWS's RDS service.
+class RDS(AWSResource[RDSOutputs]):
+    """A class for creating an RDS instance in AWS.
 
     Like all [Resources](/docs/concepts/resources), this class configures itself across multiple [Environments](/docs/concepts/environments).
 
@@ -95,21 +120,14 @@ class RDSPostgres(AWSResource[RDSPostgresOutputs], PostgresClient):
 
     ### Example Usage
     ```python
-    from sqlalchemy import text
     import launchflow as lf
 
-    # Automatically creates / connects to a RDS Postgres cluster in your AWS account
-    postgres = lf.aws.RDSPostgres("my-pg-db")
-
-    # Quick utilities for connecting to SQLAlchemy, Django, and other ORMs
-    engine = postgres.sqlalchemy_engine()
-
-    with engine.connect() as connection:
-        print(connection.execute(text("SELECT 1")).fetchone())  # prints (1,)
+    # Automatically creates / connects to an RDS cluster in your AWS account
+    rds_instance = lf.aws.RDS("my-db", engine_version=lf.aws.RDSEngineVersion.POSTGRES16)
     ```
     """
 
-    product = ResourceProduct.AWS_RDS_POSTGRES.value
+    product = ResourceProduct.AWS_RDS.value
 
     def __init__(
         self,
@@ -119,39 +137,37 @@ class RDSPostgres(AWSResource[RDSPostgresOutputs], PostgresClient):
         highly_available: Optional[bool] = None,
         instance_class: Optional[str] = None,
         publicly_accessible: Optional[bool] = None,
-        postgres_version: PostgresVersion = PostgresVersion.POSTGRES16,
+        engine_version: RDSEngineVersion = RDSEngineVersion.POSTGRES16,
     ) -> None:
-        """Create a new RDS Postgres resource.
+        """Create a new RDS resource.
 
         **Args:**
-        - `name (str)`: The name of the RDS Postgres cluster.
-        - `allocated_storage_gb (int)`: The amount of storage to allocate for the cluster in GB. Defaultus to 20 GB.
+        - `name (str)`: The name of the RDS cluster.
+        - `allocated_storage_gb (int)`: The amount of storage to allocate for the cluster in GB. Defaults to 20 GB.
         - `highly_available (Optional[bool])`: Whether the database should be made available in multiple availability zones. Defaults to `False` for development environments and `True` for production.
-        - `instance_class (Optional[str])`: The instance class to use for the RDS Postgres cluster. Defaults to `db.t4g.micro` for development environments and `db.r5.large` for production.
-        - `publicly_accessible (Optionally[bool])`: Whether the database should be publicly accessible. Defaults to `True` for development environments and `False` for production.
-        - `postgres_version (PostgresVersion)`: The version of Postgres to use. Defaults to `PostgresVersion.POSTGRES16`.
+        - `instance_class (Optional[str])`: The instance class to use for the RDS cluster. Defaults to `db.t4g.micro` for development environments and `db.r5.large` for production.
+        - `publicly_accessible (Optional[bool])`: Whether the database should be publicly accessible. Defaults to `True` for development environments and `False` for production.
+        - `engine_version (RDSEngineVersion)`: The engine version to use. Defaults to `RDSEngineVersion.POSTGRES16`.
         """
-        super().__init__(
-            name=name, resource_id=f"{name}-{lf.project}-{lf.environment}".lower()
-        )
+        super().__init__(name=name, resource_id=f"{name}-{lf.environment}".lower())
         self.allocated_storage_gb = allocated_storage_gb
         self.highly_available = highly_available
         self.instance_class = instance_class
         self.publicly_accessible = publicly_accessible
-        self.postgres_version = postgres_version
+        self.engine_version = engine_version
 
-    def inputs(self, environment_state: EnvironmentState) -> RDSPostgresInputs:
-        """Get the inputs for the RDS Postgres resource.
+    def inputs(self, environment_state: EnvironmentState) -> RDSInputs:
+        """Get the inputs for the RDS resource.
 
         **Args:**
         - `environment_state (EnvironmentState)`: The environment to get state for.
 
         **Returns:**
-        - `RDSPostgresInputs`: The inputs for the RDS Postgres resource.
+        - `RDSInputs`: The inputs for the RDS resource.
         """
         db_name = _convert_resource_id_to_camel_case(self.resource_id)
         if environment_state.environment_type == EnvironmentType.DEVELOPMENT:
-            return RDSPostgresInputs(
+            return RDSInputs(
                 resource_id=self.resource_id,
                 database_name=db_name,
                 publicly_accessible=(
@@ -168,11 +184,12 @@ class RDSPostgres(AWSResource[RDSPostgresOutputs], PostgresClient):
                 highly_available=(
                     False if self.highly_available is None else self.highly_available
                 ),
-                postgres_version=self.postgres_version.value,
-                postgres_family=f"postgres{self.postgres_version.value}",
+                engine=self.engine_version.engine.value,
+                engine_version=self.engine_version.version,
+                engine_family=self.engine_version.family(),
             )
         elif environment_state.environment_type == EnvironmentType.PRODUCTION:
-            return RDSPostgresInputs(
+            return RDSInputs(
                 resource_id=self.resource_id,
                 database_name=db_name,
                 publicly_accessible=(
@@ -189,8 +206,9 @@ class RDSPostgres(AWSResource[RDSPostgresOutputs], PostgresClient):
                 highly_available=(
                     True if self.highly_available is None else self.highly_available
                 ),
-                postgres_version=self.postgres_version.value,
-                postgres_family=f"postgres{self.postgres_version.value}",
+                engine=self.engine_version.engine.value,
+                engine_version=self.engine_version.version,
+                engine_family=self.engine_version.family(),
             )
         else:
             raise ValueError("unsupported environment type")
@@ -208,7 +226,7 @@ class RDSPostgres(AWSResource[RDSPostgresOutputs], PostgresClient):
         ```python
         import launchflow as lf
 
-        postgres = lf.aws.RDSPostgres("my-pg-db")
+        postgres = lf.aws.RDS("my-pg-db")
 
         # Executes a query on the Postgres instance running on the RDS cluster
         postgres.query("SELECT 1")
@@ -223,58 +241,25 @@ class RDSPostgres(AWSResource[RDSPostgresOutputs], PostgresClient):
             if result.returns_rows:
                 return result.fetchall()
 
-    def django_settings(self):
-        """Returns a Django settings dictionary for connecting to the RDS Postgres instance.
-
-        **Example usage:**
-        ```python
-        import launchflow as lf
-
-        postgres = lf.aws.RDSPostgres("my-pg-db")
-
-        # settings.py
-        DATABASES = {
-            # Connect Django's ORM to the RDS Postgres instance
-            "default": postgres.django_settings(),
-        }
-        ```
-        """
-        if psycopg2 is None:
-            raise ImportError(
-                "psycopg2 is not installed. Please install it with `pip install psycopg2`."
-            )
-
-        connection_info = self.outputs()
-        return {
-            "ENGINE": "django.db.backends.postgresql_psycopg2",
-            "NAME": connection_info.dbname,
-            "USER": connection_info.username,
-            "PASSWORD": connection_info.password,
-            "HOST": connection_info.endpoint,
-            "PORT": connection_info.port,
-        }
-
     def sqlalchemy_engine_options(self):
-        if pg8000 is None:
-            raise ImportError(
-                "pg8000 is not installed. Please install it with `pip install pg8000`."
-            )
-
         connection_info = self.outputs()
-        return {
-            "url": f"postgresql+pg8000://{connection_info.username}:{connection_info.password}@{connection_info.endpoint}/{connection_info.dbname}",
-        }
+        if self.engine_version.engine == RDSEngine.MYSQL:
+            if pymysql is None:
+                raise ImportError(
+                    "pymysql is not installed. Please install it with `pip install pymysql`."
+                )
+            return {
+                "url": f"mysql+pymysql://{connection_info.username}:{connection_info.password}@{connection_info.endpoint}/{connection_info.dbname}",
+            }
 
-    async def sqlalchemy_async_engine_options(self):
-        if asyncpg is None:
-            raise ImportError(
-                "asyncpg is not installed. Please install it with `pip install asyncpg`."
-            )
-
-        connection_info = await self.outputs_async()
-        return {
-            "url": f"postgresql+asyncpg://{connection_info.username}:{connection_info.password}@{connection_info.endpoint}/{connection_info.dbname}"
-        }
+        elif self.engine_version.engine == RDSEngine.POSTGRES:
+            if pg8000 is None:
+                raise ImportError(
+                    "pg8000 is not installed. Please install it with `pip install pg8000`."
+                )
+            return {
+                "url": f"postgresql+pg8000://{connection_info.username}:{connection_info.password}@{connection_info.endpoint}/{connection_info.dbname}",
+            }
 
     def sqlalchemy_engine(self, **engine_kwargs):
         """Returns a SQLAlchemy engine for connecting to the RDS SQL Postgres instance.
@@ -286,7 +271,7 @@ class RDSPostgres(AWSResource[RDSPostgresOutputs], PostgresClient):
         ```python
         import launchflow as lf
 
-        postgres = lf.aws.RDSPostgres("my-pg-db")
+        postgres = lf.aws.RDS("my-pg-db")
 
         # Creates a SQLAlchemy engine for connecting to the RDS SQL Postgres instance
         engine = postgres.sqlalchemy_engine()
@@ -305,34 +290,3 @@ class RDSPostgres(AWSResource[RDSPostgresOutputs], PostgresClient):
         engine_options.update(engine_kwargs)
 
         return create_engine(**engine_options)
-
-    async def sqlalchemy_async_engine(self, **engine_kwargs):
-        """Returns an async SQLAlchemy engine for connecting to the RDS SQL Postgres instance.
-
-        Args:
-        - `**engine_kwargs`: Additional keyword arguments to pass to `create_async_engine`.
-
-        **Example usage:**
-        ```python
-        import launchflow as lf
-
-        postgres = lf.aws.RDSPostgres("my-pg-db")
-
-        # Creates an async SQLAlchemy engine for connecting to the RDS SQL Postgres instance
-        engine = await postgres.sqlalchemy_async_engine()
-
-        async with engine.connect() as connection:
-            result = await connection.execute("SELECT 1")
-            print(await result.fetchone())
-        ```
-        """
-        if create_async_engine is None:
-            raise ImportError(
-                "SQLAlchemy asyncio extension is not installed. "
-                "Please install it with `pip install sqlalchemy[asyncio]`."
-            )
-
-        engine_options = await self.sqlalchemy_async_engine_options()
-        engine_options.update(engine_kwargs)
-
-        return create_async_engine(**engine_options)

@@ -1,14 +1,22 @@
 import asyncio
 import base64
+import inspect
 import logging
 import os
+import shutil
+import subprocess
+import tempfile
 import time
-from typing import List, Tuple
+import zipfile
+from concurrent.futures import ThreadPoolExecutor
+from queue import Queue
+from typing import Callable, List, Tuple
 
 from docker.errors import BuildError  # type: ignore
 
 from launchflow import exceptions
 from launchflow.aws.ecs_fargate import ECSFargate
+from launchflow.aws.lambda_service import LambdaStaticService
 from launchflow.aws.service import AWSDockerService
 from launchflow.config import config
 from launchflow.managers.service_manager import ServiceManager
@@ -43,6 +51,158 @@ async def _upload_source_tarball_to_s3(
 
     loop = asyncio.get_event_loop()
     await loop.run_in_executor(None, upload_async)
+
+
+def _copy_directory_contents(src, dst):
+    for item in os.listdir(src):
+        s = os.path.join(src, item)
+        d = os.path.join(dst, item)
+        if os.path.isdir(s):
+            shutil.copytree(s, d, symlinks=True, dirs_exist_ok=True)
+        else:
+            shutil.copy2(s, d)
+
+
+def _zip_directory(directory_path, output_path, max_workers=None):
+    """
+    Zip the contents of a directory efficiently.
+
+    :param directory_path: Path to the directory to be zipped
+    :param output_path: Path where the zip file should be created
+    :param max_workers: Maximum number of threads to use for file discovery
+    """
+    file_queue = Queue()
+
+    def collect_files():
+        for root, _, files in os.walk(directory_path):
+            for file in files:
+                file_path = os.path.join(root, file)
+                arcname = os.path.relpath(file_path, directory_path)
+                file_queue.put((file_path, arcname))
+
+    # Use ThreadPoolExecutor for file discovery
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future = executor.submit(collect_files)
+        future.result()  # Wait for file collection to complete
+
+    # Write to zip file sequentially
+    with zipfile.ZipFile(
+        output_path, "w", zipfile.ZIP_DEFLATED, compresslevel=9
+    ) as zipf:
+        while not file_queue.empty():
+            file_path, arcname = file_queue.get()
+            zipf.write(file_path, arcname)
+
+
+def _get_relative_import_path(func: Callable, cwd: str) -> str:
+    # Get the absolute path of the file where the function is defined
+    func_file_path = os.path.abspath(inspect.getfile(func))
+
+    # Ensure the cwd has a trailing slash to avoid issues with relative path calculation
+    cwd = os.path.abspath(cwd) + os.path.sep
+
+    # Convert the absolute path to a relative path with respect to the current working directory
+    relative_path = os.path.relpath(func_file_path, cwd)
+
+    # Convert the relative file path to a Python module path
+    module_path = relative_path.replace(os.path.sep, ".").rsplit(".py", 1)[0]
+
+    # Append the function name to the module path
+    full_import_path = f"{module_path}.{func.__name__}"
+
+    return full_import_path
+
+
+async def deploy_local_files_to_lambda_static_site(
+    aws_environment_config: AWSEnvironmentConfig,
+    lambda_static_site: LambdaStaticService,
+    service_manager: ServiceManager,
+    deployment_id: str,
+):
+    try:
+        import boto3
+    except ImportError:
+        raise exceptions.MissingAWSDependency()
+    # 1. create a temp dir
+    full_yaml_path = os.path.dirname(
+        os.path.abspath(config.launchflow_yaml.config_path)
+    )
+    static_directory_path = os.path.abspath(
+        os.path.join(full_yaml_path, lambda_static_site.static_directory)
+    )
+    handler_path = _get_relative_import_path(lambda_static_site.handler, full_yaml_path)
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        _copy_directory_contents(static_directory_path, temp_dir)
+
+        # 2. Install packages from requirements.txt (if specified)
+        python_version = (
+            lambda_static_site._lambda_service_container.runtime.python_version()
+        )
+        if (
+            lambda_static_site.requirements_txt_path is not None
+            and python_version is not None
+        ):
+            # TODO: Move this logic to the build step
+            subprocess.check_call(
+                f"pip install --no-cache-dir --platform manylinux2014_x86_64 --target={temp_dir} --implementation cp --python-version {python_version} --only-binary=:all: -r {lambda_static_site.requirements_txt_path}".split(),
+                cwd=full_yaml_path,
+                stdout=subprocess.DEVNULL,  # TODO: Dump to the build logs file
+                stderr=subprocess.DEVNULL,  # TODO: Dump to the build logs file
+            )
+
+        def clean_pycache(directory):
+            for root, dirs, files in os.walk(directory):
+                for file in files:
+                    if file.endswith(".pyc"):
+                        os.remove(os.path.join(root, file))
+                for dir in dirs:
+                    if dir == "__pycache__":
+                        shutil.rmtree(os.path.join(root, dir))
+
+        # TODO: We can remove this later
+        clean_pycache(temp_dir)
+
+        # TODO: factor in files to ignore while zipping
+
+        # 3. Zip the contents of the temp directory
+        zip_file_path = os.path.join(temp_dir, "lambda.zip")
+        _zip_directory(temp_dir, zip_file_path)
+
+        # Read the zip file
+        with open(zip_file_path, "rb") as zip_file:
+            zip_file_content = zip_file.read()
+
+        lambda_client = boto3.client(
+            "lambda", region_name=aws_environment_config.region
+        )
+        try:
+            _ = lambda_client.update_function_configuration(
+                FunctionName=lambda_static_site._lambda_service_container.resource_id,
+                Handler=handler_path,
+                Environment={
+                    "Variables": {
+                        "LAUNCHFLOW_PROJECT": service_manager.project_name,
+                        "LAUNCHFLOW_ENVIRONMENT": service_manager.environment_name,
+                        "LAUNCHFLOW_CLOUD_PROVIDER": "aws",
+                        "LAUNCHFLOW_DEPLOYMENT_ID": deployment_id,
+                        "LAUNCHFLOW_ARTIFACT_BUCKET": f"s3://{aws_environment_config.artifact_bucket}",
+                    }
+                },
+            )
+            time.sleep(3)
+
+            # Try to update the existing function
+            _ = lambda_client.update_function_code(
+                FunctionName=lambda_static_site._lambda_service_container.resource_id,
+                ZipFile=zip_file_content,
+            )
+
+        except lambda_client.exceptions.ResourceNotFoundException:
+            assert False
+
+        service_outputs = lambda_static_site.outputs()
+        return service_outputs.service_url
 
 
 def _get_build_status(client, build_id):
@@ -474,7 +634,7 @@ async def release_docker_image_to_ecs_fargate(
         # TODO: Add a check to see if the task is crash looping, and maybe rollback the task definition
         raise e
 
-    return alb_outputs.alb_dns_name
+    return f"http://{alb_outputs.alb_dns_name}"
 
 
 # TODO: add a way to promote the docker image without code build

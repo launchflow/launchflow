@@ -43,12 +43,12 @@ variable "container_port" {
 }
 
 variable "health_check_path" {
-  type = string
+  type    = string
   default = null
 }
 
 
 variable "domain_name" {
-  type = string
+  type    = string
   default = null
 }

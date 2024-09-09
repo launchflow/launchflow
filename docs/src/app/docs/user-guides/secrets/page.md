@@ -42,7 +42,7 @@ api_key = lf.aws.SecretsManagerSecret("api-key")
 
 {% endtabProvider %}
 
-Then run `lf create` to create the container for your secret. Once the container is created, you can set the value with the [lf secrets set](/reference/cli#launchflow-secrets-set) CLI command:
+Then run `lf create` to create the container for your secret. Once the container is created, you can set the value with the [lf secrets set](/reference/cli#lf-secrets-set) CLI command:
 
 ```bash
 lf secrets set api-key <secret-value>

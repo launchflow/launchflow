@@ -30,7 +30,7 @@ class ResourceProduct(str, Enum):
     GCP_WORKBENCH_INSTANCE = "gcp_workbench_instance"
     GCP_FIREWALL_ALLOW_RULE = "gcp_firewall_allow_rule"
     GCP_COMPUTE_HTTP_HEALTH_CHECK = "gcp_compute_http_health_check"
-    GCP_REGIONAL_AUTO_SCALER = "gcp_regional_auto_scaler"
+    GCP_REGIONAL_AUTOSCALER = "gcp_regional_autoscaler"
     GCP_GKE_CLUSTER = "gcp_gke_cluster"
     GCP_GKE_NODE_POOL = "gcp_gke_node_pool"
     GCP_FIREBASE_PROJECT = "gcp_firebase_project"
@@ -40,6 +40,7 @@ class ResourceProduct(str, Enum):
     GCP_GKE_CUSTOM_DOMAIN_MAPPING = "gcp_gke_custom_domain_mapping"
     # AWS product types
     AWS_RDS_POSTGRES = "aws_rds_postgres"
+    AWS_RDS = "aws_rds"
     AWS_ELASTICACHE_REDIS = "aws_elasticache_redis"
     AWS_EC2 = "aws_ec2"
     AWS_S3_BUCKET = "aws_s3_bucket"
@@ -47,6 +48,11 @@ class ResourceProduct(str, Enum):
     AWS_CODEBUILD_PROJECT = "aws_codebuild_project"
     AWS_ECR_REPOSITORY = "aws_ecr_repository"
     AWS_ECS_FARGATE_SERVICE_CONTAINER = "aws_ecs_fargate_service_container"
+    AWS_LAMBDA_FUNCTION = "aws_lambda_function"
+    AWS_NAT_GATEWAY = "aws_nat_gateway"
+    AWS_ELASTIC_IP = "aws_elastic_ip"
+    AWS_API_GATEWAY = "aws_api_gateway"
+    AWS_LAMBDA_EVENT_MAPPING = "aws_lambda_event_mapping"
     AWS_ECS_CLUSTER = "aws_ecs_cluster"
     AWS_ALB = "aws_application_load_balancer"
     AWS_ACM_CERTIFICATE = "aws_acm_certificate"
@@ -69,6 +75,8 @@ class ServiceProduct(str, Enum):
     GCP_GKE = "gcp_gke"
     # AWS product types
     AWS_ECS_FARGATE = "aws_ecs_fargate"
+    AWS_STATIC_LAMBDA = "aws_static_lambda"
+    AWS_DOCKER_LAMBDA = "aws_docker_lambda"
 
 
 class EnvironmentType(str, Enum):

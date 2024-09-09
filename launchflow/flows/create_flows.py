@@ -215,6 +215,8 @@ class CreateResourcePlan(ResourcePlan):
                 # and tofu functions below
                 resource_state_copy = new_resource_state.model_copy(deep=True)
                 resource_state_copy.inputs = self._new_resource_inputs
+                # TODO: Dependencies are not always set correctly. See Lambda's
+                # dependency on API Gateway for example
                 resource_state_copy.depends_on = [
                     dep.name
                     for dep in self.resource.inputs_depend_on(self.environment_state)
@@ -255,7 +257,7 @@ class CreateResourcePlan(ResourcePlan):
                 # NOTE: We save the depends_on only if the create was successful
                 new_resource_state.depends_on = [
                     dep.name
-                    for dep in self.resource.inputs_depend_on(self.environment_state)
+                    for dep in self.resource.dependencies(self.environment_state)
                 ]
 
                 await self.resource_manager.save_resource(

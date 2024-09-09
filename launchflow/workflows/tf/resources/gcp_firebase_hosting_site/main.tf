@@ -7,17 +7,17 @@ provider "google-beta" {
 resource "google_firebase_hosting_site" "default" {
   provider = google-beta
   project  = var.gcp_project_id
-  site_id = var.resource_id
+  site_id  = var.resource_id
 }
 
 
 resource "google_firebase_hosting_custom_domain" "default" {
-  count = var.custom_domain != null ? 1 : 0
+  count    = var.custom_domain != null ? 1 : 0
   provider = google-beta
 
-  project  = var.gcp_project_id
-  site_id = google_firebase_hosting_site.default.site_id
-  custom_domain = var.custom_domain
+  project               = var.gcp_project_id
+  site_id               = google_firebase_hosting_site.default.site_id
+  custom_domain         = var.custom_domain
   wait_dns_verification = false
 }
 

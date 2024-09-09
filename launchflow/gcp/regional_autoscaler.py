@@ -83,7 +83,7 @@ class RegionalAutoscaler(GCPResource[RegionalAutoscalerOutputs]):
 
     """
 
-    product = ResourceProduct.GCP_REGIONAL_AUTO_SCALER.value
+    product = ResourceProduct.GCP_REGIONAL_AUTOSCALER.value
 
     def __init__(
         self,

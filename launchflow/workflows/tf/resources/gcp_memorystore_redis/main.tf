@@ -12,15 +12,15 @@ resource "google_project_service" "redis_service" {
 }
 
 resource "google_redis_instance" "cache" {
-  name           = var.resource_id
-  project        = var.gcp_project_id
-  region         = var.gcp_region
-  memory_size_gb = var.memory_size_gb
-  tier           = var.redis_tier
-  redis_version = var.redis_version
+  name                    = var.resource_id
+  project                 = var.gcp_project_id
+  region                  = var.gcp_region
+  memory_size_gb          = var.memory_size_gb
+  tier                    = var.redis_tier
+  redis_version           = var.redis_version
   transit_encryption_mode = var.enable_tls ? "SERVER_AUTHENTICATION" : "DISABLED"
 
-  auth_enabled   = true
+  auth_enabled = true
 
   lifecycle {
     prevent_destroy = false
