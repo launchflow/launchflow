@@ -122,13 +122,14 @@ export function GettingStartedSelector({
     <GettingStartedContext.Provider
       value={{ selectedCloudProvider, setSelectedCloudProvider }}
     >
-      <div className="not-prose sticky top-[93px] z-10  w-full rounded-md bg-transparent p-1 py-2 ring-1 ring-inset backdrop-blur md:top-[109px]">
+      <div className="not-prose sticky top-[93px] z-10 -mx-4 h-[52.5px] w-full bg-slate-50 p-1 px-4 py-2 md:top-[109px] lg:-mx-8 lg:pl-8 xl:-mx-16 dark:bg-slate-800">
         <Selector
           selected={selectedCloudProvider}
           setSelected={setSelectedCloudProvider}
           options={cloudProviders}
         />
       </div>
+      <div className="h-[52.5px]" />
       {children}
     </GettingStartedContext.Provider>
   )
