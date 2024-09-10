@@ -125,30 +125,11 @@ async def init(
     default_backend: Optional[project_gen.BackendType] = typer.Option(
         None, "--backend", "-b", help="The backend to use for the project."
     ),
-    template: Optional[str] = typer.Option(
-        None,
-        "--template",
-        "-t",
-        help="Use a template for the project.",
-        show_default=False,
-        hidden=True,
-    ),
-    bootstrap: bool = typer.Option(
-        False,
-        "--bootstrap",
-        "-b",
-        help="Bootstrap a new FastAPI, Flask, or Django project.",
-        show_default=False,
-        hidden=True,
-    ),
 ):
     """Initialize a new launchflow project."""
     # Validation for the init options
     if default_backend == project_gen.BackendType.GCS:
         typer.echo("The GCS backend is not supported yet.")
-        raise typer.Exit(1)
-    if template is not None and bootstrap:
-        typer.echo("You cannot use both --template and --bootstrap.")
         raise typer.Exit(1)
 
     effect = Wipe(_LAUNCHFLOW_TEXT)
@@ -157,20 +138,16 @@ async def init(
             terminal.print(frame)
 
     try:
-        if template is not None:
-            await project_gen.generate_template_project(
-                template_id=template, default_backend=default_backend
-            )
-        elif bootstrap:
-            await project_gen.generate_bootstrap_project(
-                default_backend=default_backend
-            )
-        else:
-            await project_gen.generate_launchflow_yaml(
-                default_backend_type=default_backend
-            )
+        # generates a launchflow.yaml file
+        await project_gen.generate_launchflow_yaml(default_backend_type=default_backend)
+
+        # (optionally) generates an infra.py file
+        project_gen.generate_infra_dot_py()
+
+    except typer.Exit:
+        return
     except Exception as e:
-        rich.print(f"[red]✗ Failed to set up project.[/red] {e}")
+        rich.print(f"[red]✗ Failed to configure project.[/red] {e}")
         rich.print(
             "\nIf the error persists, please open an issue on GitHub or contact the LaunchFlow team.\n"
         )
@@ -180,11 +157,13 @@ async def init(
         rich.print("LaunchFlow Contact: [blue]team@launchflow.com[/blue]\n")
         raise typer.Exit(1)
 
-    rich.print("\n[green]Ready for launch[/green] 🚀")
-    rich.print("\nQuickstart: https://docs.launchflow.com/docs/quickstart")
-    rich.print("Infrastructure Docs: https://docs.launchflow.com/reference")
-    # TODO: Link to their project in the console if they make a remote project
-    rich.print("LaunchFlow Console: https://console.launchflow.com\n")
+    rich.print("\n[green]Your project is configured and ready for launch[/green] 🚀\n")
+
+    rich.print("[bold]Docs:[/bold] [blue]https://docs.launchflow.com[/blue]")
+    rich.print("[bold]Console:[/bold] [blue]https://console.launchflow.com[/blue]")
+    rich.print(
+        "[bold]Quickstart:[/bold] [blue]https://docs.launchflow.com/docs/quickstart[/blue]\n"
+    )
 
 
 async def _handle_no_launchflow_yaml_found(auto_approve: bool):
@@ -570,20 +549,19 @@ async def import_resource_cmd(
             prompt_for_creation=True,
         )
     _set_global_project_and_environment(None, environment)
-    if resource is None:
-        resource_refs = find_launchflow_resources(
-            scan_directory, ignore_roots=config.ignore_roots
-        )
-        service_refs = find_launchflow_services(
-            scan_directory, ignore_roots=config.ignore_roots
-        )
-    else:
-        resource_refs = [resource]
-        service_refs = []
+    resource_refs = find_launchflow_resources(
+        scan_directory, ignore_roots=config.ignore_roots
+    )
+    service_refs = find_launchflow_services(
+        scan_directory, ignore_roots=config.ignore_roots
+    )
     resources = import_resources(resource_refs)
     services = import_services(service_refs)
     for service in services:
         resources.extend(service.resources())
+
+    if resource:
+        resources = [r for r in resources if r.name == resource]
 
     success = await import_existing_resources(environment, *resources)  # type: ignore
     if not success:

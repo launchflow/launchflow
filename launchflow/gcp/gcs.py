@@ -1,6 +1,6 @@
 import dataclasses
 import io
-from typing import IO, Optional
+from typing import IO, Dict, Optional
 
 from launchflow.gcp_clients import get_storage_client
 from launchflow.models.enums import ResourceProduct
@@ -82,6 +82,11 @@ class GCSBucket(GCPResource[GCSBucketOutputs]):
         self.location = location
         self.force_destroy = force_destroy
         self.uniform_bucket_level_access = uniform_bucket_level_access
+
+    def import_tofu_resource(
+        self, environment_state: EnvironmentState
+    ) -> Dict[str, str]:
+        return {"google_storage_bucket.bucket": self.resource_id}
 
     def inputs(self, environment_state: EnvironmentState) -> BucketInputs:
         return BucketInputs(
