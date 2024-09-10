@@ -516,8 +516,8 @@ class CloudSQLUser(GCPResource[CloudSQLUserOutputs]):
                 raise ValueError(f"A password is required for user `{self.user}`")
             imports["random_password.user-password"] = pw
         imports["google_sql_user.cloud_sql_user"] = (
-            f"{environment_state.gcp_config.project_id}/{self.cloud_sql_instance.resource_id}/{self.resource_id}",
-        )  # type: ignore
+            f"{environment_state.gcp_config.project_id}/{self.cloud_sql_instance.resource_id}/{self.resource_id}",  # type: ignore
+        )
 
         return imports
 
