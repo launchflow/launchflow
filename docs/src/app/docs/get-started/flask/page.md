@@ -6,6 +6,8 @@ nextjs:
     description: Deploy Flask to AWS / GCP with LaunchFlow
 ---
 
+{% gettingStartedSelector  %}
+
 Create a Flask backend that reads and writes to a S3 or GCS bucket and deploys to AWS ECS Fargate or GCP Cloud run.
 
 {% callout type="note" %}
@@ -292,3 +294,5 @@ This will create a project in your LaunchFlow Cloud account and migrate your loc
 <!-- - Checkout out our [example applications](/examples) to see even more way to use LaunchFlow. -->
 
 {% /tabProvider %}
+
+{% gettingStartedSelector  %}

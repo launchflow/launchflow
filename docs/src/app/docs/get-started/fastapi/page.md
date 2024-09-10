@@ -3,12 +3,35 @@ title: FastAPI with LaunchFlow
 nextjs:
   metadata:
     title: FastAPI with LaunchFlow
-    description: Deploy FastAPI to AWS / GCP with LAunchflow
+    description: Deploy FastAPI to AWS / GCP with Launchflow
 ---
 
-{% gettingStartedSelector %}
+{% gettingStartedSelector  %}
 
-Deploy a FastAPI application to AWS or GCP with LaunchFlow.
+
+{% gettingStartedSection cloudProvider="AWS" runtime="ECS Fargate" %}
+
+Deploy a FastAPI application to AWS Fargate with LaunchFlow.
+
+{% /gettingStartedSection %}
+
+{% gettingStartedSection cloudProvider="GCP" runtime="Cloud Run" %}
+
+Deploy a FastAPI application to GCP's serverless runtime Cloud Run with LaunchFlow.
+
+{% /gettingStartedSection %}
+
+{% gettingStartedSection cloudProvider="GCP" runtime="Compute Engine" %}
+
+Deploy a FastAPI application to GCP Compute Engine VMs with LaunchFlow.
+
+{% /gettingStartedSection %}
+
+{% gettingStartedSection cloudProvider="GCP" runtime="Kubernetes" %}
+
+Deploy a FastAPI application to Kubernetes running on GKE with LaunchFlow.
+
+{% /gettingStartedSection %}
 
 {% callout type="note" %}
 
@@ -66,6 +89,7 @@ CMD fastapi run --host 0.0.0.0 --port $PORT
 ```
 
 {% /gettingStartedSection %}
+
 {% gettingStartedSection cloudProvider="GCP" %}
 
 ```dockerfile
@@ -100,6 +124,7 @@ pip install "launchflow[aws]"
 ```
 
 {% /gettingStartedSection %}
+
 {% gettingStartedSection cloudProvider="GCP" %}
 
 ```bash
@@ -131,6 +156,7 @@ service = lf.aws.ECSFargate("my-service")
 ```
 
 {% /gettingStartedSection %}
+
 {% gettingStartedSection cloudProvider="GCP" %}
 
 ```python
@@ -167,8 +193,9 @@ Once complete you will see a link to your deployed service on AWS Fargate.
 ![Deploy Result](/images/deploy-terminal-aws.png)
 
 
-  {% /gettingStartedSection %}
-  {% gettingStartedSection cloudProvider="GCP" %}
+{% /gettingStartedSection %}
+
+{% gettingStartedSection cloudProvider="GCP" %}
 
 Deploy your app to GCP:
 
@@ -189,9 +216,7 @@ Once complete you will see a link to your deployed service on GCP Cloud Run.
 
 ![Deploy Result](/images/deploy-terminal.png)
 
-  {% /tab %}
-
-{% /tabs %}
+{% /gettingStartedSection %}
 
 ---
 

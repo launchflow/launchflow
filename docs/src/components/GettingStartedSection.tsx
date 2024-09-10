@@ -1,6 +1,6 @@
 'use client'
 import React from 'react'
-import { GettingStartedContext } from '@/components/GettingStartedSelector' // Import the context
+import { useGettingStartedContext } from '@/components/GettingStartedSelector' // Import the context
 
 type GettingStartedSectionProps = {
   cloudProvider: string
@@ -13,11 +13,20 @@ export function GettingStartedSection({
   runtime,
   children,
 }: GettingStartedSectionProps) {
-  const ctx = React.useContext(GettingStartedContext)
+  const ctx = useGettingStartedContext()
 
-  if (cloudProvider !== ctx.selectedCloudProvider.name) {
-    return null
+  if (runtime === undefined) {
+    if (cloudProvider !== ctx.selectedCloudProvider.name) {
+      return null
+    }
+    return children
+  } else {
+    if (
+      runtime !== ctx.selectedRuntime.name ||
+      cloudProvider !== ctx.selectedCloudProvider.name
+    ) {
+      return null
+    }
+    return children
   }
-
-  return children
 }

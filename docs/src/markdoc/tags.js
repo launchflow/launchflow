@@ -16,11 +16,24 @@ const tags = {
   },
   gettingStartedSelector: {
     render: GettingStartedSelector,
+    attributes: {
+      awsRuntimeOptions: {
+        type: Array,
+        validate: (value) => value.every((item) => typeof item === 'string'),
+      },
+      gcpRuntimeOptions: {
+        type: Array,
+        validate: (value) => value.every((item) => typeof item === 'string'),
+      },
+    },
   },
   gettingStartedSection: {
     render: GettingStartedSection,
     attributes: {
       cloudProvider: {
+        type: String,
+      },
+      runtime: {
         type: String,
       },
     },
