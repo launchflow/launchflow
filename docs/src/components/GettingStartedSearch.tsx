@@ -1,4 +1,7 @@
+'use client'
+
 import Link from 'next/link'
+import { useState } from 'react'
 
 const keywordColors = {
   python:
@@ -82,6 +85,20 @@ export function GettingStartedSearch() {
       keywords: ['javascript', 'api', 'website'],
     },
   ]
+
+  function searchGuides(query: string) {
+    const q = query.toLowerCase()
+    setVisibleCards(
+      cards.filter((card) => {
+        return (
+          card.title.toLowerCase().includes(q) ||
+          (card.keywords || []).some((k) => k.includes(q))
+        )
+      }),
+    )
+  }
+
+  const [visibleCards, setVisibleCards] = useState(cards)
   return (
     <div>
       <span className="group flex h-auto w-full items-center justify-center sm:justify-start md:flex-none md:rounded-lg md:py-2.5 md:pl-4 md:pr-3.5 md:text-sm md:ring-1 md:ring-slate-200 md:hover:ring-slate-300 dark:md:bg-background_dark/75 dark:md:ring-inset dark:md:ring-white/5 dark:md:hover:bg-slate-700/40 dark:md:hover:ring-slate-500">
@@ -89,13 +106,22 @@ export function GettingStartedSearch() {
         <input
           className="flex-auto appearance-none bg-transparent pl-2 text-slate-900 outline-none placeholder:text-slate-400 focus:w-full focus:flex-none sm:text-sm dark:text-white [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden [&::-webkit-search-results-button]:hidden [&::-webkit-search-results-decoration]:hidden"
           placeholder="Find a guide..."
+          onChange={(e) => searchGuides(e.target.value)}
         />
       </span>
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {cards.map((card) => (
-          <FrameWorkCard key={card.title} {...card} />
-        ))}
-      </div>
+      {visibleCards.length > 0 ? (
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {visibleCards.map((card) => (
+            <FrameWorkCard key={card.title} {...card} />
+          ))}
+        </div>
+      ) : (
+        <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
+          Can't find the guide your looking for? Don't worry you can deploy
+          application that can be run in a{' '}
+          <Link href="/docs/get-started/docker-image">docker image</Link>.
+        </div>
+      )}
     </div>
   )
 }
