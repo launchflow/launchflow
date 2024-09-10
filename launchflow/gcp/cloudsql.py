@@ -232,9 +232,6 @@ class CloudSQLPostgres(
                 f"{self.name}/{self._default_db.name}"  # type: ignore
             )
         if self.include_default_user:
-            imports["google_sql_user.cloud_sql_user[0]"] = (
-                f"{environment_state.gcp_config.project_id}/{self.name}/{self.name}-user"  # type: ignore
-            )
             pw = beaupy.prompt(
                 f"Please provide the password for user: `{self.name}-user` in db instance `{self.name}`:",
                 secure=True,
@@ -242,6 +239,9 @@ class CloudSQLPostgres(
             if not pw:
                 raise ValueError(f"A password is required for user `{self.name}-user`")
             imports["random_password.user-password[0]"] = pw
+            imports["google_sql_user.cloud_sql_user[0]"] = (
+                f"{environment_state.gcp_config.project_id}/{self.name}/{self.name}-user"  # type: ignore
+            )
         return imports
 
     def inputs(self, environment_state: EnvironmentState) -> CloudSQLPostgresInputs:
@@ -506,9 +506,7 @@ class CloudSQLUser(GCPResource[CloudSQLUserOutputs]):
     def import_tofu_resource(
         self, environment_state: EnvironmentState
     ) -> Dict[str, str]:
-        imports = {
-            "google_sql_user.cloud_sql_user": f"{environment_state.gcp_config.project_id}/{self.cloud_sql_instance.resource_id}/{self.resource_id}",  # type: ignore
-        }
+        imports = {}
         if self.password is None:
             pw = beaupy.prompt(
                 f"Please provide the password for user: `{self.user}` in db instance: `{self.cloud_sql_instance.name}`:",
@@ -517,6 +515,10 @@ class CloudSQLUser(GCPResource[CloudSQLUserOutputs]):
             if not pw:
                 raise ValueError(f"A password is required for user `{self.user}`")
             imports["random_password.user-password"] = pw
+        imports["google_sql_user.cloud_sql_user"] = (
+            f"{environment_state.gcp_config.project_id}/{self.cloud_sql_instance.resource_id}/{self.resource_id}",
+        )  # type: ignore
+
         return imports
 
     def outputs(self, *, use_cache: bool = True) -> CloudSQLUserOutputs:
