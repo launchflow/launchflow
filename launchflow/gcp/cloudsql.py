@@ -88,6 +88,8 @@ import dataclasses
 import enum
 from typing import Any, Dict, Literal, Optional, Tuple
 
+import beaupy
+
 from launchflow.gcp.resource import GCPResource
 from launchflow.generic_clients import PostgresClient
 from launchflow.models.enums import EnvironmentType, ResourceProduct
@@ -233,6 +235,13 @@ class CloudSQLPostgres(
             imports["google_sql_user.cloud_sql_user[0]"] = (
                 f"{environment_state.gcp_config.project_id}/{self.name}/{self.name}-user"  # type: ignore
             )
+            pw = beaupy.prompt(
+                f"Please provide the password for user: `{self.name}-user` in db instance `{self.name}`:",
+                secure=True,
+            )
+            if not pw:
+                raise ValueError(f"A password is required for user `{self.name}-user`")
+            imports["random_password.user-password[0]"] = pw
         return imports
 
     def inputs(self, environment_state: EnvironmentState) -> CloudSQLPostgresInputs:
@@ -497,9 +506,18 @@ class CloudSQLUser(GCPResource[CloudSQLUserOutputs]):
     def import_tofu_resource(
         self, environment_state: EnvironmentState
     ) -> Dict[str, str]:
-        return {
+        imports = {
             "google_sql_user.cloud_sql_user": f"{environment_state.gcp_config.project_id}/{self.cloud_sql_instance.resource_id}/{self.resource_id}",  # type: ignore
         }
+        if self.password is None:
+            pw = beaupy.prompt(
+                f"Please provide the password for user: `{self.user}` in db instance: `{self.cloud_sql_instance.name}`:",
+                secure=True,
+            )
+            if not pw:
+                raise ValueError(f"A password is required for user `{self.user}`")
+            imports["random_password.user-password"] = pw
+        return imports
 
     def outputs(self, *, use_cache: bool = True) -> CloudSQLUserOutputs:
         if self.password is None:

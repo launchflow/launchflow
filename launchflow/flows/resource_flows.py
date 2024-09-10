@@ -50,6 +50,7 @@ from launchflow.models.utils import (
 from launchflow.node import Node
 from launchflow.resource import Resource
 from launchflow.service import Service
+from launchflow.tofu import TofuResource
 from launchflow.workflows.destroy_resource_tofu.delete_tofu_resource import (
     delete_tofu_resource,
 )
@@ -681,8 +682,11 @@ async def stop_local_containers(
 
 @dataclasses.dataclass
 class ImportResourcePlan:
-    resource: Resource
+    resource: TofuResource
     resource_manager: ResourceManager
+    import_inputs: Optional[Dict[str, str]] = dataclasses.field(
+        default_factory=dict, init=False
+    )
 
     @property
     def ref(self):
@@ -694,6 +698,8 @@ async def _run_import_plans(
     plan: ImportResourcePlan,
     progress: Progress,
 ):
+    if plan.import_inputs is None:
+        raise ValueError("Import inputs must be provided to import a resource")
     base_logging_dir = "/tmp/launchflow"
     os.makedirs(base_logging_dir, exist_ok=True)
     logs_file = f"{base_logging_dir}/{plan.resource.name}-{int(time.time())}.log"
@@ -725,7 +731,7 @@ async def _run_import_plans(
         LockOperation(operation_type=OperationType.IMPORT_RESOURCE)
     ) as lock:
         try:
-            imports = plan.resource.import_tofu_resource(environment_state)  # type: ignore
+            imports = plan.import_inputs
 
             inputs = ImportResourceTofuInputs(
                 resource_id=plan.resource.resource_id,
@@ -780,7 +786,12 @@ async def import_existing_resources(
     plans = []
     for resource in resources:
         rm = environment_manager.create_resource_manager(resource.name)  # type: ignore
-        plans.append(ImportResourcePlan(resource=resource, resource_manager=rm))  # type: ignore
+        try:
+            resource_state = await rm.load_resource()
+            if resource_state.status == ResourceStatus.CREATE_FAILED:
+                plans.append(ImportResourcePlan(resource=resource, resource_manager=rm))  # type: ignore
+        except exceptions.ResourceNotFound:
+            plans.append(ImportResourcePlan(resource=resource, resource_manager=rm))  # type: ignore
 
     environment_ref = (
         f"{environment_manager.project_name}/{environment_manager.environment_name}"
@@ -796,6 +807,7 @@ async def import_existing_resources(
         console.print(
             f"[[pink1]✓[/pink1]] [pink1]{plan.resource.__class__.__name__}({plan.resource.name})[/pink1]"
         )
+        plan.import_inputs = plan.resource.import_tofu_resource(environment)
 
     tasks = []
     print()
