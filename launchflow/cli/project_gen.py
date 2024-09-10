@@ -314,7 +314,6 @@ async def generate_launchflow_yaml(
                     project_name=None,
                     prompt_for_creation=True,
                     custom_selection_prompt="Select a project to deploy to:",
-                    console=console,
                 )
                 project_name = project.name
 
