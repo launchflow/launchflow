@@ -74,6 +74,12 @@ class CloudTasksQueue(GCPResource[CloudTasksQueueOutputs]):
             resource_id=self.resource_id, location=self.location
         )
 
+    def import_tofu_resource(
+        self, environment_state: EnvironmentState
+    ) -> Dict[str, str]:
+        location = self.location or environment_state.gcp_config.default_region  # type: ignore
+        return {"google_cloud_tasks_queue.queue": f"{location}/{self.name}"}
+
     def enqueue(
         self,
         url: str,

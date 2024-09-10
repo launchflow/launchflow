@@ -570,20 +570,19 @@ async def import_resource_cmd(
             prompt_for_creation=True,
         )
     _set_global_project_and_environment(None, environment)
-    if resource is None:
-        resource_refs = find_launchflow_resources(
-            scan_directory, ignore_roots=config.ignore_roots
-        )
-        service_refs = find_launchflow_services(
-            scan_directory, ignore_roots=config.ignore_roots
-        )
-    else:
-        resource_refs = [resource]
-        service_refs = []
+    resource_refs = find_launchflow_resources(
+        scan_directory, ignore_roots=config.ignore_roots
+    )
+    service_refs = find_launchflow_services(
+        scan_directory, ignore_roots=config.ignore_roots
+    )
     resources = import_resources(resource_refs)
     services = import_services(service_refs)
     for service in services:
         resources.extend(service.resources())
+
+    if resource:
+        resources = [r for r in resources if r.name == resource]
 
     success = await import_existing_resources(environment, *resources)  # type: ignore
     if not success:
