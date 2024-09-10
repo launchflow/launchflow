@@ -457,12 +457,12 @@ service = lf.gcp.CloudRunService("my-cloud-run-service")
 """
         elif self == GCPServices.GCE:
             return """
-# Compute Engine Docs: https://docs.launchflow.com/reference/gcp-services/compute-engine
+# Compute Engine Docs: https://docs.launchflow.com/reference/gcp-services/compute-engine-service
 service = lf.gcp.ComputeEngineService("my-compute-engine-service")
 """
         elif self == GCPServices.GKE:
             return """
-# GKE Docs: https://docs.launchflow.com/reference/gcp-services/gke
+# GKE Docs: https://docs.launchflow.com/reference/gcp-services/gke-service
 service = lf.gcp.GKEService("my-gke-service")
 """
 
@@ -553,7 +553,7 @@ def generate_infra_dot_py():
         rich.print("[yellow]An infra.py file already exists.[/yellow]")
         rich.print("[italic]Skipping example infra.py creation.[/italic]")
         rich.print(
-            "[italic]Visit [bold]https://docs.launchflow.com/project-structure[/bold] to see example launchflow usage.[/italic]"
+            "[italic]Visit [bold]https://docs.launchflow.com/docs/user-guides/project-structure[/bold] to see example launchflow usage.[/italic]"
         )
         return
 
@@ -590,7 +590,7 @@ Create your cloud infrastructure with:
 Deploy your application with:
     lf deploy
 
-For more information, visit https://docs.launchflow.com/project-structure
+For more information, visit https://docs.launchflow.com/docs/user-guides/project-structure
 \"\"\"
 
 import launchflow as lf
