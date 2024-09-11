@@ -35,21 +35,19 @@ variable "launchflow_environment" {
 }
 
 #
-# API Gateway specific variables
+# Lambda service container specific variables
 #
 
-variable "protocol_type" {
+variable "api_gateway_id" {
   type = string
 }
 
-variable "cors" {
-  type = object({
-    allow_credentials = bool
-    allow_headers     = list(string)
-    allow_methods     = list(string)
-    allow_origins     = list(string)
-    expose_headers    = list(string)
-    max_age           = number
-  })
+variable "function_arn" {
+  type = string
+  default = null
+}
+
+variable "function_alias" {
+  type = string
   default = null
 }

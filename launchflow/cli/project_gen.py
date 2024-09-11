@@ -404,15 +404,12 @@ def _select_cloud_provider() -> Optional[CloudProvider]:
 
 class AWSServices(Enum):
     LAMBDA = "Lambda (Serverless)"
-    LAMBDA_DOCKER = "Lambda with Docker (Serverless)"
     ECS = "ECS Fargate (Autoscaling VMs)"
     # EKS = "EKS (Kubernetes)"
 
     def title(self):
         if self == AWSServices.LAMBDA:
             return "Lambda"
-        elif self == AWSServices.LAMBDA_DOCKER:
-            return "Lambda with Docker"
         elif self == AWSServices.ECS:
             return "ECS"
         # elif self == AWSServices.EKS:
@@ -423,11 +420,6 @@ class AWSServices(Enum):
             return """
 # LambdaService Docs: https://docs.launchflow.com/reference/aws-services/lambda
 service = lf.aws.LambdaService("my-lambda-service", handler="TODO")
-"""
-        if self == AWSServices.LAMBDA_DOCKER:
-            return """
-# LambdaDockerService Docs: https://docs.launchflow.com/reference/aws-services/lambda-docker
-service = lf.aws.LambdaDockerService("my-lambda-service", handler="TODO")
 """
         if self == AWSServices.ECS:
             return """
@@ -559,15 +551,21 @@ def generate_infra_dot_py():
     infra_py_path = os.path.join(os.getcwd(), "infra.py")
     if os.path.isfile(infra_py_path):
         rich.print("[yellow]An infra.py file already exists.[/yellow]")
-        overwrite = beaupy.confirm(
-            "Would you like to overwrite the existing [bold]infra.py[/bold]?",
-            default_is_yes=False,
+        rich.print("[italic]Skipping example infra.py creation.[/italic]")
+        rich.print(
+            "[italic]Visit [bold]https://docs.launchflow.com/project-structure[/bold] to see example launchflow usage.[/italic]"
         )
-        rich.print("Would you like to overwrite the existing [bold]infra.py[/bold]?")
-        if not overwrite:
-            rich.print("[pink1]>[/pink1] No")
-            return
-        rich.print("[pink1]>[/pink1] Yes\n")
+        return
+
+    answer = beaupy.confirm(
+        "Would you like to create an example [bold]infra.py[/bold] file?",
+        default_is_yes=True,
+    )
+    rich.print("Would you like to create an example [bold]infra.py[/bold] file?")
+    if not answer:
+        rich.print("[pink1]>[/pink1] No")
+        return
+    rich.print("[pink1]>[/pink1] Yes\n")
 
     # deployment_type = _select_deployment()
     deployment_type = DeploymentType.SERVICE

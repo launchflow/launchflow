@@ -19,10 +19,11 @@ from launchflow.aws.codebuild_project import (
 from launchflow.aws.ecr_repository import ECRRepository
 from launchflow.aws.ecs_cluster import ECSCluster
 from launchflow.aws.ecs_fargate_container import ECSFargateServiceContainer
-from launchflow.aws.service import AWSDockerService, AWSDockerServiceOutputs
+from launchflow.aws.service import AWSService
 from launchflow.models.enums import ServiceProduct
 from launchflow.node import Inputs
 from launchflow.resource import Resource
+from launchflow.service import DockerService, DockerServiceOutputs
 
 
 @dataclass
@@ -31,7 +32,7 @@ class ECSFargateServiceInputs(Inputs):
     memory: int = 512
 
 
-class ECSFargateService(AWSDockerService):
+class ECSFargateService(AWSService, DockerService):
     """A service hosted on AWS ECS Fargate.
 
     Like all [Services](/docs/concepts/services), this class configures itself across multiple [Environments](/docs/concepts/environments).
@@ -182,7 +183,7 @@ class ECSFargateService(AWSDockerService):
             to_return.append(self._https_certificate)
         return to_return  # type: ignore
 
-    def outputs(self) -> AWSDockerServiceOutputs:
+    def outputs(self) -> DockerServiceOutputs:
         try:
             ecr_outputs = self._ecr.outputs()
             code_build_outputs = self._code_build_project.outputs()
@@ -196,7 +197,7 @@ class ECSFargateService(AWSDockerService):
             domain = self._https_certificate.outputs().domain_name
             service_url = f"https://{domain}"
 
-        service_outputs = AWSDockerServiceOutputs(
+        service_outputs = DockerServiceOutputs(
             service_url=service_url,
             docker_repository=ecr_outputs.repository_url,
             code_build_project_name=code_build_outputs.project_name,

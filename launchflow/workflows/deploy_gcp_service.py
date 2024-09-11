@@ -21,12 +21,13 @@ from launchflow.gcp.compute_engine_service import ComputeEngineService
 from launchflow.gcp.firebase_site import FirebaseStaticSite
 from launchflow.gcp.gke_service import GKEService
 from launchflow.gcp.service import GCPDockerService
-from launchflow.gcp.static_site import StaticSite
+from launchflow.gcp.static_site import GCSWebsite
 from launchflow.managers.service_manager import ServiceManager
 from launchflow.models.flow_state import GCPEnvironmentConfig, ServiceState
 from launchflow.workflows.k8s_service import update_k8s_service
 from launchflow.workflows.utils import tar_source_in_memory
 
+4
 if TYPE_CHECKING:
     from google.cloud.container import Cluster
 
@@ -446,7 +447,7 @@ async def build_gcp_service_locally(
 
 async def upload_local_files_to_static_site(
     gcp_environment_config: GCPEnvironmentConfig,
-    static_site: StaticSite,
+    static_site: GCSWebsite,
 ):
     try:
         import google.auth

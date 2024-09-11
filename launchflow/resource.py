@@ -193,12 +193,18 @@ class Resource(Node[T]):
 
     # TODO: Consider moving outputs logic to the base Node class. We should only do this
     # if we decide to start writing Service.outputs() to the bucket as well.
-    def outputs(self, *, use_cache: bool = True) -> T:
+    def outputs(
+        self,
+        *,
+        project: Optional[str] = None,
+        environment: Optional[str] = None,
+        use_cache: bool = True,
+    ) -> T:
         """
         Synchronously connect to the resource by fetching its outputs.
         """
-        project_name = launchflow.project
-        environment_name = launchflow.environment
+        project_name = project or launchflow.project
+        environment_name = environment or launchflow.environment
         if project_name is None or environment_name is None:
             raise exceptions.ProjectOrEnvironmentNotSet(project_name, environment_name)
         resource_uri = _ResourceURI(

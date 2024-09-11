@@ -68,9 +68,9 @@ class Depends:
     #       - This mode is used when we are sure that the outputs are available and we want to resolve them.
     # - never_resolve: The dependencies are not resolved and the DependsOnValue object is returned.
     #      - This mode is used when we only want to know what the dependencies are without actually resolving them.
-    _mode: Literal["maybe_resolve", "always_resolve", "never_resolve"] = (
-        "maybe_resolve"  # default mode
-    )
+    _mode: Literal[
+        "maybe_resolve", "always_resolve", "never_resolve"
+    ] = "maybe_resolve"  # default mode
 
     def __init__(self, node: "Node"):
         self.node = node

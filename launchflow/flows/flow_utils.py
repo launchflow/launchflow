@@ -4,6 +4,8 @@ import deepdiff  # type: ignore
 import rich
 import yaml
 
+from launchflow.backend import LaunchFlowBackend
+from launchflow.config import config
 from launchflow.managers.environment_manager import EnvironmentManager
 from launchflow.managers.resource_manager import ResourceManager
 from launchflow.managers.service_manager import ServiceManager
@@ -35,12 +37,24 @@ class ServiceRef:
 
 class EnvironmentRef:
     def __init__(
-        self, manager: Union[EnvironmentManager, ServiceManager, ResourceManager]
+        self,
+        manager: Union[EnvironmentManager, ServiceManager, ResourceManager],
+        show_backend: bool = True,
     ):
         self.manager = manager
+        self.show_backend = show_backend
 
     def __str__(self):
-        return f"[{ENVIRONMENT_COLOR}]{self.manager.project_name}/{self.manager.environment_name}[/{ENVIRONMENT_COLOR}]"
+        backend_prefix = ""
+        backend = config.backend
+        if self.show_backend and backend is not None:
+            backend_prefix = backend.to_str() + "/"
+            if isinstance(backend, LaunchFlowBackend):
+                backend_prefix = backend_prefix.replace(
+                    "default", config.get_account_id()
+                )
+
+        return f"[{ENVIRONMENT_COLOR}]{backend_prefix}{self.manager.project_name}/{self.manager.environment_name}[/{ENVIRONMENT_COLOR}]"
 
 
 def dump_verbose_logs(logs_file: str, title: str):

@@ -1,4 +1,5 @@
 import os
+from typing import Union
 
 from launchflow import exceptions
 from launchflow.gcp_clients import (
@@ -34,7 +35,7 @@ def read_file(file_path: str) -> str:
             return f.read()
 
 
-def write_file(file_path: str, content: str):
+def write_file(file_path: str, content: Union[str, bytes]):
     if file_path.startswith("s3://"):
         # Write to S3
         s3_client = _get_boto_client()

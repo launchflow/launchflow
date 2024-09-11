@@ -62,7 +62,10 @@ class ServiceState(_Entity):
     aws_arn: Optional[str] = None
     inputs: Optional[Dict[str, Any]] = None
     service_url: Optional[str] = None
-    docker_image: Optional[str] = None
+    docker_image: Optional[str] = None  # TODO: mark this as deprecated somehow
+    # TODO: Update all calling code to stop depending on docker_iamge and use
+    # deployment_id to look it up instead
+    deployment_id: Optional[str] = None
 
     def to_dict(self):
         return self.model_dump(mode="json", exclude_defaults=True)

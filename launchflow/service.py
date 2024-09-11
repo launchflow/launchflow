@@ -1,9 +1,12 @@
+import os
 from dataclasses import dataclass
-from typing import List, Literal, Optional
+from typing import Dict, List, Literal, Optional
 
+from launchflow.config import config
 from launchflow.models.enums import ServiceProduct
 from launchflow.node import Node, NodeType, Outputs, T
 from launchflow.resource import Resource
+from launchflow.workflows.utils import DEFAULT_IGNORE_PATTERNS
 
 
 @dataclass
@@ -33,12 +36,22 @@ class Service(Node[T]):
         *,
         build_directory: str = ".",
         build_ignore: List[str] = [],  # type: ignore
+        build_diff_args: Dict[str, str] = {},  # type: ignore
     ) -> None:
         super().__init__(name, NodeType.SERVICE)
 
+        # Get the absolute path of the directory containing the launchflow.yaml file
+        launchflow_yaml_abspath = os.path.dirname(
+            os.path.abspath(config.launchflow_yaml.config_path)
+        )
+        self.build_directory = os.path.abspath(
+            os.path.join(launchflow_yaml_abspath, build_directory)
+        )
+
+        self.build_ignore = list(set(build_ignore + DEFAULT_IGNORE_PATTERNS))
+        self.build_diff_args = build_diff_args
+
         self.name = name
-        self.build_directory = build_directory
-        self.build_ignore = build_ignore
 
     def outputs(self) -> ServiceOutputs:
         raise NotImplementedError
@@ -61,12 +74,13 @@ class Service(Node[T]):
         )
 
 
+# TODO(NEXT TIME): Remove the DockerService and move the docker logic into the child class
 @dataclass
 class DockerServiceOutputs(ServiceOutputs):
     docker_repository: str
 
 
-class DockerService(Service[ServiceOutputs]):
+class DockerService(Service[DockerServiceOutputs]):
     def __init__(
         self,
         name: str,
@@ -76,7 +90,12 @@ class DockerService(Service[ServiceOutputs]):
         build_ignore: List[str] = [],  # type: ignore
     ) -> None:
         super().__init__(
-            name, build_directory=build_directory, build_ignore=build_ignore
+            name,
+            build_directory=build_directory,
+            build_ignore=build_ignore,
+            build_diff_args={
+                "dockerfile": dockerfile,
+            },
         )
 
         self.dockerfile = dockerfile
@@ -97,3 +116,44 @@ class DockerService(Service[ServiceOutputs]):
             and value.build_directory == self.build_directory
             and value.build_ignore == self.build_ignore
         )
+
+
+# @dataclass
+# class StaticServiceOutputs(ServiceOutputs):
+#     pass
+
+
+# class StaticService(Service[StaticServiceOutputs]):
+#     def __init__(
+#         self,
+#         name: str,
+#         *,
+#         build_command: Optional[str] = None,
+#         build_output_directory: str = ".",
+#         build_directory: str = ".",
+#         build_ignore: List[str] = [],  # type: ignore
+#     ) -> None:
+#         super().__init__(
+#             name, build_directory=build_directory, build_ignore=build_ignore
+#         )
+
+#         self.build_command = build_command
+#         self.build_output_directory = build_output_directory
+
+#     def outputs(self) -> StaticServiceOutputs:
+#         raise NotImplementedError
+
+#     async def outputs_async(self) -> StaticServiceOutputs:
+#         raise NotImplementedError
+
+#     def __eq__(self, value) -> bool:
+#         return (
+#             isinstance(value, StaticService)
+#             and value.name == self.name
+#             and value.product == self.product
+#             and value.inputs() == self.inputs()
+#             and value.build_command == self.build_command
+#             and value.build_output_directory == self.build_output_directory
+#             and value.build_directory == self.build_directory
+#             and value.build_ignore == self.build_ignore
+#         )

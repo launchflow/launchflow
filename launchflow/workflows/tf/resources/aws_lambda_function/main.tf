@@ -65,13 +65,18 @@ resource "aws_lambda_function" "default" {
   function_name = var.resource_id
   role          = data.aws_iam_role.launchflow_env_role.arn
   package_type  = var.package_type
-  memory_size   = var.memory_size
-  timeout       = var.timeout
+  memory_size   = var.memory_size_mb
+  timeout       = var.timeout_seconds
+  publish          = true
 
-  filename         = data.archive_file.lambda.output_path
-  source_code_hash = data.archive_file.lambda.output_base64sha256
-  handler          = "hello.lambda_handler"
-  runtime          = var.runtime
+  # Conditionally assign filename and handler for ZIP package type
+  filename         = var.package_type == "Zip" ? data.archive_file.lambda.output_path : null
+  handler          = var.package_type == "Zip" ? "hello.lambda_handler" : null
+  runtime          = var.package_type == "Zip" ? var.runtime : null
+  source_code_hash = var.package_type == "Zip" ? data.archive_file.lambda.output_base64sha256 : null
+
+  # Conditionally assign image_uri for Image package type
+  image_uri        = var.package_type == "Image" ? var.image_uri : null
 
   # NOTE: We set this to speed up the destroy process. Without this, lambda can hold
   # onto the security group for ~30mins and block it from being deleted.
@@ -89,6 +94,7 @@ resource "aws_lambda_function" "default" {
     }
   }
 
+
   lifecycle {
     ignore_changes = [
       filename, image_config, image_uri
@@ -103,41 +109,26 @@ resource "aws_iam_role_policy_attachment" "iam_role_policy_attachment_lambda_vpc
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
 
+resource "aws_lambda_alias" "lambda_alias" {
+  name             = var.launchflow_environment
+  function_name    = aws_lambda_function.default.arn
+  function_version = aws_lambda_function.default.version
 
-# API GATEWAY INTEGRATION - OPTIONAL
-data "aws_apigatewayv2_api" "imported_api_gateway" {
-  count = var.api_gateway_config != null ? 1 : 0
-
-  api_id = var.api_gateway_config.api_gateway_id
+  lifecycle {
+    ignore_changes = [
+      function_version
+    ]
+  }
 }
 
-resource "aws_lambda_permission" "default" {
-  count = var.api_gateway_config != null ? 1 : 0
 
-  statement_id  = "AllowExecutionFromAPIGateway"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.default.function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${data.aws_apigatewayv2_api.imported_api_gateway[0].execution_arn}/*/*"
+output "alias_name" {
+  value = aws_lambda_alias.lambda_alias.name
 }
 
-resource "aws_apigatewayv2_integration" "default" {
-  count = var.api_gateway_config != null ? 1 : 0
-
-  api_id           = data.aws_apigatewayv2_api.imported_api_gateway[0].id
-  integration_type = "AWS_PROXY"
-  integration_uri  = aws_lambda_function.default.arn
+output "function_name" {
+  value = aws_lambda_function.default.function_name
 }
-
-resource "aws_apigatewayv2_route" "default" {
-  count = var.api_gateway_config != null ? 1 : 0
-
-  api_id    = data.aws_apigatewayv2_api.imported_api_gateway[0].id
-  route_key = var.api_gateway_config.api_route_key == "/" ? "$default" : var.api_gateway_config.api_route_key
-  target    = "integrations/${aws_apigatewayv2_integration.default[0].id}"
-}
-
-# TODO: Add a Lambda Function URL option
 
 output "aws_arn" {
   value = aws_lambda_function.default.arn

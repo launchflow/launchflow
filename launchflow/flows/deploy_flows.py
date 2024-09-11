@@ -19,78 +19,56 @@ import launchflow
 from launchflow import exceptions
 from launchflow.aws.ecs_fargate import ECSFargateService
 from launchflow.aws.lambda_service import LambdaService
-from launchflow.aws.service import AWSDockerService, AWSService
+from launchflow.aws.service import AWSService
 from launchflow.cli.resource_utils import is_secret_resource
 from launchflow.clients.docker_client import docker_service_available
 from launchflow.config import config
-from launchflow.flows.create_flows import (
-    CreateResourcePlan,
-    CreateResourceResult,
-    CreateServicePlan,
-    CreateServiceResult,
-    plan_create,
-    plan_create_service,
-)
-from launchflow.flows.flow_utils import (
-    OP_COLOR,
-    EnvironmentRef,
-    ResourceRef,
-    ServiceRef,
-    format_configuration_dict,
-)
+from launchflow.flows.create_flows import (CreateResourcePlan,
+                                           CreateResourceResult,
+                                           CreateServicePlan,
+                                           CreateServiceResult, plan_create,
+                                           plan_create_service)
+from launchflow.flows.flow_utils import (OP_COLOR, EnvironmentRef, ResourceRef,
+                                         ServiceRef, format_configuration_dict)
 from launchflow.flows.generate_dockerfile import generate_dockerfile
-from launchflow.flows.plan import (
-    FailedToPlan,
-    FlowResult,
-    Plan,
-    Result,
-    ServicePlan,
-    execute_plans,
-)
+from launchflow.flows.plan import (FailedToPlan, FlowResult, Plan, Result,
+                                   ServicePlan, execute_plans)
 from launchflow.flows.plan_utils import lock_plans, print_plans, select_plans
 from launchflow.gcp.cloud_run import CloudRunService
 from launchflow.gcp.compute_engine_service import ComputeEngineService
 from launchflow.gcp.firebase_site import FirebaseStaticSite
 from launchflow.gcp.gke_service import GKEService
 from launchflow.gcp.service import GCPDockerService, GCPService
-from launchflow.gcp.static_site import StaticSite
+from launchflow.gcp.static_site import GCSWebsite
 from launchflow.locks import Lock, LockOperation, OperationType, ReleaseReason
 from launchflow.managers.environment_manager import EnvironmentManager
 from launchflow.managers.service_manager import ServiceManager
-from launchflow.models.enums import CloudProvider, EnvironmentStatus, ServiceStatus
-from launchflow.models.flow_state import (
-    AWSEnvironmentConfig,
-    EnvironmentState,
-    GCPEnvironmentConfig,
-    ServiceState,
-)
+from launchflow.models.enums import (CloudProvider, EnvironmentStatus,
+                                     ServiceStatus)
+from launchflow.models.flow_state import (AWSEnvironmentConfig,
+                                          EnvironmentState,
+                                          GCPEnvironmentConfig, ServiceState)
+from launchflow.models.launchflow_uri import LaunchFlowURI
 from launchflow.node import Node
 from launchflow.resource import Resource
 from launchflow.service import DockerService, Service
 from launchflow.utils import generate_deployment_id
 from launchflow.validation import validate_service_name
 from launchflow.workflows.deploy_aws_service import (
-    build_and_push_aws_service,
-    deploy_local_files_to_lambda_static_site,
-    promote_aws_service_image,
-    release_docker_image_to_ecs_fargate,
-)
+    build_and_push_aws_service, promote_aws_service_image,
+    release_docker_image_to_ecs_fargate)
 from launchflow.workflows.deploy_gcp_service import (
-    build_and_push_gcp_service,
-    deploy_local_files_to_firebase_static_site,
-    promote_gcp_service_image,
-    release_docker_image_to_cloud_run,
-    release_docker_image_to_compute_engine,
-    release_docker_image_to_gke,
-    upload_local_files_to_static_site,
-)
-from launchflow.workflows.utils import DEFAULT_IGNORE_PATTERNS
+    build_and_push_gcp_service, deploy_local_files_to_firebase_static_site,
+    promote_gcp_service_image, release_docker_image_to_cloud_run,
+    release_docker_image_to_compute_engine, release_docker_image_to_gke,
+    upload_local_files_to_static_site)
 
 
 @dataclasses.dataclass
 class BuildServiceResult(Result["BuildServicePlan"]):
     docker_image: Optional[str] = None
     logs_file_or_link: Optional[str] = None
+    build_outputs: Optional[Tuple] = None
 
 
 @dataclasses.dataclass
@@ -140,16 +118,28 @@ class BuildServicePlan(ServicePlan):
                     self.build_local,
                 )
                 return BuildServiceResult(self, True, docker_image, logs_file_or_link)
-            elif isinstance(self.service, AWSDockerService):
-                docker_image, logs_file_or_link = await build_and_push_aws_service(
-                    self.service,
-                    self.service_manager,
-                    self.aws_environment_config,  # type: ignore
-                    self.deployment_id,
-                    self.build_local,
+            # TODO: support docker then remove this
+            # elif isinstance(self.service, AWSDockerService):
+            #     docker_image, logs_file_or_link = await build_and_push_aws_service(
+            #         self.service,
+            #         self.service_manager,
+            #         self.aws_environment_config,  # type: ignore
+            #         self.deployment_id,
+            #         self.build_local,
+            #     )
+            #     return BuildServiceResult(self, True, docker_image, logs_file_or_link)
+            elif isinstance(self.service, AWSService):
+                build_outputs = await self.service.build(
+                    aws_environment_config=self.aws_environment_config,  # type: ignore
+                    launchflow_uri=LaunchFlowURI(
+                        project_name=self.service_manager.project_name,
+                        environment_name=self.service_manager.environment_name,
+                        service_name=self.service_manager.service_name,
+                    ),
+                    deployment_id=self.deployment_id,
                 )
-                return BuildServiceResult(self, True, docker_image, logs_file_or_link)
-            elif isinstance(self.service, (GCPService, AWSService)):
+                return BuildServiceResult(self, True, build_outputs=build_outputs)
+            elif isinstance(self.service, GCPService):
                 # TODO: Add a hook to allow for custom build steps for static sites
                 return BuildServiceResult(self, True)
             else:
@@ -176,27 +166,13 @@ class BuildServicePlan(ServicePlan):
     ):
         left_padding_str = " " * left_padding
 
-        full_yaml_path = os.path.dirname(
-            os.path.abspath(config.launchflow_yaml.config_path)
-        )
-
-        build_directory_path = os.path.abspath(
-            os.path.join(full_yaml_path, self.service.build_directory)
-        )
-        build_ignore = list(set(DEFAULT_IGNORE_PATTERNS + self.service.build_ignore))
         build_inputs_dict = {
-            "build_directory": build_directory_path,
-            "build_ignore": build_ignore,
+            "build_directory": self.service.build_directory,
+            "build_ignore": self.service.build_ignore,
+            "build_local": self.build_local,
         }
-        if isinstance(self.service, DockerService):
-            build_inputs_dict["dockerfile"] = self.service.dockerfile
-            build_inputs_dict["build_local"] = self.build_local
-        if isinstance(self.service, LambdaService):
-            build_inputs_dict["handler"] = self.service.handler
-            if self.service.requirements_txt_path is not None:
-                build_inputs_dict[
-                    "requirements_txt_path"
-                ] = self.service.requirements_txt_path
+        # This is what allows child classes to add additional build args to the plan
+        build_inputs_dict.update(self.service.build_diff_args)
 
         build_inputs_str = format_configuration_dict(build_inputs_dict)
         console.print()
@@ -237,7 +213,7 @@ class ReleaseServicePlan(ServicePlan):
     gcp_environment_config: Optional[GCPEnvironmentConfig]
     aws_environment_config: Optional[AWSEnvironmentConfig]
     deployment_id: str
-    docker_step: Optional[Literal["build", "promote"]]
+    build_step_type: Optional[Literal["build", "promote"]]
 
     def __post_init__(self):
         if self.gcp_environment_config is None and self.aws_environment_config is None:
@@ -266,7 +242,7 @@ class ReleaseServicePlan(ServicePlan):
         self, dependency_results: List[Result]
     ) -> Union[ReleaseServiceResult, str]:
         # TODO: if docker step is None then get the docker image from the service
-        if self.docker_step == "build":
+        if self.build_step_type == "build":
             docker_result_type = BuildServiceResult
         else:
             docker_result_type = PromoteDockerImageResult  # type: ignore
@@ -288,87 +264,130 @@ class ReleaseServicePlan(ServicePlan):
             return result
         return docker_image_result.docker_image
 
+    def _get_build_outputs_from_dependency(
+        self, dependency_results: List[Result]
+    ) -> Union[ReleaseServiceResult, Tuple]:
+        if self.build_step_type == "build":
+            build_result_type = BuildServiceResult
+        else:
+            raise ValueError("Cannot get build outputs from a promote step")
+        build_outputs_result = next(
+            (
+                result
+                for result in dependency_results
+                if isinstance(result, build_result_type)
+            ),
+            None,
+        )
+        if build_outputs_result is None:
+            result = ReleaseServiceResult(self, False)
+            result.error_message = "Could not find a build outputs result to release"
+            return result
+        if build_outputs_result.build_outputs is None:
+            result = ReleaseServiceResult(self, False)
+            result.error_message = "Build step did not produce build outputs"
+            return result
+        return build_outputs_result.build_outputs
+
     async def execute_plan(
         self,
         tree: Tree,
         dependency_results: List[Result],
     ) -> ReleaseServiceResult:
-        # TODO: Consider refactoring this to separate static & docker release steps
-        if isinstance(self.service, StaticSite):
-            service_url = await upload_local_files_to_static_site(
-                gcp_environment_config=self.gcp_environment_config,  # type: ignore
-                static_site=self.service,
-            )
-            return ReleaseServiceResult(self, True, service_url)
+        try:
+            # TODO: Consider refactoring this to separate static & docker release steps
+            if isinstance(self.service, GCSWebsite):
+                service_url = await upload_local_files_to_static_site(
+                    gcp_environment_config=self.gcp_environment_config,  # type: ignore
+                    static_site=self.service,
+                )
+                return ReleaseServiceResult(self, True, service_url)
 
-        if isinstance(self.service, FirebaseStaticSite):
-            service_url = await deploy_local_files_to_firebase_static_site(
-                gcp_environment_config=self.gcp_environment_config,  # type: ignore
-                firebase_static_site=self.service,
-            )
-            return ReleaseServiceResult(self, True, service_url)
+            if isinstance(self.service, FirebaseStaticSite):
+                service_url = await deploy_local_files_to_firebase_static_site(
+                    gcp_environment_config=self.gcp_environment_config,  # type: ignore
+                    firebase_static_site=self.service,
+                )
+                return ReleaseServiceResult(self, True, service_url)
 
-        if isinstance(self.service, LambdaService):
-            service_url = await deploy_local_files_to_lambda_static_site(
-                aws_environment_config=self.aws_environment_config,  # type: ignore
-                lambda_static_site=self.service,
-                service_manager=self.service_manager,
-                deployment_id=self.deployment_id,
-            )
-            return ReleaseServiceResult(self, True, service_url)
+            if isinstance(self.service, AWSService):
+                build_outputs = self._get_build_outputs_from_dependency(
+                    dependency_results
+                )
+                service_url = await self.service.release(
+                    *build_outputs,
+                    aws_environment_config=self.aws_environment_config,  # type: ignore
+                    launchflow_uri=LaunchFlowURI(
+                        project_name=self.service_manager.project_name,
+                        environment_name=self.service_manager.environment_name,
+                        service_name=self.service_manager.service_name,
+                    ),
+                    deployment_id=self.deployment_id,
+                )
+                return ReleaseServiceResult(self, True, service_url)
 
-        if self.docker_step is not None:
-            maybe_docker_image = self._get_docker_image_from_dependency(
-                dependency_results
-            )
-            if isinstance(maybe_docker_image, ReleaseServiceResult):
-                return maybe_docker_image
-            docker_image = maybe_docker_image
-        else:
-            service_state = await self.service_manager.load_service()
-            docker_image = service_state.docker_image  # type: ignore
-            if docker_image is None:
+            if self.build_step_type is not None:
+                maybe_docker_image = self._get_docker_image_from_dependency(
+                    dependency_results
+                )
+                if isinstance(maybe_docker_image, ReleaseServiceResult):
+                    return maybe_docker_image
+                docker_image = maybe_docker_image
+            else:
+                service_state = await self.service_manager.load_service()
+                docker_image = service_state.docker_image  # type: ignore
+                if docker_image is None:
+                    result = ReleaseServiceResult(self, False)
+                    result.error_message = "Service does not yet have a docker image. Ensure you have run `lf deploy` first."
+                    return result
+            # TODO: refactor this so that the service "owns" the release step so its not hardcoded to individual service types
+            if isinstance(self.service, CloudRunService):
+                service_url = await release_docker_image_to_cloud_run(
+                    docker_image=docker_image,
+                    service_manager=self.service_manager,
+                    gcp_environment_config=self.gcp_environment_config,  # type: ignore
+                    cloud_run_service=self.service,
+                    deployment_id=self.deployment_id,
+                )
+            elif isinstance(self.service, ComputeEngineService):
+                service_url = await release_docker_image_to_compute_engine(
+                    docker_image=docker_image,
+                    service_manager=self.service_manager,
+                    gcp_environment_config=self.gcp_environment_config,  # type: ignore
+                    compute_engine_service=self.service,
+                    deployment_id=self.deployment_id,
+                )
+            elif isinstance(self.service, GKEService):
+                service_url = await release_docker_image_to_gke(
+                    docker_image=docker_image,
+                    service_manager=self.service_manager,
+                    gcp_environment_config=self.gcp_environment_config,  # type: ignore
+                    gke_service=self.service,
+                    deployment_id=self.deployment_id,
+                )
+            elif isinstance(self.service, ECSFargateService):
+                service_url = await release_docker_image_to_ecs_fargate(
+                    docker_image=docker_image,
+                    service_manager=self.service_manager,
+                    aws_environment_config=self.aws_environment_config,  # type: ignore
+                    ecs_fargate_service=self.service,
+                    deployment_id=self.deployment_id,
+                )
+            else:
                 result = ReleaseServiceResult(self, False)
-                result.error_message = "Service does not yet have a docker image. Ensure you have run `lf deploy` first."
+                result.error_message = f"Unsupported service type: {self.service}"
                 return result
-        # TODO: refactor this so that the service "owns" the release step so its not hardcoded to individual service types
-        if isinstance(self.service, CloudRunService):
-            service_url = await release_docker_image_to_cloud_run(
-                docker_image=docker_image,
-                service_manager=self.service_manager,
-                gcp_environment_config=self.gcp_environment_config,  # type: ignore
-                cloud_run_service=self.service,
-                deployment_id=self.deployment_id,
-            )
-        elif isinstance(self.service, ComputeEngineService):
-            service_url = await release_docker_image_to_compute_engine(
-                docker_image=docker_image,
-                service_manager=self.service_manager,
-                gcp_environment_config=self.gcp_environment_config,  # type: ignore
-                compute_engine_service=self.service,
-                deployment_id=self.deployment_id,
-            )
-        elif isinstance(self.service, GKEService):
-            service_url = await release_docker_image_to_gke(
-                docker_image=docker_image,
-                service_manager=self.service_manager,
-                gcp_environment_config=self.gcp_environment_config,  # type: ignore
-                gke_service=self.service,
-                deployment_id=self.deployment_id,
-            )
-        elif isinstance(self.service, ECSFargateService):
-            service_url = await release_docker_image_to_ecs_fargate(
-                docker_image=docker_image,
-                service_manager=self.service_manager,
-                aws_environment_config=self.aws_environment_config,  # type: ignore
-                ecs_fargate_service=self.service,
-                deployment_id=self.deployment_id,
-            )
-        else:
+            return ReleaseServiceResult(self, True, service_url)
+        except exceptions.ServiceReleaseFailed as e:
             result = ReleaseServiceResult(self, False)
-            result.error_message = f"Unsupported service type: {self.service}"
+            result.error_message = str(e)
             return result
-        return ReleaseServiceResult(self, True, service_url)
+        except Exception as e:
+            # TODO: Improve this error handling
+            logging.error("Exception occurred: %s", e, exc_info=True)
+            result = ReleaseServiceResult(self, False)
+            result.error_message = str(e)
+            return result
 
     def print_plan(
         self,
@@ -734,12 +753,12 @@ async def plan_deploy_service(
         resource_or_service=service,
         depends_on=depends_on,
         verbose=verbose,
-        environment_ref=EnvironmentRef(environment_manager),
+        environment_ref=EnvironmentRef(environment_manager, show_backend=False),
         service_manager=service_manager,
         gcp_environment_config=environment_state.gcp_config,
         aws_environment_config=environment_state.aws_config,
         deployment_id=deployment_id,
-        docker_step=docker_step,
+        build_step_type=docker_step,
     )
 
     return DeployServicePlan(
@@ -1442,18 +1461,18 @@ class PromoteDockerImagePlan(ServicePlan):
                 return PromoteDockerImageResult(
                     self, True, docker_image, logs_file_or_link
                 )
-            elif isinstance(self.service, AWSDockerService):
-                docker_image, logs_file_or_link = await promote_aws_service_image(
-                    self.service,
-                    from_service_state=self.from_service_state,
-                    from_aws_environment_config=self.from_aws_environment_config,  # type: ignore
-                    to_aws_environment_config=self.to_aws_environment_config,  # type: ignore
-                    deployment_id=self.deployment_id,
-                    promote_local=self.promote_local,
-                )
-                return PromoteDockerImageResult(
-                    self, True, docker_image, logs_file_or_link
-                )
+            # elif isinstance(self.service, AWSDockerService):
+            #     docker_image, logs_file_or_link = await promote_aws_service_image(
+            #         self.service,
+            #         from_service_state=self.from_service_state,
+            #         from_aws_environment_config=self.from_aws_environment_config,  # type: ignore
+            #         to_aws_environment_config=self.to_aws_environment_config,  # type: ignore
+            #         deployment_id=self.deployment_id,
+            #         promote_local=self.promote_local,
+            #     )
+            #     return PromoteDockerImageResult(
+            #         self, True, docker_image, logs_file_or_link
+            #     )
             else:
                 result = PromoteDockerImageResult(self, False)
                 result.error_message = f"Unsupported service type: {self.service}"
@@ -1674,7 +1693,7 @@ class PromoteServicePlan(ServicePlan):
     ):
         service_inputs = self.service.inputs().to_dict()
         left_padding_str = " " * left_padding
-        base_msg = f"{left_padding_str}{ServiceRef(self.service)} will be [{OP_COLOR}]promoted[/{OP_COLOR}] from {EnvironmentRef(self.from_service_manager)} to {EnvironmentRef(self.to_service_manager)} with the following workflow:"
+        base_msg = f"{left_padding_str}{ServiceRef(self.service)} will be [{OP_COLOR}]promoted[/{OP_COLOR}] from {EnvironmentRef(self.from_service_manager, show_backend=False)} to {EnvironmentRef(self.to_service_manager, show_backend=False)} with the following workflow:"
         if service_inputs:
             pretty_inputs = format_configuration_dict(service_inputs)
             pretty_inputs = f"\n{left_padding_str}    ".join(pretty_inputs.split("\n"))
@@ -1837,12 +1856,12 @@ async def plan_promote_service(
         resource_or_service=service,
         depends_on=[promote_docker_image_plan],
         verbose=verbose,
-        environment_ref=EnvironmentRef(to_environment_manager),
+        environment_ref=EnvironmentRef(to_environment_manager, show_backend=False),
         service_manager=to_service_manager,
         gcp_environment_config=to_environment_state.gcp_config,
         aws_environment_config=to_environment_state.aws_config,
         deployment_id=deployment_id,
-        docker_step="promote",
+        build_step_type="promote",
     )
 
     return PromoteServicePlan(

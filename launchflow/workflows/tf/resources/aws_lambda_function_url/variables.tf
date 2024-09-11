@@ -35,10 +35,18 @@ variable "launchflow_environment" {
 }
 
 #
-# API Gateway specific variables
+# Lambda service container specific variables
 #
 
-variable "protocol_type" {
+variable "function_arn" {
+  type = string
+}
+
+variable "function_alias" {
+  type = string
+}
+
+variable "authorization" {
   type = string
 }
 

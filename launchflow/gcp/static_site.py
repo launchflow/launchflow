@@ -16,14 +16,14 @@ class StaticSiteInputs(Inputs):
 
 
 # TODO: Add docs
-class StaticSite(GCPService):
-    """A service hosted on Google Cloud Platform that serves static files.
+class GCSWebsite(GCPService):
+    """A static website hosted on Google Cloud Storage and served through a CDN.
 
     ### Example Usage
     ```python
     import launchflow as lf
 
-    website = lf.gcp.StaticSite("my-website", build_directory="path/to/local/files")
+    website = lf.gcp.GCSWebsite("my-website", build_directory="path/to/local/files")
     ```
     """
 
@@ -32,9 +32,10 @@ class StaticSite(GCPService):
     def __init__(
         self,
         name: str,
-        # static inputs
-        build_directory: str,
+        dist: str,
         *,
+        build_command: Optional[str] = None,
+        build_directory: str = ".",
         build_ignore: List[str] = [],
         wait_for_cdn_invalidation: bool = False,
         # backend bucket inputs
@@ -55,9 +56,11 @@ class StaticSite(GCPService):
             build_directory=build_directory,
             build_ignore=build_ignore,
         )
+        self.dist = dist
+        self.build_command = build_command
+        self.wait_for_cdn_invalidation = wait_for_cdn_invalidation
         self.region = region
         self.domain = domain
-        self.wait_for_cdn_invalidation = wait_for_cdn_invalidation
 
         # TODO: make this configurable
         self._backend_bucket = BackendBucket(

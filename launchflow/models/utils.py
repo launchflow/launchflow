@@ -11,7 +11,7 @@ from launchflow.aws.elastic_ip import ElasticIP
 from launchflow.aws.elasticache import ElasticacheRedis
 from launchflow.aws.lambda_event_mapping import LambdaEventMapping
 from launchflow.aws.lambda_function import LambdaFunction
-from launchflow.aws.lambda_service import LambdaDockerService, LambdaService
+from launchflow.aws.lambda_service import LambdaService
 from launchflow.aws.launchflow_cloud_releaser import (
     LaunchFlowCloudReleaser as AWSReleaser,
 )
@@ -48,7 +48,7 @@ from launchflow.gcp.regional_autoscaler import RegionalAutoscaler
 from launchflow.gcp.regional_managed_instance_group import RegionalManagedInstanceGroup
 from launchflow.gcp.secret_manager import SecretManagerSecret
 from launchflow.gcp.ssl import ManagedSSLCertificate
-from launchflow.gcp.static_site import StaticSite
+from launchflow.gcp.static_site import GCSWebsite
 from launchflow.gcp.workbench import WorkbenchInstance
 from launchflow.kubernetes.hpa import HorizontalPodAutoscaler
 from launchflow.kubernetes.service import ServiceContainer
@@ -123,11 +123,10 @@ SERVICE_PRODUCTS_TO_SERVICES = {
     # AWS product types
     ServiceProduct.AWS_ECS_FARGATE.value: ECSFargateService,
     ServiceProduct.AWS_LAMBDA.value: LambdaService,
-    ServiceProduct.AWS_DOCKER_LAMBDA.value: LambdaDockerService,
     # GCP product types
     ServiceProduct.GCP_CLOUD_RUN.value: CloudRunService,
     ServiceProduct.GCP_COMPUTE_ENGINE.value: ComputeEngineService,
     ServiceProduct.GCP_GKE.value: GKEService,
-    ServiceProduct.GCP_STATIC_SITE.value: StaticSite,
+    ServiceProduct.GCP_STATIC_SITE.value: GCSWebsite,
     ServiceProduct.GCP_FIREBASE_STATIC_SITE.value: FirebaseStaticSite,
 }
