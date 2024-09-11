@@ -11,14 +11,14 @@ export function LFCloud() {
         height="1503"
         src="/images/console.png"
       />
-      <Callout type="note" title="">
+      <Callout type="warning" title="">
         LaunchFlow Cloud usage is optional and free for individuals.
       </Callout>
       <p>
         Using the local backend like we did above works fine for starting a
         project, but doesn't offer a way to share state between multiple users.
         LaunchFlow Cloud is a web-based service for managing, sharing, and
-        automating your infrastructure. It's free for individuals and provides a
+        automating your infrastructure. It's free small teams and provides a
         simple, secure way to collaborate with your team and automate your
         release pipelines.
       </p>

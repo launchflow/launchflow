@@ -132,7 +132,7 @@ export function LFInit({ children }: LFInitProps) {
   return (
     <div>
       <p>
-        Install the LaunchFlow Python SDK and CLU using <code>pip</code>.
+        Install the LaunchFlow Python SDK and CLI using <code>pip</code>.
       </p>
       {ctx.selectedCloudProvider.name == 'GCP' ? (
         <Fence language="bash">pip install launchflow[gcp]</Fence>

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Fence } from './Fence'
 import { FrameImage } from './FrameImage'
 import { useGettingStartedContext } from '@/components/GettingStartedSelector' // Import the context
+import { Callout } from './Callout'
 
 export function DeployLaunchflow() {
   const ctx = useGettingStartedContext()
@@ -17,13 +18,15 @@ export function DeployLaunchflow() {
 
   return (
     <div>
-      <p>
-        Before running the below command ensure that you have your{' '}
-        {ctx.selectedCloudProvider.name == 'aws' ? 'AWS' : 'GCP'}{' '}
-        <Link href={credsHelpUrl}>
-          credentials set up on your local machine.
-        </Link>
-      </p>
+      <Callout title="" type="note">
+        <p>
+          Make sure you have{' '}
+          <Link href={credsHelpUrl}>
+            local {ctx.selectedCloudProvider.name} credentials set up
+          </Link>{' '}
+          before deploying.
+        </p>
+      </Callout>
       <Fence language="bash">lf deploy</Fence>
       <ul>
         <li>
