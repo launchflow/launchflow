@@ -9,8 +9,24 @@ import { FrameImage } from '@/components/FrameImage'
 import { GettingStartedSearch } from '@/components/GettingStartedSearch'
 import { GettingStartedSelector } from '@/components/GettingStartedSelector'
 import { GettingStartedSection } from '@/components/GettingStartedSection'
+import { LFInit } from '@/components/LFInit'
+import { Cleanup } from '@/components/Cleanup'
+import { DeployLaunchflow } from '@/components/DeployLaunchflow'
+import { LFCloud } from '@/components/LFCloud'
 
 const tags = {
+  lfcloud: {
+    render: LFCloud,
+  },
+  deploy: {
+    render: DeployLaunchflow,
+  },
+  cleanup: {
+    render: Cleanup,
+  },
+  lfInit: {
+    render: LFInit,
+  },
   gettingStartedSearch: {
     render: GettingStartedSearch,
   },

@@ -1,4 +1,7 @@
+'use client'
+
 import clsx from 'clsx'
+import { usePathname } from 'next/navigation'
 
 export function Prose<T extends React.ElementType = 'div'>({
   as,
@@ -8,6 +11,8 @@ export function Prose<T extends React.ElementType = 'div'>({
   as?: T
 }) {
   let Component = as ?? 'div'
+  const path = usePathname()
+  const hasGettingStartedContext = path.includes('/get-started')
 
   return (
     <Component
@@ -15,7 +20,7 @@ export function Prose<T extends React.ElementType = 'div'>({
         className,
         'prose prose-slate max-w-none dark:prose-invert dark:text-slate-400',
         // headings
-        'prose-headings:scroll-mt-28 prose-headings:font-display prose-headings:text-2xl prose-headings:font-normal lg:prose-headings:scroll-mt-[8.5rem]',
+        'prose-headings:scroll-mt-28  prose-headings:font-display prose-headings:text-2xl prose-headings:font-normal',
         // lead
         'prose-lead:text-slate-500 dark:prose-lead:text-slate-400',
         // links
@@ -26,6 +31,9 @@ export function Prose<T extends React.ElementType = 'div'>({
         'prose-pre:rounded-xl prose-pre:bg-background_dark prose-pre:shadow-lg dark:prose-pre:bg-slate-800/60 dark:prose-pre:shadow-none dark:prose-pre:ring-1 dark:prose-pre:ring-slate-300/10',
         // hr
         'dark:prose-hr:border-slate-800',
+        hasGettingStartedContext
+          ? 'lg:prose-headings:scroll-mt-[10.5rem]'
+          : 'lg:prose-headings:scroll-mt-[8.5rem]',
       )}
       {...props}
     />

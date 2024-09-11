@@ -274,7 +274,7 @@ export function GettingStartedSelector({
         selectedRuntime,
       }}
     >
-      <div className="not-prose sticky top-[93px] z-10 -mx-4 w-auto bg-slate-50 p-1 px-4 py-2 md:top-[109px] lg:-mx-8 lg:pl-8 xl:-ml-16 xl:-mr-14 xl:pl-16 dark:bg-slate-800">
+      <div className="not-prose sticky top-[92px] z-10 -mx-4 w-auto bg-slate-50 p-1 px-4 py-2 md:top-[109px] lg:-mx-8 lg:pl-8 xl:-ml-16 xl:-mr-14 xl:pl-16 dark:bg-slate-800">
         <div className="flex space-x-2">
           <div>
             <Selector

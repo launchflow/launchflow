@@ -57,22 +57,24 @@ export function Fence({
                 return (
                   <Fragment key={lineIndex}>
                     <div className="flex w-full">
-                      <span
-                        style={{
-                          minWidth: '2.5rem',
-                          paddingTop: paddingTop,
-                          paddingBottom: paddingBottom,
-                        }}
-                        className={`inline-block w-10 select-none bg-opacity-70 pr-3 text-right text-gray-500 ${highlightClass}`}
-                      >
-                        {lineNumber}
-                      </span>
+                      {language != 'bash' && (
+                        <span
+                          style={{
+                            minWidth: '2.5rem',
+                            paddingTop: paddingTop,
+                            paddingBottom: paddingBottom,
+                          }}
+                          className={`inline-block w-10 select-none bg-opacity-70 pr-3 text-right text-gray-500 ${highlightClass}`}
+                        >
+                          {lineNumber}
+                        </span>
+                      )}
                       <div
                         style={{
                           paddingTop: paddingTop,
                           paddingBottom: paddingBottom,
                         }}
-                        className={`w-full bg-opacity-50 ${highlightClass}`}
+                        className={`w-full bg-opacity-50 pl-3 ${highlightClass}`}
                       >
                         {line
                           .filter((token) => !token.empty)

@@ -8,7 +8,6 @@ nextjs:
 
 {% gettingStartedSelector  %}
 
-
 {% gettingStartedSection cloudProvider="AWS" runtime="ECS Fargate" %}
 
 Deploy a FastAPI application to AWS Fargate with LaunchFlow.
@@ -41,7 +40,7 @@ View the source code for this guide in our [examples repo](https://github.com/la
 
 ## 0. Setup your FastAPI Project
 
-If you already have a FastAPI Project you can skip to step [#1](#1-initialize-launch-flow).
+If you already have a FastAPI Project you can [skip to step #1](#1-initialize-launch-flow).
 
 ---
 
@@ -112,140 +111,29 @@ CMD fastapi run main.py --host 0.0.0.0 --port $PORT
 
 ---
 
+## 1. Initialize Launch Flow
 
-## 1. Initialize LaunchFlow
-
-Install the LaunchFlow Python SDK and CLI using `pip`.
-
-{% gettingStartedSection cloudProvider="AWS" %}
-
-```bash
-pip install "launchflow[aws]"
-```
-
-{% /gettingStartedSection %}
-
-{% gettingStartedSection cloudProvider="GCP" %}
-
-```bash
-pip install "launchflow[gcp]"
-```
-
-{% /gettingStartedSection %}
+{% lfInit /%}
 
 ---
 
-Initialize LaunchFlow in your project
+## 2. Deploy your Service
 
-```bash
-lf init --backend=local
-```
-
-This command creates a `launchflow.yaml` file and stores all your launchflow state in a local directory.
+{% deploy /%}
 
 ---
 
-Create an `infra.py` file to define your service:
+## 3. Cleanup your Resources
 
-{% gettingStartedSection cloudProvider="AWS" %}
-
-```python
-import launchflow as lf
-
-service = lf.aws.ECSFargate("my-service")
-```
-
-{% /gettingStartedSection %}
-
-{% gettingStartedSection cloudProvider="GCP" %}
-
-```python
-import launchflow as lf
-
-service = lf.gcp.CloudRun("my-service")
-```
-
-{% /gettingStartedSection %}
+{% cleanup /%}
 
 ---
-
-## 2. Deploy your Application
-
-{% gettingStartedSection cloudProvider="AWS" %}
-
-Deploy your app to AWS:
-
-```bash
-lf deploy
-```
-
-Name your environment, select your cloud provider (`AWS`), and confirm the resources to be created, and service to deploy.
-
----
-
-You will be able to view the plan and confirm before the resources are created.
-![Deploy Plan](/images/plan-terminal-aws.png)
-
----
-
-Once complete you will see a link to your deployed service on AWS Fargate.
-
-![Deploy Result](/images/deploy-terminal-aws.png)
-
-
-{% /gettingStartedSection %}
-
-{% gettingStartedSection cloudProvider="GCP" %}
-
-Deploy your app to GCP:
-
-```bash
-lf deploy
-```
-
-Name your environment, select your cloud provider (`GCP`), and confirm the resources to be created, and service to deploy.
-
----
-
-You will be able to view the plan and confirm before the resources are created.
-![Deploy Plan](/images/plan-terminal.png)
-
----
-
-Once complete you will see a link to your deployed service on GCP Cloud Run.
-
-![Deploy Result](/images/deploy-terminal.png)
-
-{% /gettingStartedSection %}
-
----
-
-## 3. Clean up your resources
-
-Optionally you can delete all your resources, service, and environments with:
-
-```bash
-lf destroy
-lf environment delete
-```
 
 ## 4. Visualize, Share, and Automate
 
-![LaunchFlow Console](/images/console.png)
+{% lfcloud /%}
 
-{% callout type="note" %}
-LaunchFlow Cloud usage is optional and free for individuals.
-{% /callout %}
-
- Using the local backend like we did above works fine for starting a project, but doesn't offer a way to share state between multiple users. LaunchFlow Cloud is a web-based service for managing, sharing, and automating your infrastructure. It's free for individuals and provides a simple, secure way to collaborate with your team and automate your release pipelines.
-
-Sign up for LaunchFlow Cloud and connect your local environment by running:
-
-```bash
-lf init --backend=lf
-```
-
-This will create a project in your LaunchFlow Cloud account and migrate your local state to the LaunchFlow Cloud backend.
+---
 
 ## What's next?
 
