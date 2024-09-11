@@ -18,7 +18,7 @@ export function DeployLaunchflow() {
 
   return (
     <div>
-      <Callout title="" type="note">
+      <Callout type="warning">
         <p>
           Make sure you have{' '}
           <Link href={credsHelpUrl}>

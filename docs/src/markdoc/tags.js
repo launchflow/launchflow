@@ -100,7 +100,6 @@ const tags = {
   },
   callout: {
     attributes: {
-      title: { type: String },
       type: {
         type: String,
         default: 'note',

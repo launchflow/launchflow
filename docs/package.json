@@ -26,7 +26,7 @@
     "clsx": "^2.1.1",
     "fast-glob": "^3.2.12",
     "flexsearch": "^0.7.31",
-    "heroicons": "^2.1.1",
+    "heroicons": "^2.1.5",
     "js-yaml": "^4.1.0",
     "lucide-react": "^0.438.0",
     "next": "^14.1.1",
