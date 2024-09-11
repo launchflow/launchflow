@@ -11,7 +11,7 @@ export function LFCloud() {
         height="1503"
         src="/images/console.png"
       />
-      <Callout type="warning" title="">
+      <Callout type="warning">
         LaunchFlow Cloud usage is optional and free for individuals.
       </Callout>
       <p>
