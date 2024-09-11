@@ -157,3 +157,11 @@
 .callout-warning a:hover {
   text-decoration-color: #ca8a04;
 }
+
+.callout-note a {
+  text-decoration-color: #1d4ed8;
+}
+
+.callout-note a:hover {
+  text-decoration-color: #2563eb;
+}

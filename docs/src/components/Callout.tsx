@@ -40,14 +40,14 @@ export function Callout({
       className={`not-prose callout border-l-4 p-4 callout-${type}, ${style.container}`}
     >
       <div className="flex">
-        <div className="flex items-center justify-center">
+        <div className="flex-shrink-0">
           <IconComponent
             aria-hidden="true"
             className={`h-5 w-5 ${style.icon}`}
           />
         </div>
         <div className="ml-3">
-          <p className={`text-base ${style.body}`}>{children}</p>
+          <span className={`text-base ${style.body}`}>{children}</span>
         </div>
       </div>
     </div>
