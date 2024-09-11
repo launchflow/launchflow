@@ -11,7 +11,7 @@ type LFInitProps = {
 const cloudRunCode = `import launchflow as lf
 
 # Cloud Run Docs: https://docs.launchflow.com/reference/gcp-services/cloud-run
-service = lf.gcp.CloudRunService(
+service = lf.gcp.CloudRun(
     "my-cloud-run-service",
     dockerfile="Dockerfile",  # Path to your Dockerfile
 )`
@@ -20,7 +20,7 @@ const gceCode = `import launchflow as lf
 
 # Compute Engine Docs: https://docs.launchflow.com/reference/gcp-services/compute-engine-service
 service = lf.gcp.ComputeEngineService(
-    "my-compute-engine-service"
+    "my-compute-engine-service",
     dockerfile="Dockerfile",  # Path to your Dockerfile
 )
 `
@@ -135,7 +135,7 @@ export function LFInit({ children }: LFInitProps) {
         Install the LaunchFlow Python SDK and CLU using <code>pip</code>.
       </p>
       {ctx.selectedCloudProvider.name == 'GCP' ? (
-        <Fence language="bash">pip install launchflow[google]</Fence>
+        <Fence language="bash">pip install launchflow[gcp]</Fence>
       ) : (
         <Fence language="bash">pip install launchflow[aws]</Fence>
       )}
@@ -143,6 +143,7 @@ export function LFInit({ children }: LFInitProps) {
       <p>Initialize LaunchFlow in your project</p>
       <Fence language="bash">lf init --backend=local</Fence>
       <ul>
+        <li>Name your project</li>
         <li>
           Select <code>Yes</code> for creating an example <code>infra.py</code>
         </li>

@@ -6,147 +6,89 @@ nextjs:
     description: Deploy Flask to AWS / GCP with LaunchFlow
 ---
 
-{% gettingStartedSelector  %}
+{% gettingStartedSelector %}
 
-Create a Flask backend that reads and writes to a S3 or GCS bucket and deploys to AWS ECS Fargate or GCP Cloud run.
+{% gettingStartedSection cloudProvider="AWS" runtime="ECS Fargate" %}
+
+Deploy a Flask application to AWS Fargate with LaunchFlow.
 
 {% callout type="note" %}
 
-View the [entire source](https://github.com/launchflow/launchflow-examples/tree/main/flask-get-started) for this in our examples repo.
+View the source code for this guide in our [examples repo](https://github.com/launchflow/launchflow-examples/tree/main/flask-get-started/aws/ecs-fargate).
 
 {% /callout %}
 
-{% tabProvider defaultLabel="AWS" %}
+{% /gettingStartedSection %}
 
-## 1. Install LaunchFlow
+{% gettingStartedSection cloudProvider="GCP" runtime="Cloud Run" %}
 
-Install the LaunchFlow Python SDK and CLI using `pip`.
+Deploy a Flask application to GCP's serverless runtime Cloud Run with LaunchFlow.
 
-{% tabs %}
-{% tab label="AWS" %}
+{% callout type="note" %}
 
-```bash
-pip install "launchflow[aws]"
-```
+View the source code for this guide in our [examples repo](https://github.com/launchflow/launchflow-examples/tree/main/flask-get-started/gcp/cloud-run).
 
-{% /tab %}
-{% tab label="GCP" %}
+{% /callout %}
 
-```bash
-pip install "launchflow[gcp]"
-```
+{% /gettingStartedSection %}
 
-{% /tab %}
-{% /tabs %}
+{% gettingStartedSection cloudProvider="GCP" runtime="Compute Engine" %}
+
+Deploy a Flask application to GCP Compute Engine VMs with LaunchFlow.
+
+{% callout type="note" %}
+
+View the source code for this guide in our [examples repo](https://github.com/launchflow/launchflow-examples/tree/main/flask-get-started/gcp/compute-engine).
+
+{% /callout %}
+
+{% /gettingStartedSection %}
+
+{% gettingStartedSection cloudProvider="GCP" runtime="Kubernetes" %}
+
+Deploy a Flask application to Kubernetes running on GKE with LaunchFlow.
+
+{% callout type="note" %}
+
+View the source code for this guide in our [examples repo](https://github.com/launchflow/launchflow-examples/tree/main/flask-get-started/gcp/gke).
+
+{% /callout %}
+
+{% /gettingStartedSection %}
+
+## 0. Setup your Flask Project
+
+If you already have a Flask Project you can [skip to step #1](#1-initialize-launch-flow).
 
 ---
 
-## 2. Setup your project
-
-#### Initialize LaunchFlow
-
-Initialize LaunchFlow in a new directory.
+Initialize a new directory for your project
 
 ```bash
 mkdir launchflow-flask
 cd launchflow-flask
-lf init --backend=local
 ```
 
 ---
 
-## 3. Create Your Application
-
-Create a new file called `infra.py` and add a bucket to it.
-
-{% tabs %}
-{% tab label="AWS" %}
-
-```python
-import launchflow as lf
-
-bucket = lf.aws.S3Bucket(f"new-bucket-{lf.project}-{lf.environment}", force_destroy=True)
-```
-
-{% /tab %}
-{% tab label="GCP" %}
-
-```python
-import launchflow as lf
-
-bucket = lf.gcp.GCSBucket(f"new-bucket-{lf.project}-{lf.environment}", force_destroy=True)
-```
-
-{% /tab %}
-{% /tabs %}
-
----
-
-Create a new file called `main.py` with the following content:
+Create a `main.py`:
 
 ```python
 from flask import Flask, request
-from infra import bucket
+import launchflow as lf
 
 app = Flask(__name__)
 
 @app.route("/", methods=["GET"])
-def get_name():
-    name = request.args.get("name")
-    if not name:
-        return "Please provide a name"
-    try:
-        name_bytes = bucket.download_file(f"{name}.txt")
-        return name_bytes.decode("utf-8")
-    except:
-        return f"{name} was not found"
-
-@app.route("/", methods=["POST"])
-def post_name():
-    name = request.args.get("name")
-    if not name:
-        return "Please provide a name"
-    bucket.upload_from_string(name, f"{name}.txt")
-    return "ok"
+def index():
+    return f"Hello from {lf.project}/{lf.environment}"
 ```
 
 ---
 
-Create your bucket and cloud environment. Before running the following command, make sure you have your [AWS credentials](/docs/user-guides/aws-authentication) or [GCP credentials](/docs/user-guides/gcp-authentication) configured.
+Create a `Dockerfile` next to `main.py`:
 
-```bash
-lf create
-```
-
-Name your environment, select your cloud provider (`AWS` or `GCP`), and confirm the resources to be created.
-
----
-
-Run the application locally, replace `ENV_NAME` with the name you gave your environment in the previous step:
-
-```bash
-pip install flask gunicorn
-lf run $ENV_NAME -- gunicorn  main:app -b 0.0.0.0:8080
-```
-
----
-
-Upload and download a file to your bucket with:
-
-```bash
-curl -X POST http://localhost:8080?name=me
-curl http://localhost:8080?name=me
-```
-
----
-
-## 4. Deploy Your Application
-
-{% tabs %}
-
-  {% tab label="AWS" %}
-
-Create a `Dockerfile` next to your `main.py` file with the following content:
+{% gettingStartedSection cloudProvider="AWS" %}
 
 ```Dockerfile
 FROM public.ecr.aws/docker/library/python:3.11-slim
@@ -164,44 +106,9 @@ EXPOSE $PORT
 
 CMD gunicorn  main:app -b 0.0.0.0:$PORT
 ```
+{% /gettingStartedSection %}
 
----
-
-Add ECS Fargate to your `infra.py` file:
-
-```python,1,4+
-import launchflow as lf
-
-bucket = lf.aws.S3Bucket(f"new-bucket-{lf.project}-{lf.environment}")
-ecs_fargate = lf.aws.ECSFargate("my-ecs-fargate")
-```
-
----
-
-Deploy your app to AWS:
-
-```bash
-lf deploy
-```
-
----
-
-You will be able to view the plan and confirm before the resources are created.
-![Deploy Plan](/images/plan-terminal-aws.png)
-
----
-
-Once complete you will see a link to your deployed service on AWS Fargate.
-
-![Deploy Result](/images/deploy-terminal-aws.png)
-
-
-  {% /tab %}
-
-  {% tab label="GCP" %}
-
-Create a `Dockerfile` next to your `main.py` file with the following content:
-
+{% gettingStartedSection cloudProvider="GCP" runtime="Cloud Run" %}
 ```Dockerfile
 FROM python:3.11-slim
 
@@ -219,70 +126,73 @@ EXPOSE $PORT
 
 CMD gunicorn  main:app -b 0.0.0.0:$PORT
 ```
+{% /gettingStartedSection %}
 
----
+{% gettingStartedSection cloudProvider="GCP" runtime="Kubernetes" %}
+```Dockerfile
+FROM python:3.11-slim
 
-Add cloud run to your `infra.py` file:
+WORKDIR /code
 
-```python,1,4+
-import launchflow as lf
+RUN apt-get update && apt-get install -y --no-install-recommends gcc libpq-dev && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-bucket = lf.gcp.GCSBucket(f"new-bucket-{lf.project}-{lf.environment}")
-cloud_run = lf.gcp.CloudRun("my-cloud-run")
+RUN pip install --no-cache-dir -U pip setuptools wheel && pip install --no-cache-dir launchflow[gcp] flask gunicorn
+
+COPY ./main.py /code/main.py
+COPY ./infra.py /code/infra.py
+
+ENV PORT=8080
+EXPOSE $PORT
+
+CMD gunicorn  main:app -b 0.0.0.0:$PORT
 ```
+{% /gettingStartedSection %}
 
----
+{% gettingStartedSection cloudProvider="GCP" runtime="Compute Engine" %}
+```Dockerfile
+FROM python:3.11-slim
 
-Deploy your app to GCP:
+WORKDIR /code
 
-```bash
-lf deploy
+RUN apt-get update && apt-get install -y --no-install-recommends gcc libpq-dev && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir -U pip setuptools wheel && pip install --no-cache-dir launchflow[gcp] flask gunicorn
+
+COPY ./main.py /code/main.py
+COPY ./infra.py /code/infra.py
+
+ENV PORT=80
+EXPOSE $PORT
+
+CMD gunicorn  main:app -b 0.0.0.0:$PORT
 ```
+{% /gettingStartedSection %}
 
 ---
 
-You will be able to view the plan and confirm before the resources are created.
-![Deploy Plan](/images/plan-terminal.png)
+## 1. Initialize Launch Flow
+
+{% lfInit /%}
 
 ---
 
-Once complete you will see a link to your deployed service on GCP Cloud Run.
+## 2. Deploy your Service
 
-![Deploy Result](/images/deploy-terminal.png)
-
----
-  {% /tab %}
-
-{% /tabs %}
+{% deploy /%}
 
 ---
 
-## 5. Clean up your resources
+## 3. Cleanup your Resources
 
-Optionally you can delete all your resources, service, and environments with:
+{% cleanup /%}
 
-```bash
-lf destroy
-lf environment delete
-```
+---
 
-## 6. Visualize, Share, and Automate
+## 4. Visualize, Share, and Automate
 
-![LaunchFlow Console](/images/console.png)
+{% lfcloud /%}
 
-{% callout type="note" %}
-LaunchFlow Cloud usage is optional and free for individuals.
-{% /callout %}
-
- Using the local backend like we did above works fine for starting a project, but doesn't offer a way to share state between multiple users. LaunchFlow Cloud is a web-based service for managing, sharing, and automating your infrastructure. It's free for individuals and provides a simple, secure way to collaborate with your team and automate your release pipelines.
-
-Sign up for LaunchFlow Cloud and connect your local environment by running:
-
-```bash
-lf init --backend=lf
-```
-
-This will create a project in your LaunchFlow Cloud account and migrate your local state to the LaunchFlow Cloud backend.
+---
 
 ## What's next?
 
@@ -293,6 +203,4 @@ This will create a project in your LaunchFlow Cloud account and migrate your loc
 
 <!-- - Checkout out our [example applications](/examples) to see even more way to use LaunchFlow. -->
 
-{% /tabProvider %}
-
-{% gettingStartedSelector  %}
+{% /gettingStartedSelector  %}

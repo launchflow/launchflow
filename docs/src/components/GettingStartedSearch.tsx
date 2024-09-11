@@ -79,11 +79,11 @@ export function GettingStartedSearch() {
       href: '/docs/get-started/docker-image',
       keywords: ['api', 'website', 'worker'],
     },
-    {
-      title: 'SvelteKit',
-      href: '/docs/get-started/svelte',
-      keywords: ['javascript', 'api', 'website'],
-    },
+    // {
+    //   title: 'SvelteKit',
+    //   href: '/docs/get-started/svelte',
+    //   keywords: ['javascript', 'api', 'website'],
+    // },
   ]
 
   function searchGuides(query: string) {
