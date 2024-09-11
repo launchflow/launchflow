@@ -72,7 +72,7 @@ export function Fence({
                           paddingTop: paddingTop,
                           paddingBottom: paddingBottom,
                         }}
-                        className={`w-full bg-opacity-50 ${highlightClass}`}
+                        className={`w-full bg-opacity-50 pl-3 ${highlightClass}`}
                       >
                         {line
                           .filter((token) => !token.empty)

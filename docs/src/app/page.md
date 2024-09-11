@@ -1,20 +1,17 @@
 ---
-title: Welcome
+title: LaunchFlow Docs
+subtitle: Launch applications to AWS / GCP with minimal configuration
 ---
 
-LaunchFlow is an open source Python SDK that lets you launch websites, APIs, and workers to AWS / GCP with minimal configuration.
+LaunchFlow is an open source command line tool that deploys websites, APIs, and other applications to AWS and GCP. All of the deployment options are configured by default, but fully customizable with Python + Terraform.
 
-Use the Python SDK to define your infrastructure in code, then run `lf deploy` to deploy everything to a dedicated VPC environment in your cloud account.
+Use the Python SDK to define your infrastructure in code, then run lf deploy to deploy your application to a dedicated VPC environment in your cloud account.
 
-LaunchFlow runs entirely on your local machine and everything is created in your own cloud account. Follow the [Get Started Guide](/docs/get-started) to launch an example API in minutes.
+## Get Started
 
-{% callout type="note" %}
-LaunchFlow is not just for deploying Python apps.
+Get started with the framework of your choice or any Docker image.
 
-The Python SDK is used to define your infrastructure in code, but you can deploy any static or Dockerized application to AWS or GCP.
-
-Python is just the language for your cloud configuration, similar to how Terraform uses HCL.
-{% /callout %}
+{% gettingStartedSearch /%}
 
 ## Core Concepts
 
@@ -23,15 +20,6 @@ Python is just the language for your cloud configuration, similar to how Terrafo
 [Resources](/docs/concepts/resources) allow you to add databases, storage, task queues, and more to your application by simply importing them in your code.
 
 [Environments](/docs/concepts/environments) manage the networking, permissions, and configuration of your **Services** and **Resources** inside a dedicated VPC. You can switch between environments with a single command.
-
-
-{% quick-links %}
-
-{% quick-link title="Get Started" icon="lightbulb" href="/docs/get-started" description="Get Started with LaunchFlow" /%}
-
-{% quick-link title="Example Backend" icon="lightbulb" href="/examples/fastapi/simple-crud-api" description="Create a simple API with LaunchFlow" /%}
-
-{% /quick-links %}
 
 ## Framework Integrations
 
