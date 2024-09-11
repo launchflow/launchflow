@@ -26,11 +26,11 @@ export const metadata: Metadata = {
     template: '%s - Docs',
     default: 'LaunchFlow',
   },
-  description: 'Python-native infrastructure for GCP, AWS, and Docker.',
+  description: 'Launch applications to AWS / GCP with minimal configuration',
   openGraph: {
-    url: 'https://www.launchflow.com',
+    url: 'https://docs.launchflow.com',
     title: 'LaunchFlow - Docs',
-    description: 'Python-native infrastructure for GCP, AWS, and Docker.',
+    description: 'Launch applications to AWS / GCP with minimal configuration',
     type: 'website',
     images: [
       {
