@@ -1,4 +1,5 @@
 import launchflow as lf
+from launchflow.aws.lambda_service import LambdaService
 from launchflow.managers.environment_manager import EnvironmentManager
 
 environment_manager = EnvironmentManager(
@@ -29,8 +30,13 @@ if environment.gcp_config is not None:
     )
 elif environment.aws_config is not None:
     bucket = lf.aws.S3Bucket(f"{lf.project}-{lf.environment}-s3-bucket")
-    run_service = lf.aws.ECSFargateService(
+    ecs_service = lf.aws.ECSFargateService(
         "fastapi-service", dockerfile="Dockerfile.aws", port=8080, desired_count=2
     )
+    # See run.sh to run this test
+    lambda_service: LambdaService = lf.aws.LambdaService(
+        "lambda-service", handler="lambda.handler"
+    )
+
 else:
     raise AssertionError("Environment wasn't set up properly")

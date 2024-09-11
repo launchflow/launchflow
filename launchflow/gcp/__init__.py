@@ -2,6 +2,8 @@
 from .artifact_registry_repository import ArtifactRegistryRepository
 from .bigquery import BigQueryDataset
 from .cloud_run import CloudRunService
+
+CloudRun = CloudRunService  # TODO: Deprecate this alias somehow
 from .cloud_run_container import CloudRunServiceContainer
 from .cloud_tasks import CloudTasksQueue
 from .cloudsql import CloudSQLDatabase, CloudSQLPostgres, CloudSQLUser
@@ -29,6 +31,7 @@ from .workbench import WorkbenchInstance
 __all__ = [
     "ArtifactRegistryRepository",
     "BigQueryDataset",
+    "CloudRun",
     "CloudRunService",
     "CloudRunServiceContainer",
     "CloudTasksQueue",
