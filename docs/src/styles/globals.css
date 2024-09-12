@@ -142,26 +142,12 @@
 
 .callout a {
   font-weight: 500;
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-}
-
-.callout-warning a {
-  text-decoration-color: #a16207;
-}
-
-.callout a:hover {
-  text-decoration-thickness: 2px;
-}
-
-.callout-warning a:hover {
-  text-decoration-color: #ca8a04;
 }
 
 .callout-note a {
-  text-decoration-color: #1d4ed8;
+  color: #1d4ed8 !important;
 }
 
-.callout-note a:hover {
-  text-decoration-color: #2563eb;
+.callout-warning a {
+  color: #a16207;
 }

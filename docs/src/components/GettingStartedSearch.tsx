@@ -1,14 +1,16 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
 
 const keywordColors = {
   python:
-    'inline-flex items-center rounded-md bg-yellow-50 dark:bg-yellow-400/10 px-2 py-1 text-xs font-medium text-yellow-600 dark:text-yellow-500 ring-1 ring-inset ring-yellow-500/10 dark:ring-yellow-400/20',
+    'inline-flex items-center rounded-md bg-blue-50 dark:bg-blue-400/10 px-2 py-1 text-xs font-medium text-blue-600 dark:text-blue-500 ring-1 ring-inset ring-blue-500/10 dark:ring-blue-400/20',
   javascript:
-    'inline-flex items-center rounded-md bg-orange-50 dark:bg-orange-400/10 px-2 py-1 text-xs font-medium text-orange-600 dark:text-orange-500 ring-1 ring-inset ring-orange-500/10 dark:ring-orange-400/20',
-  api: 'inline-flex items-center rounded-md bg-blue-50 dark:bg-blue-400/10 px-2 py-1 text-xs font-medium text-blue-600 dark:text-blue-500 ring-1 ring-inset ring-blue-500/10 dark:ring-blue-400/20',
+    'inline-flex items-center rounded-md bg-yellow-50 dark:bg-yellow-400/10 px-2 py-1 text-xs font-medium text-yellow-600 dark:text-yellow-500 ring-1 ring-inset ring-yellow-500/10 dark:ring-yellow-400/20',
+  rust: 'inline-flex items-center rounded-md bg-orange-50 dark:bg-orange-400/10 px-2 py-1 text-xs font-medium text-orange-600 dark:text-orange-500 ring-1 ring-inset ring-orange-500/10 dark:ring-orange-400/20',
+  api: 'inline-flex items-center rounded-md bg-teal-50 dark:bg-teal-400/10 px-2 py-1 text-xs font-medium text-teal-600 dark:text-teal-500 ring-1 ring-inset ring-teal-500/10 dark:ring-teal-400/20',
   website:
     'inline-flex items-center rounded-md bg-green-50 dark:bg-green-400/10 px-2 py-1 text-xs font-medium text-green-600 dark:text-green-500 ring-1 ring-inset ring-red-500/10 dark:ring-green-400/20',
   worker:
@@ -27,18 +29,33 @@ function FrameWorkCard({
   title,
   href,
   keywords,
+  logo,
 }: {
   title: string
   href: string
   keywords?: string[]
+  logo?: string
+  width?: number
+  height?: number
 }) {
   return (
     <Link href={href} className="no-decoration">
       <div className="bg-card text-card-foreground h-full rounded-lg border shadow-sm hover:shadow-md dark:border-white/5 dark:hover:shadow-slate-800">
         <div className="flex flex-col space-y-1.5 p-6">
-          <h3 className="mt-0 text-2xl font-semibold leading-none tracking-tight">
-            {title}
-          </h3>
+          <div className="flex justify-between">
+            <h3 className="mt-0 text-2xl font-semibold leading-none tracking-tight">
+              {title}
+            </h3>
+            {logo && (
+              <Image
+                height={500}
+                width={500}
+                src={logo}
+                alt={title}
+                className="h-8 w-8"
+              />
+            )}
+          </div>
           <div className="flex flex-wrap gap-1">
             {keywords?.map((keyword) => {
               const clz =
@@ -57,35 +74,45 @@ function FrameWorkCard({
   )
 }
 
-export function GettingStartedSearch() {
-  const cards = [
-    {
-      title: 'FastAPI',
-      href: '/docs/get-started/fastapi',
-      keywords: ['python', 'api'],
-    },
-    {
-      title: 'Flask',
-      href: '/docs/get-started/flask',
-      keywords: ['python', 'api'],
-    },
-    {
-      title: 'Django',
-      href: '/docs/get-started/django',
-      keywords: ['python', 'api'],
-    },
-    {
-      title: 'Docker Image',
-      href: '/docs/get-started/docker-image',
-      keywords: ['api', 'website', 'worker'],
-    },
-    // {
-    //   title: 'SvelteKit',
-    //   href: '/docs/get-started/svelte',
-    //   keywords: ['javascript', 'api', 'website'],
-    // },
-  ]
+const cards = [
+  {
+    title: 'FastAPI',
+    href: '/docs/get-started/fastapi',
+    keywords: ['python', 'api'],
+    logo: '/images/fastapi.png',
+  },
+  {
+    title: 'Flask',
+    href: '/docs/get-started/flask',
+    keywords: ['python', 'api'],
+    logo: '/images/flask.png',
+  },
+  {
+    title: 'Django',
+    href: '/docs/get-started/django',
+    keywords: ['python', 'api'],
+    logo: '/images/django.png',
+  },
+  {
+    title: 'Next.js',
+    href: '/docs/get-started/next-js',
+    keywords: ['javascript', 'api', 'website'],
+    logo: '/images/next-js.png',
+  },
+  // {
+  //   title: 'Axum',
+  //   href: '/docs/get-started/axum',
+  //   keywords: ['rust', 'api'],
+  // },
+  {
+    title: 'Docker',
+    href: '/docs/get-started/docker-image',
+    keywords: ['api', 'website', 'worker'],
+    logo: '/images/docker.png',
+  },
+]
 
+export function GettingStartedSearch() {
   function searchGuides(query: string) {
     const q = query.toLowerCase()
     setVisibleCards(

@@ -1,8 +1,12 @@
 'use client'
 
 import { Fragment } from 'react'
-import { Highlight, themes } from 'prism-react-renderer'
+import { Prism, Highlight, themes } from 'prism-react-renderer'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
+
+// Import Docker syntax support
+;(typeof global !== 'undefined' ? global : window).Prism = Prism
+require('prismjs/components/prism-docker')
 
 export function Fence({
   children,

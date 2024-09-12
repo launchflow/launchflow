@@ -12,7 +12,7 @@ export function LFCloud() {
         src="/images/console.png"
       />
       <Callout type="note">
-        LaunchFlow Cloud usage is optional and free for individuals.
+        <p>LaunchFlow Cloud usage is optional and free for individuals.</p>
       </Callout>
       <p>
         Using the local backend like we did above works fine for starting a
