@@ -56,7 +56,7 @@ View the source code for this guide in our [examples repo](https://github.com/la
 
 {% /gettingStartedSection %}
 
-## 0. Setup your Flask Project
+## 0. Set up your Flask Project
 
 If you already have a Flask Project you can [skip to step #1](#1-initialize-launch-flow).
 

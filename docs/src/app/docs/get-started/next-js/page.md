@@ -57,7 +57,7 @@ View the source code for this guide in our [examples repo](https://github.com/la
 {% /gettingStartedSection %}
 
 
-## 0. Setup your Next.js Project
+## 0. Set up your Next.js Project
 
 If you already have a Next.js Project you can [skip to step #1](#1-initialize-launch-flow).
 
