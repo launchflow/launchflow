@@ -80,7 +80,7 @@ Update `src/app/page.tsx` to return a simple message:
 import { unstable_noStore as noStore } from "next/cache";
 
 export default function Home() {
-  // We use noStore here to allow us dynamic access of runtime environment variables.
+  // We use noStore here to allow us dynamic access of runtime environment variables (e.g. process.env.LAUNCHFLOW_ENVIRONMENT).
   // If you don't need this feature you should remove this.
   // See: https://nextjs.org/docs/app/building-your-application/configuring/environment-variables#runtime-environment-variables
   noStore();
@@ -349,7 +349,7 @@ CMD ["node", "server.js"]
 
 If you're coming from a platform like Vercel you will need update two things:
 
-1. Add a Dockerfile to your project. If you don't have a Dockerfile you can [get started with Next.js's recommended Dockerfile](https://github.com/vercel/next.js/blob/canary/examples/with-docker/Dockerfile). Just make sure the port in your Dockefile lines up with your service configuration.
+1. Add a Dockerfile to your project. If you don't have a Dockerfile you can [get started with Next.js's recommended Dockerfile](https://github.com/vercel/next.js/blob/canary/examples/with-docker/Dockerfile).
 2. Make sure your Next.js project is set to [output a standalone build](https://nextjs.org/docs/app/api-reference/next-config-js/output). You can do this by adding `output: "standalone"` to your `next.config.mjs`:
 
 {% /callout %}
