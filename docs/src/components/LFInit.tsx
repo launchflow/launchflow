@@ -100,7 +100,7 @@ function ECSFargateCodeBlock() {
     <div>
       <Fence language="python">{ecsFargateCode}</Fence>
       <p>
-        The service will build your Dockerfile and deploy to Compute Engine. You
+        The service will build your Dockerfile and deploy to ECS Fargate. You
         can{' '}
         <Link href="/reference/aws-services/ecs-fargate">
           provide additional fields
