@@ -76,6 +76,12 @@ function FrameWorkCard({
 
 const cards = [
   {
+    title: 'Axum',
+    href: '/docs/get-started/axum',
+    keywords: ['rust', 'api'],
+    logo: '/images/rustacean.svg',
+  },
+  {
     title: 'FastAPI',
     href: '/docs/get-started/fastapi',
     keywords: ['python', 'api'],
@@ -99,11 +105,6 @@ const cards = [
     keywords: ['javascript', 'api', 'website'],
     logo: '/images/next-js.png',
   },
-  // {
-  //   title: 'Axum',
-  //   href: '/docs/get-started/axum',
-  //   keywords: ['rust', 'api'],
-  // },
   {
     title: 'Docker',
     href: '/docs/get-started/docker-image',
