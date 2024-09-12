@@ -80,7 +80,7 @@ Update `src/app/page.tsx` to return a simple message:
 import { unstable_noStore as noStore } from "next/cache";
 
 export default function Home() {
-  // We use noStore here allows us to dynamically access runtime environment variables.
+  // We use noStore here to allow us dynamic access of runtime environment variables.
   // If you don't need this feature you should remove this.
   // See: https://nextjs.org/docs/app/building-your-application/configuring/environment-variables#runtime-environment-variables
   noStore();
