@@ -56,7 +56,7 @@ View the source code for this guide in our [examples repo](https://github.com/la
 
 {% /gettingStartedSection %}
 
-## 0. Setup your Dockerfile
+## 0. Set up your Dockerfile
 
 If you already have a Dockerfile you can [skip to step #1](#1-initialize-launch-flow).
 

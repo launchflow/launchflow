@@ -1,5 +1,3 @@
-import clsx from 'clsx'
-
 import {
   ExclamationTriangleIcon,
   InformationCircleIcon,
@@ -7,9 +5,10 @@ import {
 
 const styles = {
   note: {
-    container: 'border-blue-400 bg-blue-50',
+    container:
+      'border-blue-400 bg-blue-50 dark:bg-slate-800 dark:border-blue-900',
     icon: 'text-blue-400',
-    body: 'text-blue-700',
+    body: 'text-blue-700 dark:text-blue-400',
   },
   warning: {
     container: 'border-yellow-400 bg-yellow-50',
@@ -37,7 +36,7 @@ export function Callout({
 
   return (
     <div
-      className={`not-prose callout border-l-4 p-4 callout-${type}, ${style.container}`}
+      className={`callout border-l-4 p-4 callout-${type} ${style.container}`}
     >
       <div className="flex">
         <div className="flex-shrink-0">
@@ -47,7 +46,9 @@ export function Callout({
           />
         </div>
         <div className="ml-3">
-          <span className={`text-base ${style.body}`}>{children}</span>
+          <span className={`${style.body}`}>
+            <div className="-my-5">{children}</div>
+          </span>
         </div>
       </div>
     </div>

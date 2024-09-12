@@ -57,7 +57,7 @@ View the source code for this guide in our [examples repo](https://github.com/la
 
 {% /gettingStartedSection %}
 
-## 0. Setup your Django Project
+## 0. Set up your Django Project
 
 #### Initialize Django
 

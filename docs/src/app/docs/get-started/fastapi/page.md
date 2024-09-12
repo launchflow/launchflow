@@ -58,7 +58,7 @@ View the source code for this guide in our [examples repo](https://github.com/la
 
 
 
-## 0. Setup your FastAPI Project
+## 0. Set up your FastAPI Project
 
 If you already have a FastAPI Project you can [skip to step #1](#1-initialize-launch-flow).
 
