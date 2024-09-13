@@ -106,6 +106,12 @@ const cards = [
     logo: '/images/next-js.png',
   },
   {
+    title: 'Svelte',
+    href: '/docs/get-started/svelte',
+    keywords: ['javascript', 'api', 'website'],
+    logo: '/images/svelte.svg',
+  },
+  {
     title: 'Docker',
     href: '/docs/get-started/docker-image',
     keywords: ['api', 'website', 'worker'],

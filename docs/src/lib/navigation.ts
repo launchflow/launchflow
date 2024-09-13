@@ -14,6 +14,7 @@ export const homeNavigation = [
       { title: 'Flask', href: '/docs/get-started/flask' },
       { title: 'Django', href: '/docs/get-started/django' },
       { title: 'Next.js', href: '/docs/get-started/next-js' },
+      { title: 'Svelte', href: '/docs/get-started/svelte' },
       { title: 'Docker Image', href: '/docs/get-started/docker-image' },
     ],
   },
