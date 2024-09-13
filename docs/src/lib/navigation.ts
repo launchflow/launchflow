@@ -13,6 +13,7 @@ export const homeNavigation = [
       { title: 'FastAPI', href: '/docs/get-started/fastapi' },
       { title: 'Flask', href: '/docs/get-started/flask' },
       { title: 'Django', href: '/docs/get-started/django' },
+      { title: 'Go', href: '/docs/get-started/golang' },
       { title: 'Next.js', href: '/docs/get-started/next-js' },
       { title: 'Docker Image', href: '/docs/get-started/docker-image' },
     ],
