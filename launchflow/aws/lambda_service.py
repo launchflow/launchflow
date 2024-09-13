@@ -4,7 +4,6 @@ import shutil
 import subprocess
 import tempfile
 from dataclasses import dataclass
-from types import NoneType
 from typing import IO, Dict, List, Optional, Union
 
 import requests
@@ -66,7 +65,7 @@ def _clean_pycache(directory: str):
 def _zip_source(
     build_directory: str,
     build_ignore: List[str],
-    python_version: Union[str, NoneType],
+    python_version: Union[str, None],
     requirements_txt_path: Optional[str],
 ):
     # 1. create a temp dir
@@ -108,7 +107,7 @@ class PythonRuntime:
 
 @dataclass
 class DockerRuntime:
-    runtime: NoneType = None
+    runtime: None = None
     dockerfile: str = "Dockerfile"
 
 
