@@ -119,6 +119,10 @@ ARG DEPENDENCY=/workspace/app/target/dependency
 COPY --from=build ${DEPENDENCY}/BOOT-INF/lib /app/lib
 COPY --from=build ${DEPENDENCY}/META-INF /app/META-INF
 COPY --from=build ${DEPENDENCY}/BOOT-INF/classes /app
+
+ENV SERVER_PORT=80
+EXPOSE 80
+
 ENTRYPOINT ["java","-cp","app:app/lib/*","com.example.demo.DemoApplication"]
 ```
 
@@ -128,7 +132,7 @@ ENTRYPOINT ["java","-cp","app:app/lib/*","com.example.demo.DemoApplication"]
 
 {% callout type="note" %}
 
-If you're coming from a different platform, ensure you have a Dockerfile in your project that builds and runs your Spring Boot application.
+If you're deploying an existing app, ensure you have a Dockerfile in your project that builds and runs your Spring Boot application.
 
 {% /callout %}
 
