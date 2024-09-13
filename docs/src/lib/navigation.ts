@@ -16,6 +16,7 @@ export const homeNavigation = [
       { title: 'Go', href: '/docs/get-started/golang' },
       { title: 'Next.js', href: '/docs/get-started/next-js' },
       { title: 'Svelte', href: '/docs/get-started/svelte' },
+      { title: 'Spring Boot', href: '/docs/get-started/spring-boot' },
       { title: 'Docker Image', href: '/docs/get-started/docker-image' },
     ],
   },
