@@ -101,6 +101,8 @@ public class DemoApplication {
 
 Create a `Dockerfile` in the root of your project:
 
+{% gettingStartedSection cloudProvider="GCP" runtime="Kubernetes" %}
+
 ```dockerfile
 FROM openjdk:17-jdk-slim as build
 WORKDIR /workspace/app
@@ -114,17 +116,108 @@ RUN ./mvnw install -DskipTests
 RUN mkdir -p target/dependency && (cd target/dependency; jar -xf ../*.jar)
 
 FROM openjdk:17-jdk-slim
+WORKDIR /app
 VOLUME /tmp
 ARG DEPENDENCY=/workspace/app/target/dependency
 COPY --from=build ${DEPENDENCY}/BOOT-INF/lib /app/lib
 COPY --from=build ${DEPENDENCY}/META-INF /app/META-INF
 COPY --from=build ${DEPENDENCY}/BOOT-INF/classes /app
 
-ENV SERVER_PORT=80
-EXPOSE 80
+ENV PORT=8080
+EXPOSE $PORT
 
 ENTRYPOINT ["java","-cp","app:app/lib/*","com.example.demo.DemoApplication"]
 ```
+
+{% /gettingStartedSection %}
+
+{% gettingStartedSection cloudProvider="GCP" runtime="Cloud Run" %}
+
+```dockerfile
+FROM openjdk:17-jdk-slim as build
+WORKDIR /workspace/app
+
+COPY mvnw .
+COPY .mvn .mvn
+COPY pom.xml .
+COPY src src
+
+RUN ./mvnw install -DskipTests
+RUN mkdir -p target/dependency && (cd target/dependency; jar -xf ../*.jar)
+
+FROM openjdk:17-jdk-slim
+WORKDIR /app
+VOLUME /tmp
+ARG DEPENDENCY=/workspace/app/target/dependency
+COPY --from=build ${DEPENDENCY}/BOOT-INF/lib /app/lib
+COPY --from=build ${DEPENDENCY}/META-INF /app/META-INF
+COPY --from=build ${DEPENDENCY}/BOOT-INF/classes /app
+
+ENV PORT=8080
+EXPOSE $PORT
+
+ENTRYPOINT ["java","-cp","app:app/lib/*","com.example.demo.DemoApplication"]
+```
+
+{% /gettingStartedSection %}
+
+{% gettingStartedSection cloudProvider="GCP" runtime="Compute Engine" %}
+
+```dockerfile
+FROM openjdk:17-jdk-slim as build
+WORKDIR /workspace/app
+
+COPY mvnw .
+COPY .mvn .mvn
+COPY pom.xml .
+COPY src src
+
+RUN ./mvnw install -DskipTests
+RUN mkdir -p target/dependency && (cd target/dependency; jar -xf ../*.jar)
+
+FROM openjdk:17-jdk-slim
+WORKDIR /app
+VOLUME /tmp
+ARG DEPENDENCY=/workspace/app/target/dependency
+COPY --from=build ${DEPENDENCY}/BOOT-INF/lib /app/lib
+COPY --from=build ${DEPENDENCY}/META-INF /app/META-INF
+COPY --from=build ${DEPENDENCY}/BOOT-INF/classes /app
+
+ENV PORT=80
+EXPOSE $PORT
+ENTRYPOINT ["java","-cp","app:app/lib/*","com.example.demo.DemoApplication"]
+```
+
+{% /gettingStartedSection %}
+
+{% gettingStartedSection cloudProvider="AWS" %}
+
+```dockerfile
+FROM public.ecr.aws/docker/library/openjdk:17-jdk-slim as build
+WORKDIR /workspace/app
+
+COPY mvnw .
+COPY .mvn .mvn
+COPY pom.xml .
+COPY src src
+
+RUN ./mvnw install -DskipTests
+RUN mkdir -p target/dependency && (cd target/dependency; jar -xf ../*.jar)
+
+FROM public.ecr.aws/docker/library/openjdk:17-jdk-slim
+WORKDIR /app
+VOLUME /tmp
+ARG DEPENDENCY=/workspace/app/target/dependency
+COPY --from=build ${DEPENDENCY}/BOOT-INF/lib /app/lib
+COPY --from=build ${DEPENDENCY}/META-INF /app/META-INF
+COPY --from=build ${DEPENDENCY}/BOOT-INF/classes /app
+
+ENV PORT=80
+EXPOSE $PORT
+ENTRYPOINT ["java","-cp","app:app/lib/*","com.example.demo.DemoApplication"]
+```
+
+{% /gettingStartedSection %}
 
 ---
 
