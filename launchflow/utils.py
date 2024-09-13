@@ -6,6 +6,7 @@ import secrets
 import string
 import sys
 import time
+import traceback
 from io import IOBase
 from typing import Optional, Union
 
@@ -98,3 +99,21 @@ def redirect_stdout_stderr(fh: IOBase):
         sys.stdout = old_stdout
         sys.stderr = old_stderr
         logging.root.handlers = old_handlers
+
+
+def dump_exception_with_stacktrace(e: Exception, log_file: Optional[str] = None) -> str:
+    if log_file is None:
+        base_logging_dir = "/tmp/launchflow"
+        os.makedirs(base_logging_dir, exist_ok=True)
+        exception_type = type(e).__name__
+        log_file = f"{base_logging_dir}/{exception_type}-{int(time.time())}.log"
+
+    with open(log_file, "a") as f:
+        f.write("Exception occurred:\n")
+        f.write(f"Type: {exception_type}\n")
+        f.write(f"Message: {str(e)}\n")
+        f.write("Stacktrace:\n")
+        f.write(traceback.format_exc())
+        f.write("\n\n")
+
+    return log_file

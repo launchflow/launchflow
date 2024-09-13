@@ -3,7 +3,6 @@ import os
 import shutil
 import subprocess
 import tempfile
-import time
 from dataclasses import dataclass
 from types import NoneType
 from typing import Dict, List, Optional, Union
@@ -31,7 +30,13 @@ from launchflow.models.flow_state import AWSEnvironmentConfig
 from launchflow.models.launchflow_uri import LaunchFlowURI
 from launchflow.node import Inputs
 from launchflow.resource import Resource
-from launchflow.service import ServiceOutputs
+from launchflow.service import (
+    BuildOutputs,
+    ReleaseInputs,
+    ReleaseOutputs,
+    ServiceOutputs,
+)
+from launchflow.utils import dump_exception_with_stacktrace
 from launchflow.workflows.utils import zip_source
 
 
@@ -62,6 +67,38 @@ def _clean_pycache(directory: str):
         for dir in dirs:
             if dir == "__pycache__":
                 shutil.rmtree(os.path.join(root, dir))
+
+
+def _zip_source(
+    build_directory: str,
+    build_ignore: List[str],
+    python_version: Union[str, NoneType],
+    requirements_txt_path: Optional[str],
+):
+    # 1. create a temp dir
+    with tempfile.TemporaryDirectory() as temp_dir:
+        shutil.copytree(build_directory, temp_dir, dirs_exist_ok=True, symlinks=True)
+
+        # 2. Install packages from requirements.txt (if specified)
+        if requirements_txt_path is not None and python_version is not None:
+            # TODO: Update this to use uv for faster builds
+            subprocess.check_call(
+                f"pip install --no-cache-dir --platform manylinux2014_x86_64 --target={temp_dir} --implementation cp --python-version {python_version} --only-binary=:all: -r {requirements_txt_path}".split(),
+                cwd=config.launchflow_yaml.project_directory_abs_path,
+                stdout=subprocess.DEVNULL,  # TODO: Dump to the build logs file
+                stderr=subprocess.DEVNULL,  # TODO: Dump to the build logs file
+            )
+            _clean_pycache(temp_dir)
+
+        # 3. Zip the contents of the temp directory
+        zip_file_path = os.path.join(temp_dir, "lambda.zip")
+        zip_source(temp_dir, ignore_patterns=build_ignore, file=zip_file_path)
+
+        # Read the zip file
+        with open(zip_file_path, "rb") as zip_file:
+            zip_file_content = zip_file.read()
+
+    return zip_file_content
 
 
 @dataclass
@@ -101,7 +138,16 @@ class APIGatewayURL:
         return f"{self.request} {self.path}"
 
 
-# TODO: Test this extensively
+@dataclass
+class LambdaServiceReleaseInputs(ReleaseInputs):
+    function_version: str
+
+
+@dataclass
+class LambdaServiceBuildOutputs(BuildOutputs):
+    release_inputs: LambdaServiceReleaseInputs
+
+
 class LambdaService(AWSService):
     """TODO"""
 
@@ -171,7 +217,6 @@ class LambdaService(AWSService):
                 cors=url.cors,
             )
 
-        self._api_gateway = None
         self._api_gateway_route = None
         self._api_gateway_integration = None
         if isinstance(url, APIGatewayURL):
@@ -190,14 +235,14 @@ class LambdaService(AWSService):
 
         self.url = url
         self.runtime_options = runtime
-        self.env = env
+        self.env = env or {}
         self.handler = handler
 
     def inputs(self) -> LambdaServiceInputs:
         return LambdaServiceInputs()
 
     def resources(self) -> List[Resource]:
-        to_return = [self._lambda_function]
+        to_return: List[Resource] = [self._lambda_function]
         if self._lambda_function_url is not None:
             to_return.append(self._lambda_function_url)
         if self._api_gateway_route is not None:
@@ -207,7 +252,6 @@ class LambdaService(AWSService):
         return to_return
 
     def outputs(self) -> ServiceOutputs:
-        service_url = "TODO"
         try:
             lambda_outputs = self._lambda_function.outputs()
             if (
@@ -221,6 +265,8 @@ class LambdaService(AWSService):
                 service_url = (
                     f"{api_gateway_outputs.api_gateway_endpoint}{self.url.path}"
                 )
+            else:
+                raise exceptions.ServiceOutputsNotFound(service_name=self.name)
         except exceptions.ResourceOutputsNotFound:
             raise exceptions.ServiceOutputsNotFound(service_name=self.name)
 
@@ -233,8 +279,6 @@ class LambdaService(AWSService):
 
         return service_outputs
 
-    # TODO: Consider moving the temp directory into the caller.
-    # If we dont move it, we need to at least log some debugging info the the build logs file
     async def build(
         self,
         *,
@@ -242,49 +286,34 @@ class LambdaService(AWSService):
         launchflow_uri: LaunchFlowURI,
         deployment_id: str,
         build_local: bool = True,
-    ):
+    ) -> LambdaServiceBuildOutputs:
         try:
             import boto3
         except ImportError:
             raise exceptions.MissingAWSDependency()
 
-        # 1. create a temp dir
-        with tempfile.TemporaryDirectory() as temp_dir:
-            shutil.copytree(
-                self.build_directory, temp_dir, dirs_exist_ok=True, symlinks=True
-            )
-
-            # 2. Install packages from requirements.txt (if specified)
-            python_version = self._lambda_function.runtime.python_version()
-            # if self.requirements_txt_path is not None and python_version is not None:
-            if (
-                isinstance(self.runtime_options, PythonRuntime)
-                and self.runtime_options.requirements_txt_path is not None
-                and python_version is not None
-            ):
-                # TODO: Move this logic to the build step
-                subprocess.check_call(
-                    f"pip install --no-cache-dir --platform manylinux2014_x86_64 --target={temp_dir} --implementation cp --python-version {python_version} --only-binary=:all: -r {self.runtime_options.requirements_txt_path}".split(),
-                    cwd=config.launchflow_yaml.project_directory_abs_path,
-                    stdout=subprocess.DEVNULL,  # TODO: Dump to the build logs file
-                    stderr=subprocess.DEVNULL,  # TODO: Dump to the build logs file
-                )
-                _clean_pycache(temp_dir)
-
-            # 3. Zip the contents of the temp directory
-            zip_file_path = os.path.join(temp_dir, "lambda.zip")
-            zip_source(temp_dir, ignore_patterns=self.build_ignore, file=zip_file_path)
-
-            # Read the zip file
-            with open(zip_file_path, "rb") as zip_file:
-                zip_file_content = zip_file.read()
-
         lambda_client = boto3.client(
             "lambda", region_name=aws_environment_config.region
         )
+
+        lambda_function_outputs = self._lambda_function.outputs()
+
+        python_version = None
+        requirements_txt_path = None
+        if isinstance(self.runtime_options, PythonRuntime):
+            python_version = self.runtime_options.runtime.python_version()
+            requirements_txt_path = self.runtime_options.requirements_txt_path
+
         try:
+            zip_file_content = _zip_source(
+                build_directory=self.build_directory,
+                build_ignore=self.build_ignore,
+                python_version=python_version,
+                requirements_txt_path=requirements_txt_path,
+            )
+
             _ = lambda_client.update_function_configuration(
-                FunctionName=self._lambda_function.resource_id,
+                FunctionName=lambda_function_outputs.function_name,
                 Handler=self.handler,
                 Environment={
                     "Variables": {
@@ -297,28 +326,40 @@ class LambdaService(AWSService):
                     }
                 },
             )
-            time.sleep(3)  # TODO: Replace this with polling the function status
+
+            # Wait for the configuration update to finish before publishing a new version
+            lambda_client.get_waiter("function_updated").wait(
+                FunctionName=lambda_function_outputs.function_name
+            )
 
             # Try to update the existing function
             response = lambda_client.update_function_code(
-                FunctionName=self._lambda_function.resource_id,
+                FunctionName=lambda_function_outputs.function_name,
                 Publish=True,
                 ZipFile=zip_file_content,
                 # TODO: Support Docker
             )
             function_version = response["Version"]
 
-            # TODO: replace this hack with a health check. We do this to handle the
-            # case where lambda is still spinning up this version before we can update the alias
-            time.sleep(5)
-
-        except Exception as e:
-            raise exceptions.ServiceBuildFailed(
-                error_message=f"Error building Lambda function: {e}",
-                build_logs_or_link="TODO",
+            # Wait for the function to be active before returning the version
+            lambda_client.get_waiter("function_active").wait(
+                FunctionName=lambda_function_outputs.function_name,
+                Qualifier=function_version,
             )
 
-        return (function_version,)
+        except Exception as e:
+            log_file = dump_exception_with_stacktrace(e)
+            raise exceptions.ServiceBuildFailed(
+                error_message=f"Error building Lambda function: {e}",
+                build_logs_or_link=log_file,
+            )
+
+        return LambdaServiceBuildOutputs(
+            release_inputs=LambdaServiceReleaseInputs(
+                function_version=function_version
+            ),
+            build_logs_or_link=None,  # TODO: Add build logs for Lambda
+        )
 
     async def promote(
         self,
@@ -327,9 +368,10 @@ class LambdaService(AWSService):
         to_aws_environment_config: AWSEnvironmentConfig,
         from_launchflow_uri: LaunchFlowURI,
         to_launchflow_uri: LaunchFlowURI,
-        deployment_id: str,
+        from_deployment_id: str,
+        to_deployment_id: str,
         promote_local: bool = True,
-    ):
+    ) -> LambdaServiceBuildOutputs:
         try:
             import boto3
         except ImportError:
@@ -353,55 +395,66 @@ class LambdaService(AWSService):
 
         try:
             # Downloads the zip file of the function version
-            response = from_lambda_client.get_function(
+            get_function_response = from_lambda_client.get_function(
                 FunctionName=from_lambda_outputs.function_name,
                 Qualifier=from_lambda_outputs.alias_name,
             )
-            function_zip_file = response["Code"]["Location"]
+            function_zip_file = get_function_response["Code"]["Location"]  # type: ignore
 
             source_code = requests.get(function_zip_file).content
 
             # Updates the DEPLOYMENT_ID environment variable
-            to_lambda_client.update_function_configuration(
+            _ = to_lambda_client.update_function_configuration(
                 FunctionName=to_lambda_outputs.function_name,
                 Environment={
                     "Variables": {
                         "LAUNCHFLOW_PROJECT": to_launchflow_uri.project_name,
                         "LAUNCHFLOW_ENVIRONMENT": to_launchflow_uri.environment_name,
                         "LAUNCHFLOW_CLOUD_PROVIDER": "aws",
-                        "LAUNCHFLOW_DEPLOYMENT_ID": deployment_id,
+                        "LAUNCHFLOW_DEPLOYMENT_ID": to_deployment_id,
                         "LAUNCHFLOW_ARTIFACT_BUCKET": f"s3://{to_aws_environment_config.artifact_bucket}",
                         **self.env,
                     }
                 },
             )
 
+            # Wait for the configuration update to finish before publishing a new version
+            to_lambda_client.get_waiter("function_updated").wait(
+                FunctionName=to_lambda_outputs.function_name
+            )
+
             # Uploads the zip file to the new environment
-            response = to_lambda_client.update_function_code(
+            update_code_response = to_lambda_client.update_function_code(
                 FunctionName=to_lambda_outputs.function_name,
                 ZipFile=source_code,
                 Publish=True,
             )
 
             # Returns the new function version
-            function_version = response["Version"]
+            function_version = update_code_response["Version"]
 
         except Exception as e:
+            log_file = dump_exception_with_stacktrace(e)
             raise exceptions.ServicePromoteFailed(
                 error_message=f"Error promoting Lambda function: {str(e)}",
-                promote_logs_or_link="TODO",
+                promote_logs_or_link=log_file,
             )
 
-        return (function_version,)
+        return LambdaServiceBuildOutputs(
+            release_inputs=LambdaServiceReleaseInputs(
+                function_version=function_version
+            ),
+            build_logs_or_link=None,  # TODO: Add build logs for Lambda
+        )
 
     async def release(
         self,
-        function_version: str,
         *,
+        release_inputs: LambdaServiceReleaseInputs,
         aws_environment_config: AWSEnvironmentConfig,
         launchflow_uri: LaunchFlowURI,
         deployment_id: str,
-    ):
+    ) -> ReleaseOutputs:
         try:
             import boto3
         except ImportError:
@@ -417,12 +470,13 @@ class LambdaService(AWSService):
             lambda_client.update_alias(
                 FunctionName=lambda_outputs.function_name,
                 Name=lambda_outputs.alias_name,
-                FunctionVersion=function_version,
+                FunctionVersion=release_inputs.function_version,
             )
         except Exception as e:
+            log_file = dump_exception_with_stacktrace(e)
             raise exceptions.ServiceReleaseFailed(
                 error_message=f"Error updating Lambda alias: {str(e)}",
-                release_logs_or_link="TODO",
+                release_logs_or_link=log_file,
             )
 
-        return self.outputs().service_url
+        return ReleaseOutputs(service_url=self.outputs().service_url)

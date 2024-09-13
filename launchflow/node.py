@@ -61,7 +61,7 @@ class DependsOnValue:
 
 
 class Depends:
-    _cache = {}
+    _outputs_cache = {}
     # The mode determines whether th dependencies should be resolved. There are three options:
     # - maybe_resolve (default): The dependencies are resolved if the outputs are available. If not, a DependsOnValue object is returned.
     #       - This mode is used when we are not sure if the outputs are available and we want to resolve them if they are.
@@ -85,18 +85,20 @@ class Depends:
 
     def _create_field(self, name, field_type):
         if Depends._mode == "maybe_resolve":
-            if hash(self.node) in self._cache:
-                return self._cache[hash(self.node)]
+            cache_key = hash(self.node)
+            if cache_key in self._outputs_cache:
+                node_outputs = self._outputs_cache[cache_key]
+                if node_outputs is not None:
+                    return getattr(node_outputs, name)
+                return DependsOnValue(self.node, name, field_type)
             try:
                 if self._outputs is None:
                     self._outputs = self.node.outputs()
-                self._cache[hash(self.node)] = getattr(self._outputs, name)
-                return self._cache[hash(self.node)]
+                    self._outputs_cache[cache_key] = self._outputs
+                return getattr(self._outputs, name)
             except exceptions.ResourceOutputsNotFound:
-                self._cache[hash(self.node)] = DependsOnValue(
-                    self.node, name, field_type
-                )
-                return self._cache[hash(self.node)]
+                self._outputs_cache[cache_key] = None
+                return DependsOnValue(self.node, name, field_type)
         elif Depends._mode == "always_resolve":
             if self._outputs is None:
                 self._outputs = self.node.outputs()

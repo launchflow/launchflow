@@ -17,22 +17,34 @@ from rich.tree import Tree
 
 import launchflow
 from launchflow import exceptions
-from launchflow.aws.ecs_fargate import ECSFargateService
-from launchflow.aws.lambda_service import LambdaService
 from launchflow.aws.service import AWSService
 from launchflow.cli.resource_utils import is_secret_resource
 from launchflow.clients.docker_client import docker_service_available
 from launchflow.config import config
-from launchflow.flows.create_flows import (CreateResourcePlan,
-                                           CreateResourceResult,
-                                           CreateServicePlan,
-                                           CreateServiceResult, plan_create,
-                                           plan_create_service)
-from launchflow.flows.flow_utils import (OP_COLOR, EnvironmentRef, ResourceRef,
-                                         ServiceRef, format_configuration_dict)
+from launchflow.flows.create_flows import (
+    CreateResourcePlan,
+    CreateResourceResult,
+    CreateServicePlan,
+    CreateServiceResult,
+    plan_create,
+    plan_create_service,
+)
+from launchflow.flows.flow_utils import (
+    OP_COLOR,
+    EnvironmentRef,
+    ResourceRef,
+    ServiceRef,
+    format_configuration_dict,
+)
 from launchflow.flows.generate_dockerfile import generate_dockerfile
-from launchflow.flows.plan import (FailedToPlan, FlowResult, Plan, Result,
-                                   ServicePlan, execute_plans)
+from launchflow.flows.plan import (
+    FailedToPlan,
+    FlowResult,
+    Plan,
+    Result,
+    ServicePlan,
+    execute_plans,
+)
 from launchflow.flows.plan_utils import lock_plans, print_plans, select_plans
 from launchflow.gcp.cloud_run import CloudRunService
 from launchflow.gcp.compute_engine_service import ComputeEngineService
@@ -43,32 +55,35 @@ from launchflow.gcp.static_site import GCSWebsite
 from launchflow.locks import Lock, LockOperation, OperationType, ReleaseReason
 from launchflow.managers.environment_manager import EnvironmentManager
 from launchflow.managers.service_manager import ServiceManager
-from launchflow.models.enums import (CloudProvider, EnvironmentStatus,
-                                     ServiceStatus)
-from launchflow.models.flow_state import (AWSEnvironmentConfig,
-                                          EnvironmentState,
-                                          GCPEnvironmentConfig, ServiceState)
+from launchflow.models.enums import CloudProvider, EnvironmentStatus, ServiceStatus
+from launchflow.models.flow_state import (
+    AWSEnvironmentConfig,
+    EnvironmentState,
+    GCPEnvironmentConfig,
+    ServiceState,
+)
 from launchflow.models.launchflow_uri import LaunchFlowURI
 from launchflow.node import Node
 from launchflow.resource import Resource
-from launchflow.service import DockerService, Service
+from launchflow.service import BuildOutputs, DockerService, Service
 from launchflow.utils import generate_deployment_id
 from launchflow.validation import validate_service_name
-from launchflow.workflows.deploy_aws_service import (
-    build_and_push_aws_service, promote_aws_service_image,
-    release_docker_image_to_ecs_fargate)
 from launchflow.workflows.deploy_gcp_service import (
-    build_and_push_gcp_service, deploy_local_files_to_firebase_static_site,
-    promote_gcp_service_image, release_docker_image_to_cloud_run,
-    release_docker_image_to_compute_engine, release_docker_image_to_gke,
-    upload_local_files_to_static_site)
+    build_and_push_gcp_service,
+    deploy_local_files_to_firebase_static_site,
+    promote_gcp_service_image,
+    release_docker_image_to_cloud_run,
+    release_docker_image_to_compute_engine,
+    release_docker_image_to_gke,
+    upload_local_files_to_static_site,
+)
 
 
 @dataclasses.dataclass
 class BuildServiceResult(Result["BuildServicePlan"]):
     docker_image: Optional[str] = None
     logs_file_or_link: Optional[str] = None
-    build_outputs: Optional[Tuple] = None
+    build_outputs: Optional[BuildOutputs] = None
 
 
 @dataclasses.dataclass
@@ -137,6 +152,7 @@ class BuildServicePlan(ServicePlan):
                         service_name=self.service_manager.service_name,
                     ),
                     deployment_id=self.deployment_id,
+                    build_local=self.build_local,
                 )
                 return BuildServiceResult(self, True, build_outputs=build_outputs)
             elif isinstance(self.service, GCPService):
@@ -266,7 +282,7 @@ class ReleaseServicePlan(ServicePlan):
 
     def _get_build_outputs_from_dependency(
         self, dependency_results: List[Result]
-    ) -> Union[ReleaseServiceResult, Tuple]:
+    ) -> Union[ReleaseServiceResult, BuildOutputs]:
         if self.build_step_type == "build":
             build_result_type = BuildServiceResult
         else:
@@ -314,8 +330,15 @@ class ReleaseServicePlan(ServicePlan):
                 build_outputs = self._get_build_outputs_from_dependency(
                     dependency_results
                 )
-                service_url = await self.service.release(
-                    *build_outputs,
+                if isinstance(build_outputs, ReleaseServiceResult):
+                    result = ReleaseServiceResult(self, False)
+                    result.error_message = (
+                        f"Failed to find build outputs for {self.service}"
+                    )
+                    return result
+
+                release_outputs = await self.service.release(
+                    release_inputs=build_outputs.release_inputs,
                     aws_environment_config=self.aws_environment_config,  # type: ignore
                     launchflow_uri=LaunchFlowURI(
                         project_name=self.service_manager.project_name,
@@ -324,7 +347,7 @@ class ReleaseServicePlan(ServicePlan):
                     ),
                     deployment_id=self.deployment_id,
                 )
-                return ReleaseServiceResult(self, True, service_url)
+                return ReleaseServiceResult(self, True, release_outputs.service_url)
 
             if self.build_step_type is not None:
                 maybe_docker_image = self._get_docker_image_from_dependency(
@@ -363,14 +386,6 @@ class ReleaseServicePlan(ServicePlan):
                     service_manager=self.service_manager,
                     gcp_environment_config=self.gcp_environment_config,  # type: ignore
                     gke_service=self.service,
-                    deployment_id=self.deployment_id,
-                )
-            elif isinstance(self.service, ECSFargateService):
-                service_url = await release_docker_image_to_ecs_fargate(
-                    docker_image=docker_image,
-                    service_manager=self.service_manager,
-                    aws_environment_config=self.aws_environment_config,  # type: ignore
-                    ecs_fargate_service=self.service,
                     deployment_id=self.deployment_id,
                 )
             else:
@@ -1397,6 +1412,7 @@ class PromoteDockerImageResult(Result["PromoteDockerImagePlan"]):
     logs_file_or_link: Optional[str] = None
 
 
+# TODO: Make the Promote plan more generic so its not specific to Docker
 @dataclasses.dataclass
 class PromoteDockerImagePlan(ServicePlan):
     from_service_state: ServiceState
@@ -1404,6 +1420,7 @@ class PromoteDockerImagePlan(ServicePlan):
     to_gcp_environment_config: Optional[GCPEnvironmentConfig]
     from_aws_environment_config: Optional[AWSEnvironmentConfig]
     to_aws_environment_config: Optional[AWSEnvironmentConfig]
+    to_environment_ref: EnvironmentRef
     deployment_id: str
     promote_local: bool
 
@@ -1461,18 +1478,8 @@ class PromoteDockerImagePlan(ServicePlan):
                 return PromoteDockerImageResult(
                     self, True, docker_image, logs_file_or_link
                 )
-            # elif isinstance(self.service, AWSDockerService):
-            #     docker_image, logs_file_or_link = await promote_aws_service_image(
-            #         self.service,
-            #         from_service_state=self.from_service_state,
-            #         from_aws_environment_config=self.from_aws_environment_config,  # type: ignore
-            #         to_aws_environment_config=self.to_aws_environment_config,  # type: ignore
-            #         deployment_id=self.deployment_id,
-            #         promote_local=self.promote_local,
-            #     )
-            #     return PromoteDockerImageResult(
-            #         self, True, docker_image, logs_file_or_link
-            #     )
+            elif isinstance(self.service, AWSService):
+                raise NotImplementedError("AWS service promotion is not yet supported.")
             else:
                 result = PromoteDockerImageResult(self, False)
                 result.error_message = f"Unsupported service type: {self.service}"
@@ -1496,19 +1503,24 @@ class PromoteDockerImagePlan(ServicePlan):
         left_padding: int = 0,
     ):
         left_padding_str = " " * left_padding
-        release_image_inputs_dict = {
-            "from_docker_image": self.from_service_state.docker_image,
-        }
-        release_image_inputs_str = format_configuration_dict(release_image_inputs_dict)
         console.print()
         console.print(
-            f"{left_padding_str}1. The Docker image for {ServiceRef(self.service)} will be [{OP_COLOR}]promoted[/{OP_COLOR}] with the following configuration:"
+            f"{left_padding_str}1. {ServiceRef(self.service)} will be [{OP_COLOR}]promoted[/{OP_COLOR}] to {self.to_environment_ref}"
         )
-        console.print(
-            left_padding_str
-            + "    "
-            + f"\n{left_padding_str}    ".join(release_image_inputs_str.split("\n"))
-        )
+        # TODO: Add a way to fetch the promote diff args based on the deployment id
+        # if self.service.promote_diff_args:
+        #     promote_inputs_str = format_configuration_dict(
+        #         self.service.promote_diff_args
+        #     )
+        #     console.print()
+        #     console.print(
+        #         f"{left_padding_str}1. {ServiceRef(self.service)} will be [{OP_COLOR}]promoted[/{OP_COLOR}] with the following configuration:"
+        #     )
+        #     console.print(
+        #         left_padding_str
+        #         + "    "
+        #         + f"\n{left_padding_str}    ".join(promote_inputs_str.split("\n"))
+        #     )
 
     async def lock_plan(self) -> None:
         return None
@@ -1849,6 +1861,7 @@ async def plan_promote_service(
         to_aws_environment_config=to_environment_state.aws_config,
         deployment_id=deployment_id,
         promote_local=promote_local,
+        to_environment_ref=EnvironmentRef(to_environment_manager, show_backend=False),
     )
 
     # Plan the release for the service

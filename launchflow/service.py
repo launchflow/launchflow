@@ -4,6 +4,7 @@ from typing import Dict, List, Literal, Optional
 
 from launchflow.config import config
 from launchflow.models.enums import ServiceProduct
+from launchflow.models.launchflow_uri import LaunchFlowURI
 from launchflow.node import Node, NodeType, Outputs, T
 from launchflow.resource import Resource
 from launchflow.workflows.utils import DEFAULT_IGNORE_PATTERNS
@@ -25,6 +26,22 @@ class DNSOutputs(Outputs):
 class ServiceOutputs(Outputs):
     service_url: str
     dns_outputs: Optional[DNSOutputs]
+
+
+@dataclass
+class ReleaseInputs:
+    pass
+
+
+@dataclass
+class ReleaseOutputs:
+    service_url: str
+
+
+@dataclass
+class BuildOutputs:
+    release_inputs: ReleaseInputs
+    build_logs_or_link: Optional[str]
 
 
 class Service(Node[T]):
@@ -60,6 +77,35 @@ class Service(Node[T]):
         raise NotImplementedError
 
     def resources(self) -> List[Resource]:
+        raise NotImplementedError
+
+    async def build(
+        self,
+        *,
+        launchflow_uri: LaunchFlowURI,
+        deployment_id: str,
+        build_local: bool,
+    ) -> BuildOutputs:
+        raise NotImplementedError
+
+    async def promote(
+        self,
+        *,
+        from_launchflow_uri: LaunchFlowURI,
+        to_launchflow_uri: LaunchFlowURI,
+        from_deployment_id: str,
+        to_deployment_id: str,
+        promote_local: bool,
+    ) -> BuildOutputs:
+        raise NotImplementedError
+
+    async def release(
+        self,
+        *,
+        release_inputs: ReleaseInputs,
+        launchflow_uri: LaunchFlowURI,
+        deployment_id: str,
+    ) -> ReleaseOutputs:
         raise NotImplementedError
 
     def __repr__(self) -> str:
@@ -116,44 +162,3 @@ class DockerService(Service[DockerServiceOutputs]):
             and value.build_directory == self.build_directory
             and value.build_ignore == self.build_ignore
         )
-
-
-# @dataclass
-# class StaticServiceOutputs(ServiceOutputs):
-#     pass
-
-
-# class StaticService(Service[StaticServiceOutputs]):
-#     def __init__(
-#         self,
-#         name: str,
-#         *,
-#         build_command: Optional[str] = None,
-#         build_output_directory: str = ".",
-#         build_directory: str = ".",
-#         build_ignore: List[str] = [],  # type: ignore
-#     ) -> None:
-#         super().__init__(
-#             name, build_directory=build_directory, build_ignore=build_ignore
-#         )
-
-#         self.build_command = build_command
-#         self.build_output_directory = build_output_directory
-
-#     def outputs(self) -> StaticServiceOutputs:
-#         raise NotImplementedError
-
-#     async def outputs_async(self) -> StaticServiceOutputs:
-#         raise NotImplementedError
-
-#     def __eq__(self, value) -> bool:
-#         return (
-#             isinstance(value, StaticService)
-#             and value.name == self.name
-#             and value.product == self.product
-#             and value.inputs() == self.inputs()
-#             and value.build_command == self.build_command
-#             and value.build_output_directory == self.build_output_directory
-#             and value.build_directory == self.build_directory
-#             and value.build_ignore == self.build_ignore
-#         )

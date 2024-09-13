@@ -7,7 +7,7 @@
     </a>
     <div style="display: flex; align-content: center; gap: 4px; justify-content: center;   border-bottom: none;">
         <h3 style="margin-top: 0px; margin-bottom: 0px; border-bottom: none; text-align: start;">
-            Deploy to AWS / GCP with Python
+            Open Source Deployment Tool for AWS and GCP
         </h3>
     </div>
 </div>
@@ -17,7 +17,7 @@
 
 </div>
 
-[LaunchFlow](https://launchflow.com/) is an open source Python SDK that lets you launch websites, APIs, and workers to AWS / GCP with minimal configuration.
+[LaunchFlow](https://launchflow.com/) is an open source command line tool that deploys APIs, websites, and other applications to AWS / GCP with minimal configuration. All of the deployment options are configured by default, but fully customizable with Python + Terraform.
 
 - [x] **Serverless Deployments**
 - [x] **Auto-Scaling VMs**
@@ -30,7 +30,6 @@
 
 Use the Python SDK to define your infrastructure in code, then run `lf deploy` to deploy everything to a dedicated VPC environment in your cloud account.
 
-Fully customizable but configured by default - no messy YAML required.
 
 ## 🧠 Concepts
 
@@ -49,19 +48,19 @@ _Click the dropdown below to see the service types that are currently supported.
 <strong>Services Types</strong>
 </summary>
 
+- Serverless APIs
+  - [x] (AWS) Lambda Service - [Docs](https://docs.launchflow.com/reference/aws-services/lambda)
+  - [x] (GCP) Cloud Run Service - [Docs](https://docs.launchflow.com/reference/gcp-services/cloud-run)
+- Auto-Scaling VMs
+  - [x] (AWS) ECS Fargate Service - [Docs](https://docs.launchflow.com/reference/aws-services/ecs-fargate)
+  - [x] (GCP) Compute Engine Service - [Docs](https://docs.launchflow.com/reference/gcp-services/compute-engine-service)
+- Kubernetes Clusters
+  - [ ] (AWS) EKS - coming soon
+  - [x] (GCP) GKE - [Docs](https://docs.launchflow.com/reference/gcp-services/gke-service)
 - Static Websites
   - [ ] (AWS) S3 Static Site - coming soon
   - [ ] (GCP) GCS Static Site with Load Balancer - coming soon
   - [ ] (GCP) Firebase Static Site - coming soon
-- Serverless APIs
-  - [ ] (AWS) Lambda Service - coming soon
-  - [x] (GCP) Cloud Run Service - [Docs](https://docs.launchflow.com/docs/services/gcp/cloud-run)
-- Auto-Scaling VMs
-  - [x] (AWS) ECS Fargate Service - [Docs](https://docs.launchflow.com/docs/services/aws/ec2-fargate)
-  - [x] (GCP) Compute Engine Service - [Docs](https://docs.launchflow.com/docs/services/gcp/compute-engine)
-- Kubernetes Clusters
-  - [ ] (AWS) EKS - coming soon
-  - [x] (GCP) GKE - [Docs](https://docs.launchflow.com/docs/services/gcp/gke)
 
 </details>
 
@@ -78,24 +77,24 @@ _Click the dropdown below to see the resource types that are currently supported
 </summary>
 
   - Cloud Storage
-    - [x] (AWS) S3 Bucket - [Docs](https://docs.launchflow.com/docs/resources/aws/s3-bucket)
-    - [x] (GCP) GCS Bucket - [Docs](https://docs.launchflow.com/docs/resources/gcp/gcs-bucket)
-  - Postgres
-    - [x] (AWS) RDS Postgres - [Docs](https://docs.launchflow.com/docs/resources/aws/rds-postgres)
-    - [x] (GCP) Cloud SQL Postgres - [Docs](https://docs.launchflow.com/docs/resources/gcp/cloud-sql-postgres)
+    - [x] (AWS) S3 Bucket - [Docs](https://docs.launchflow.com/reference/aws-resources/s3)
+    - [x] (GCP) GCS Bucket - [Docs](https://docs.launchflow.com/reference/gcp-resources/gcs)
+  - Databases (Postgres, MySQL, etc.)
+    - [x] (AWS) RDS - [Docs](https://docs.launchflow.com/reference/aws-resources/rds)
+    - [x] (GCP) Cloud SQL - [Docs](https://docs.launchflow.com/reference/gcp-resources/cloudsql)
   - Redis
-    - [x] (AWS) ElastiCache Redis - [Docs](https://docs.launchflow.com/docs/resources/aws/elasticache-redis)
-    - [x] (GCP) Memorystore Redis - [Docs](https://docs.launchflow.com/docs/resources/gcp/memorystore-redis)
+    - [x] (AWS) ElastiCache Redis - [Docs](https://docs.launchflow.com/reference/aws-resources/elasticache)
+    - [x] (GCP) Memorystore Redis - [Docs](https://docs.launchflow.com/reference/gcp-resources/memorystore)
   - Task Queues
-    - [x] (AWS) SQS Queue - [Docs](https://docs.launchflow.com/docs/resources/aws/sqs-queue)
-    - [x] (GCP) Pub/Sub - [Docs](https://docs.launchflow.com/docs/resources/gcp/pubsub-topic)
-    - [x] (GCP) Cloud Tasks - [Docs](https://docs.launchflow.com/docs/resources/gcp/cloud-tasks-queue)
+    - [x] (AWS) SQS Queue - [Docs](https://docs.launchflow.com/reference/aws-resources/sqs)
+    - [x] (GCP) Pub/Sub - [Docs](https://docs.launchflow.com/reference/gcp-resources/pubsub)
+    - [x] (GCP) Cloud Tasks - [Docs](https://docs.launchflow.com/reference/gcp-resources/cloud-tasks)
   - Secrets
-    - [x] (AWS) Secrets Manager - [Docs](https://docs.launchflow.com/docs/resources/aws/secrets-manager)
-    - [x] (GCP) Secret Manager - [Docs](https://docs.launchflow.com/docs/resources/gcp/secret-manager)
+    - [x] (AWS) Secrets Manager - [Docs](https://docs.launchflow.com/reference/aws-resources/secrets-manager)
+    - [x] (GCP) Secret Manager - [Docs](https://docs.launchflow.com/reference/gcp-resources/secret-manager)
   - Custom Domains
-    - [x] (AWS) Route 53 - [Docs](https://docs.launchflow.com/docs/resources/aws/route53-domain)
-    - [x] (GCP) Custom Domain Mapping - [Docs](https://docs.launchflow.com/docs/resources/gcp/custom-domain-mapping)
+    - [ ] (AWS) Route 53 - coming soon
+    - [x] (GCP) Custom Domain Mapping - [Docs](https://docs.launchflow.com/reference/gcp-resources/custom-domain-mapping)
   - Monitoring & Alerts
     - [ ] (AWS) CloudWatch - coming soon
     - [ ] (GCP) StackDriver - coming soon

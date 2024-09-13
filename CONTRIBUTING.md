@@ -2,7 +2,15 @@
 
 Thank you for your interest in contributing to LaunchFlow! Whether you’re fixing a bug, improving documentation, or adding new features, we’re excited to have you as part of our open-source community.
 
-## Technical Info
+
+> [!NOTE]
+> We are currently **not** accepting contributions except for bug fixes, documentation improvements, and other minor changes. This policy will change once we release the first stable version of LaunchFlow (v1.0.0).
+>
+> Can't wait to contribute? Email [team@launchflow.com](mailto:team@launchflow.com) to discuss how you can help.
+
+
+
+## Contributing Guidelines
 
 Before submitting any pull requests, please take the time to review this document. We aim to make contributing to LaunchFlow as straightforward as possible. For any questions not covered here, join our [Slack community](https://join.slack.com/t/launchflowusers/shared_invite/zt-2pc3o5cbq-HZrMzlZXW2~Xs1CABbgPKQ) or [email us](mailto:team@launchflow.com).
 
@@ -10,50 +18,40 @@ Before submitting any pull requests, please take the time to review this documen
 
 LaunchFlow is a Python package that is ready to start using as soon as you pip install it. For local development, we recommend checking out the repo and installing the package in editable mode with `pip install -e .`. This will allow you to make changes to the code and see the changes reflected in your environment.
 
-1. Clone the repository.
+1. Fork the repository and clone it to your local machine.
 ```bash
-git clone https://github.com/launchflow/launchflow.git
+git clone {your_forked_repo_url}
 cd launchflow
 ```
 
 2. Install the package and development dependencies in editable mode.
 ```bash
-pip install -e .[dev] --config-settings editable_mode=compat
+pip install -e .[dev]
 ```
-NOTE: The `--config-settings editable_mode=compat` flag fixes language server issues in some IDEs.
 
-3. Run the tests to ensure everything is working as expected.
+> [!NOTE]
+> Some IDEs (like VSCode) may not recognize the editable mode installation. If you encounter issues, try using the following command instead:
+> ```bash
+> pip install -e .[dev] --config-settings editable_mode=compat
+> ```
+>
+
+
+3. Install the pre-commit hooks.
+```bash
+pre-commit install
+```
+
+4. Run the tests to ensure everything is working as expected.
 ```bash
 pytest
 ```
 
-4. Make your changes and run the tests again.
+5. Make your changes and run the tests again.
 
-5. Open a pull request towards the `main` branch. Ensure that all tests and checks pass.
+6. Open a pull request towards the `main` branch. Ensure that all tests and checks pass.
 
-### Additional Notes
-
-
-The development of our Postgres extensions is done via `pgrx`. For development instructions regarding a specific Postgres extension, please refer to the Development section of the README in the extension's subfolder.
-
-The development of LaunchFlow, which is the combination of our Postgres extensions and of community Postgres extensions packaged together, is done via Docker. If you are contributing to our Docker setup, we encourage you to use Docker Compose to build and test with the development file via `docker compose -f docker-compose.dev.yml up`.
-
-### Pull Request Worfklow
-
-All changes to LaunchFlow happen through GitHub Pull Requests. Here is the recommended
-flow for making a change:
-
-1. Before working on a change, please check to see if there is already a GitHub issue open for that change.
-2. If there is not, please open an issue first. This gives the community visibility into what you're working on and allows others to make suggestions and leave comments.
-3. Fork the LaunchFlow repo and branch out from the `dev` branch.
-4. Install [pre-commit](https://pre-commit.com/) hooks within your fork with `pre-commit install` to ensure code quality and consistency with upstream.
-5. Make your changes. If you've added new functionality, please add tests. We will not merge a feature without appropriate tests.
-6. Open a pull request towards the `dev` branch. Ensure that all tests and checks pass. Note that the LaunchFlow repository has pull request title linting in place and follows the [Conventional Commits spec](https://github.com/amannn/action-semantic-pull-request).
-7. Congratulations! Our team will review your pull request.
-
-### Documentation
-
-LaunchFlow's public-facing documentation is stored in the `docs` folder. If you are adding a new feature that requires new documentation, please add the documentation as part of your pull request. We will not merge a feature without appropriate documentation.
+7. Assign the pull request to a maintainer for review. We will review your changes and provide feedback as soon as possible, usually within a day or two.
 
 ## Legal Info
 
@@ -63,7 +61,7 @@ In order for us, LaunchFlow Inc. (dba LaunchFlow) to accept patches and other co
 
 LaunchFlow uses a tool called CLA Assistant to help us keep track of the CLA status of contributors. CLA Assistant will post a comment to your pull request indicating whether you have signed the CLA or not. If you have not signed the CLA, you will need to do so before we can accept your contribution. Signing the CLA is a one-time process, is valid for all future contributions to LaunchFlow, and can be done in under a minute by signing in with your GitHub account.
 
-If you have any questions about the CLA, please reach out to us in the [LaunchFlow Community Slack](https://join.slack.com/t/LaunchFlowcommunity/shared_invite/zt-2lkzdsetw-OiIgbyFeiibd1DG~6wFgTQ) or via email at [legal@LaunchFlow.com](mailto:legal@LaunchFlow.com).
+If you have any questions about the CLA, please reach out to us in the [LaunchFlow Community Slack](https://join.slack.com/t/LaunchFlowcommunity/shared_invite/zt-2lkzdsetw-OiIgbyFeiibd1DG~6wFgTQ) or via email at [team@LaunchFlow.com](mailto:team@LaunchFlow.com).
 
 ### License
 
