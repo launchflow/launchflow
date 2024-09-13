@@ -7,6 +7,7 @@ import { CopyToClipboard } from 'react-copy-to-clipboard'
 // Import Docker syntax support
 ;(typeof global !== 'undefined' ? global : window).Prism = Prism
 require('prismjs/components/prism-docker')
+require('prismjs/components/prism-java')
 require('prism-svelte')
 
 export function Fence({
