@@ -1,7 +1,19 @@
 import dataclasses
 from enum import Enum
 from functools import wraps
-from typing import Any, Dict, Generic, List, Literal, Optional, Set, TypeVar, get_args
+from typing import (
+    Any,
+    Dict,
+    Generic,
+    List,
+    Literal,
+    Optional,
+    Set,
+    Tuple,
+    TypeVar,
+    get_args,
+    get_origin,
+)
 
 from launchflow import exceptions
 from launchflow.models.enums import CloudProvider
@@ -79,7 +91,7 @@ class Depends:
         self._init_fields()
 
     def _init_fields(self):
-        output_dataclass_type = self.node.outputs_type()
+        output_dataclass_type = self.node._outputs_type
         for field in dataclasses.fields(output_dataclass_type):
             setattr(self, field.name, self._create_field(field.name, field.type))
 
@@ -142,14 +154,94 @@ class NodeType(Enum):
 T = TypeVar("T", bound=Outputs)
 
 
+def get_generic_map(
+    base_cls: type,
+    instance_cls: type,
+) -> Dict[Any, Any]:
+    """Get a map from the generic type paramters to the non-generic implemented types.
+
+    Args:
+        base_cls: The generic base class.
+        instance_cls: The non-generic class that inherits from ``base_cls``.
+
+    Returns:
+        A dictionary mapping the generic type parameters of the base class to the
+        types of the non-generic sub-class.
+    """
+    assert base_cls != instance_cls
+    assert issubclass(instance_cls, base_cls)
+    cls: Optional[type] = instance_cls
+    generic_params: Tuple[Any, ...]
+    generic_values: Tuple[Any, ...] = tuple()
+    generic_map: Dict[Any, Any] = {}
+
+    # Iterate over the class hierarchy from the instance sub-class back to the base
+    # class and push the non-generic type paramters up through that hierarchy.
+    while cls is not None and issubclass(cls, base_cls):
+        if hasattr(cls, "__orig_bases__"):
+            # Generic class
+            bases = cls.__orig_bases__
+
+            # Get the generic type parameters.
+            generic_params = next(
+                (
+                    get_args(generic)
+                    for generic in bases
+                    if get_origin(generic) is Generic
+                ),
+                tuple(),
+            )
+
+            # Generate a map from the type parameters to the non-generic types pushed
+            # from the previous sub-class in the hierarchy.
+            generic_map = (
+                {param: value for param, value in zip(generic_params, generic_values)}
+                if len(generic_params) > 0
+                else {}
+            )
+
+            # Use the type map to push the concrete parameter types up to the next level
+            # of the class hierarchy.
+            generic_values = next(
+                (
+                    tuple(
+                        generic_map[arg] if arg in generic_map else arg
+                        for arg in get_args(base)
+                    )
+                    for base in bases
+                    if (
+                        isinstance(get_origin(base), type)
+                        and issubclass(get_origin(base), base_cls)
+                    )
+                ),
+                tuple(),
+            )
+        else:
+            generic_map = {}
+
+        assert isinstance(cls, type)
+        cls = next(
+            (base for base in cls.__bases__ if issubclass(base, base_cls)),
+            None,
+        )
+
+    return generic_map
+
+
 class Node(Generic[T]):
     def __init__(self, name: str, node_type: NodeType) -> None:
         self.name = name
         self._node_type = node_type
         self._extra_dependencies: List["Node"] = []
 
-        # This line extracts the type argument from the Generic base
-        self._outputs_type: T = get_args(self.__class__.__orig_bases__[0])[0]  # type: ignore
+        # TODO: The Resource generics are a bit of a hack. We should update them then use the generic map that the service ones use
+        if node_type == NodeType.RESOURCE:
+            # This line extracts the type argument from the Generic base
+            self._outputs_type: T = get_args(self.__class__.__orig_bases__[0])[0]  # type: ignore
+        else:
+            type_map = get_generic_map(Node, type(self))
+            self._outputs_type: T = type_map[T]
+
         if not dataclasses.is_dataclass(self._outputs_type):
             raise ValueError(
                 f"Node outputs must be a dataclass, got {self._outputs_type}"
@@ -172,14 +264,11 @@ class Node(Generic[T]):
     def plan_inputs(self, *args, **kwargs) -> Inputs:
         return self.inputs(*args, **kwargs)
 
-    def outputs(self) -> Outputs:
+    def outputs(self) -> T:
         raise NotImplementedError
 
-    async def outputs_async(self) -> Outputs:
+    async def outputs_async(self) -> T:
         raise NotImplementedError
-
-    def outputs_type(self) -> T:
-        return self._outputs_type
 
     # This is a utility for adding dependencies to a node that are not used directly in the inputs
     def depends_on(self, *node: "Node") -> None:

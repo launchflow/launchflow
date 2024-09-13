@@ -424,7 +424,10 @@ service = lf.aws.LambdaService("my-lambda-service", handler="TODO")
         if self == AWSServices.ECS:
             return """
 # ECSFargate Docs: https://docs.launchflow.com/reference/aws-services/ecs-fargate
-service = lf.aws.ECSFargate("my-ecs-service")
+service = lf.aws.ECSFargate(
+    "my-ecs-service",
+    dockerfile="Dockerfile",  # Path to your Dockerfile
+)
 """
 
 
@@ -453,17 +456,28 @@ class GCPServices(Enum):
         if self == GCPServices.CLOUD_RUN:
             return """
 # Cloud Run Docs: https://docs.launchflow.com/reference/gcp-services/cloud-run
-service = lf.gcp.CloudRunService("my-cloud-run-service")
+service = lf.gcp.CloudRunService(
+    "my-cloud-run-service",
+    dockerfile="Dockerfile",  # Path to your Dockerfile
+)
 """
         elif self == GCPServices.GCE:
             return """
-# Compute Engine Docs: https://docs.launchflow.com/reference/gcp-services/compute-engine
-service = lf.gcp.ComputeEngineService("my-compute-engine-service")
+# Compute Engine Docs: https://docs.launchflow.com/reference/gcp-services/compute-engine-service
+service = lf.gcp.ComputeEngineService(
+    "my-compute-engine-service",
+    dockerfile="Dockerfile",  # Path to your Dockerfile
+)
 """
         elif self == GCPServices.GKE:
             return """
-# GKE Docs: https://docs.launchflow.com/reference/gcp-services/gke
-service = lf.gcp.GKEService("my-gke-service")
+# GKE Docs: https://docs.launchflow.com/reference/gcp-services/gke-service
+cluster = lf.gcp.GKECluster("my-gke-cluster")
+service = lf.gcp.GKEService(
+    "my-gke-service",
+    cluster=cluster,
+    dockerfile="Dockerfile",  # Path to your Dockerfile
+)
 """
 
 
@@ -552,9 +566,6 @@ def generate_infra_dot_py():
     if os.path.isfile(infra_py_path):
         rich.print("[yellow]An infra.py file already exists.[/yellow]")
         rich.print("[italic]Skipping example infra.py creation.[/italic]")
-        rich.print(
-            "[italic]Visit [bold]https://docs.launchflow.com/project-structure[/bold] to see example launchflow usage.[/italic]"
-        )
         return
 
     answer = beaupy.confirm(
@@ -590,7 +601,6 @@ Create your cloud infrastructure with:
 Deploy your application with:
     lf deploy
 
-For more information, visit https://docs.launchflow.com/project-structure
 \"\"\"
 
 import launchflow as lf

@@ -13,7 +13,11 @@ from launchflow.aws.lambda_function import (
     LambdaFunctionURLOutputs,
     LambdaRuntime,
 )
-from launchflow.aws.lambda_service import APIGatewayURL, LambdaService
+from launchflow.aws.lambda_service import (
+    APIGatewayURL,
+    LambdaService,
+    LambdaServiceReleaseInputs,
+)
 from launchflow.config import config
 from launchflow.models.flow_state import AWSEnvironmentConfig
 from launchflow.models.launchflow_uri import LaunchFlowURI
@@ -103,14 +107,15 @@ class LambdaServiceTest(unittest.IsolatedAsyncioTestCase):
             )
 
             # Run the build and validate the result / mock calls
-            (function_version_result,) = await lambda_service.build(
+            release_inputs = await lambda_service._build(
                 aws_environment_config=self.dev_aws_environment_config,
                 launchflow_uri=self.dev_launchflow_uri,
                 deployment_id="test-deployment-id",
+                build_log_file=mock.MagicMock(),
                 build_local=False,  # NOTE: This argument is not used by LambdaService
             )
             # This should be the first version of the function since we just created it
-            self.assertEqual(function_version_result, "1")
+            self.assertEqual(release_inputs.function_version, "1")
 
         build_zip_mock.assert_called_once_with(
             build_directory=self.launchflow_yaml_abspath,
@@ -209,23 +214,24 @@ class LambdaServiceTest(unittest.IsolatedAsyncioTestCase):
             )
 
             # Run the promote and validate the result / mock calls
-            (function_version_result,) = await lambda_service.promote(
+            release_inputs = await lambda_service._promote(
                 from_aws_environment_config=self.dev_aws_environment_config,
                 to_aws_environment_config=self.prod_aws_environment_config,
                 from_launchflow_uri=self.dev_launchflow_uri,
                 to_launchflow_uri=self.prod_launchflow_uri,
                 from_deployment_id="from-deployment-id",
                 to_deployment_id="to-deployment-id",
+                promote_log_file=mock.MagicMock(),
                 promote_local=False,
             )
 
             # This should be the second version of the function since we just promoted it
-            self.assertEqual(function_version_result, "2")
+            self.assertEqual(release_inputs.function_version, "2")
 
             # Ensure that the new function version now has the same CodeSha256 hash as the from function
             to_func_info = lambda_client.get_function(
                 FunctionName=to_lambda_function_outputs.function_name,
-                Qualifier=function_version_result,
+                Qualifier=release_inputs.function_version,
             )
             self.assertEqual(
                 to_func_info["Configuration"]["CodeSha256"],  # type: ignore
@@ -311,14 +317,17 @@ class LambdaServiceTest(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(function_version_before_release, "1")
 
             # Run the release and validate the result
-            service_url = await lambda_service.release(
-                function_version="2",
+            await lambda_service._release(
+                release_inputs=LambdaServiceReleaseInputs(function_version="2"),
                 aws_environment_config=self.dev_aws_environment_config,
                 launchflow_uri=self.dev_launchflow_uri,
                 deployment_id="test-deployment-id",
+                release_log_file=mock.MagicMock(),
             )
             # This should match the URL from the outputs
-            self.assertEqual(service_url, lambda_url_outputs.function_url)
+            self.assertEqual(
+                lambda_service.outputs().service_url, lambda_url_outputs.function_url
+            )
 
             # Ensure that the function version is now 2 after the release
             function_version_after_release = lambda_client.get_function(

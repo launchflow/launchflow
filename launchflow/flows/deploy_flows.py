@@ -4,7 +4,8 @@ import datetime
 import io
 import logging
 import os
-from typing import List, Literal, Optional, Tuple, Union
+import time
+from typing import Any, List, Literal, Optional, Tuple, Union
 
 import rich
 from rich.console import Console
@@ -65,7 +66,7 @@ from launchflow.models.flow_state import (
 from launchflow.models.launchflow_uri import LaunchFlowURI
 from launchflow.node import Node
 from launchflow.resource import Resource
-from launchflow.service import BuildOutputs, DockerService, Service
+from launchflow.service import DockerService, Service
 from launchflow.utils import generate_deployment_id
 from launchflow.validation import validate_service_name
 from launchflow.workflows.deploy_gcp_service import (
@@ -83,29 +84,30 @@ from launchflow.workflows.deploy_gcp_service import (
 class BuildServiceResult(Result["BuildServicePlan"]):
     docker_image: Optional[str] = None
     logs_file_or_link: Optional[str] = None
-    build_outputs: Optional[BuildOutputs] = None
+    build_outputs: Optional[Any] = None
 
 
 @dataclasses.dataclass
 class BuildServicePlan(ServicePlan):
     service_manager: ServiceManager
-    gcp_environment_config: Optional[GCPEnvironmentConfig]
-    aws_environment_config: Optional[AWSEnvironmentConfig]
+    environment_state: EnvironmentState
     deployment_id: str
     build_local: bool = False
 
     def __post_init__(self):
-        if self.gcp_environment_config is None and self.aws_environment_config is None:
+        if (
+            isinstance(self.service, GCPService)
+            and self.environment_state.gcp_config is None
+        ):
             raise ValueError(
-                "GCP or AWS environment config must be provided to build a service."
+                "GCP environment config must set on the EnvironmentState to build a GCP service."
             )
-        if isinstance(self.service, GCPService) and self.gcp_environment_config is None:
+        if (
+            isinstance(self.service, AWSService)
+            and self.environment_state.aws_config is None
+        ):
             raise ValueError(
-                "GCP environment config must be provided to build a GCP service."
-            )
-        if isinstance(self.service, AWSService) and self.aws_environment_config is None:
-            raise ValueError(
-                "AWS environment config must be provided to build an AWS service."
+                "AWS environment config must set on the EnvironmentState to build an AWS service."
             )
 
     @property
@@ -128,32 +130,39 @@ class BuildServicePlan(ServicePlan):
                 docker_image, logs_file_or_link = await build_and_push_gcp_service(
                     self.service,
                     self.service_manager,
-                    self.gcp_environment_config,  # type: ignore
+                    self.environment_state.gcp_config,  # type: ignore
                     self.deployment_id,
                     self.build_local,
                 )
                 return BuildServiceResult(self, True, docker_image, logs_file_or_link)
-            # TODO: support docker then remove this
-            # elif isinstance(self.service, AWSDockerService):
-            #     docker_image, logs_file_or_link = await build_and_push_aws_service(
-            #         self.service,
-            #         self.service_manager,
-            #         self.aws_environment_config,  # type: ignore
-            #         self.deployment_id,
-            #         self.build_local,
-            #     )
-            #     return BuildServiceResult(self, True, docker_image, logs_file_or_link)
+
+            # TODO: Remove the isintance checks once GCP services are refactored to implement the build method
             elif isinstance(self.service, AWSService):
-                build_outputs = await self.service.build(
-                    aws_environment_config=self.aws_environment_config,  # type: ignore
-                    launchflow_uri=LaunchFlowURI(
-                        project_name=self.service_manager.project_name,
-                        environment_name=self.service_manager.environment_name,
-                        service_name=self.service_manager.service_name,
-                    ),
-                    deployment_id=self.deployment_id,
-                    build_local=self.build_local,
+                # TODO: Move this to the top of the flow once GCP services are refactored to implement the build method
+                base_logging_dir = "/tmp/launchflow"
+                os.makedirs(base_logging_dir, exist_ok=True)
+                build_logs_file = (
+                    f"{base_logging_dir}/{self.service.name}-{int(time.time())}.log"
                 )
+                with open(build_logs_file, "w") as build_log_file:
+                    try:
+                        build_outputs = await self.service.build(
+                            environment_state=self.environment_state,
+                            launchflow_uri=LaunchFlowURI(
+                                project_name=self.service_manager.project_name,
+                                environment_name=self.service_manager.environment_name,
+                                service_name=self.service_manager.service_name,
+                            ),
+                            deployment_id=self.deployment_id,
+                            build_log_file=build_log_file,
+                            build_local=self.build_local,
+                        )
+                    except Exception as e:
+                        # TODO: Move the try catch up to the top of the flow once the GCPServices are refactored to implement the build method
+                        raise exceptions.ServiceBuildFailed(
+                            error_message=f"Failed to build {self.service}",
+                            build_logs_or_link=build_logs_file,
+                        ) from e
                 return BuildServiceResult(self, True, build_outputs=build_outputs)
             elif isinstance(self.service, GCPService):
                 # TODO: Add a hook to allow for custom build steps for static sites
@@ -163,6 +172,7 @@ class BuildServicePlan(ServicePlan):
                 result.error_message = f"Unsupported service type: {self.service}"
                 return result
         except exceptions.ServiceBuildFailed as e:
+            # TODO: Use dump_exception_with_stacktrace to dump the stack trace to the log file
             result = BuildServiceResult(
                 self, False, logs_file_or_link=e.build_logs_or_link
             )
@@ -226,23 +236,24 @@ class ReleaseServiceResult(Result["ReleaseServicePlan"]):
 class ReleaseServicePlan(ServicePlan):
     environment_ref: EnvironmentRef
     service_manager: ServiceManager
-    gcp_environment_config: Optional[GCPEnvironmentConfig]
-    aws_environment_config: Optional[AWSEnvironmentConfig]
+    environment_state: EnvironmentState
     deployment_id: str
     build_step_type: Optional[Literal["build", "promote"]]
 
     def __post_init__(self):
-        if self.gcp_environment_config is None and self.aws_environment_config is None:
+        if (
+            isinstance(self.service, GCPService)
+            and self.environment_state.gcp_config is None
+        ):
             raise ValueError(
-                "GCP or AWS environment config must be provided to build a service."
+                "GCP environment config must be set on the EnvironmentState to release a GCP service."
             )
-        if isinstance(self.service, GCPService) and self.gcp_environment_config is None:
+        if (
+            isinstance(self.service, AWSService)
+            and self.environment_state.aws_config is None
+        ):
             raise ValueError(
-                "GCP environment config must be provided to release a GCP service."
-            )
-        if isinstance(self.service, AWSService) and self.aws_environment_config is None:
-            raise ValueError(
-                "AWS environment config must be provided to release an AWS service."
+                "AWS environment config must be set on the EnvironmentState to release an AWS service."
             )
 
     @property
@@ -282,7 +293,7 @@ class ReleaseServicePlan(ServicePlan):
 
     def _get_build_outputs_from_dependency(
         self, dependency_results: List[Result]
-    ) -> Union[ReleaseServiceResult, BuildOutputs]:
+    ) -> Union[ReleaseServiceResult, Any]:
         if self.build_step_type == "build":
             build_result_type = BuildServiceResult
         else:
@@ -314,19 +325,21 @@ class ReleaseServicePlan(ServicePlan):
             # TODO: Consider refactoring this to separate static & docker release steps
             if isinstance(self.service, GCSWebsite):
                 service_url = await upload_local_files_to_static_site(
-                    gcp_environment_config=self.gcp_environment_config,  # type: ignore
+                    gcp_environment_config=self.environment_state.gcp_config,  # type: ignore
                     static_site=self.service,
                 )
                 return ReleaseServiceResult(self, True, service_url)
 
             if isinstance(self.service, FirebaseStaticSite):
                 service_url = await deploy_local_files_to_firebase_static_site(
-                    gcp_environment_config=self.gcp_environment_config,  # type: ignore
+                    gcp_environment_config=self.environment_state.gcp_config,  # type: ignore
                     firebase_static_site=self.service,
                 )
                 return ReleaseServiceResult(self, True, service_url)
 
+            # TODO: Remove the isintance checks once GCP services are refactored to implement the release method
             if isinstance(self.service, AWSService):
+                # TODO: Remove this hacky check once we remove DockerService and can just pass the Any through to release()
                 build_outputs = self._get_build_outputs_from_dependency(
                     dependency_results
                 )
@@ -337,17 +350,35 @@ class ReleaseServicePlan(ServicePlan):
                     )
                     return result
 
-                release_outputs = await self.service.release(
-                    release_inputs=build_outputs.release_inputs,
-                    aws_environment_config=self.aws_environment_config,  # type: ignore
-                    launchflow_uri=LaunchFlowURI(
-                        project_name=self.service_manager.project_name,
-                        environment_name=self.service_manager.environment_name,
-                        service_name=self.service_manager.service_name,
-                    ),
-                    deployment_id=self.deployment_id,
+                # TODO: Move this to the top of the flow once GCP services are refactored to implement the release method
+                base_logging_dir = "/tmp/launchflow"
+                os.makedirs(base_logging_dir, exist_ok=True)
+                release_logs_file = (
+                    f"{base_logging_dir}/{self.service.name}-{int(time.time())}.log"
                 )
-                return ReleaseServiceResult(self, True, release_outputs.service_url)
+                with open(release_logs_file, "w") as release_log_file:
+                    try:
+                        await self.service.release(
+                            release_inputs=build_outputs,
+                            environment_state=self.environment_state,
+                            launchflow_uri=LaunchFlowURI(
+                                project_name=self.service_manager.project_name,
+                                environment_name=self.service_manager.environment_name,
+                                service_name=self.service_manager.service_name,
+                            ),
+                            deployment_id=self.deployment_id,
+                            release_log_file=release_log_file,
+                        )
+                    except Exception as e:
+                        # TODO: Move the try catch up to the top of the flow once the GCPServices are refactored to implement the release method
+                        raise exceptions.ServiceReleaseFailed(
+                            error_message=f"Failed to release {self.service}",
+                            release_logs_or_link=release_logs_file,
+                        ) from e
+
+                return ReleaseServiceResult(
+                    self, True, self.service.outputs().service_url
+                )
 
             if self.build_step_type is not None:
                 maybe_docker_image = self._get_docker_image_from_dependency(
@@ -368,7 +399,7 @@ class ReleaseServicePlan(ServicePlan):
                 service_url = await release_docker_image_to_cloud_run(
                     docker_image=docker_image,
                     service_manager=self.service_manager,
-                    gcp_environment_config=self.gcp_environment_config,  # type: ignore
+                    gcp_environment_config=self.environment_state.gcp_config,  # type: ignore
                     cloud_run_service=self.service,
                     deployment_id=self.deployment_id,
                 )
@@ -376,7 +407,7 @@ class ReleaseServicePlan(ServicePlan):
                 service_url = await release_docker_image_to_compute_engine(
                     docker_image=docker_image,
                     service_manager=self.service_manager,
-                    gcp_environment_config=self.gcp_environment_config,  # type: ignore
+                    gcp_environment_config=self.environment_state.gcp_config,  # type: ignore
                     compute_engine_service=self.service,
                     deployment_id=self.deployment_id,
                 )
@@ -384,7 +415,7 @@ class ReleaseServicePlan(ServicePlan):
                 service_url = await release_docker_image_to_gke(
                     docker_image=docker_image,
                     service_manager=self.service_manager,
-                    gcp_environment_config=self.gcp_environment_config,  # type: ignore
+                    gcp_environment_config=self.environment_state.gcp_config,  # type: ignore
                     gke_service=self.service,
                     deployment_id=self.deployment_id,
                 )
@@ -739,8 +770,7 @@ async def plan_deploy_service(
         build_plan = BuildServicePlan(
             resource_or_service=service,
             service_manager=service_manager,
-            gcp_environment_config=environment_state.gcp_config,
-            aws_environment_config=environment_state.aws_config,
+            environment_state=environment_state,
             deployment_id=deployment_id,
             depends_on=[],
             verbose=verbose,
@@ -770,8 +800,7 @@ async def plan_deploy_service(
         verbose=verbose,
         environment_ref=EnvironmentRef(environment_manager, show_backend=False),
         service_manager=service_manager,
-        gcp_environment_config=environment_state.gcp_config,
-        aws_environment_config=environment_state.aws_config,
+        environment_state=environment_state,
         deployment_id=deployment_id,
         build_step_type=docker_step,
     )
@@ -1871,8 +1900,7 @@ async def plan_promote_service(
         verbose=verbose,
         environment_ref=EnvironmentRef(to_environment_manager, show_backend=False),
         service_manager=to_service_manager,
-        gcp_environment_config=to_environment_state.gcp_config,
-        aws_environment_config=to_environment_state.aws_config,
+        environment_state=to_environment_state,
         deployment_id=deployment_id,
         build_step_type="promote",
     )

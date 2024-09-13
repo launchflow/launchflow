@@ -1,11 +1,12 @@
 import os
 from dataclasses import dataclass
-from typing import Dict, List, Literal, Optional
+from typing import Dict, Generic, List, Literal, Optional, TypeVar
 
 from launchflow.config import config
 from launchflow.models.enums import ServiceProduct
+from launchflow.models.flow_state import EnvironmentState
 from launchflow.models.launchflow_uri import LaunchFlowURI
-from launchflow.node import Node, NodeType, Outputs, T
+from launchflow.node import Node, NodeType, Outputs
 from launchflow.resource import Resource
 from launchflow.workflows.utils import DEFAULT_IGNORE_PATTERNS
 
@@ -28,23 +29,10 @@ class ServiceOutputs(Outputs):
     dns_outputs: Optional[DNSOutputs]
 
 
-@dataclass
-class ReleaseInputs:
-    pass
+R = TypeVar("R")
 
 
-@dataclass
-class ReleaseOutputs:
-    service_url: str
-
-
-@dataclass
-class BuildOutputs:
-    release_inputs: ReleaseInputs
-    build_logs_or_link: Optional[str]
-
-
-class Service(Node[T]):
+class Service(Node[ServiceOutputs], Generic[R]):
     product = ServiceProduct.UNKNOWN.value
 
     def __init__(
@@ -70,42 +58,40 @@ class Service(Node[T]):
 
         self.name = name
 
-    def outputs(self) -> ServiceOutputs:
-        raise NotImplementedError
-
-    async def outputs_async(self) -> ServiceOutputs:
-        raise NotImplementedError
-
     def resources(self) -> List[Resource]:
         raise NotImplementedError
 
     async def build(
         self,
         *,
+        environment_state: EnvironmentState,
         launchflow_uri: LaunchFlowURI,
         deployment_id: str,
         build_local: bool,
-    ) -> BuildOutputs:
+    ) -> R:
         raise NotImplementedError
 
     async def promote(
         self,
         *,
+        from_environment_state: EnvironmentState,
+        to_environment_state: EnvironmentState,
         from_launchflow_uri: LaunchFlowURI,
         to_launchflow_uri: LaunchFlowURI,
         from_deployment_id: str,
         to_deployment_id: str,
         promote_local: bool,
-    ) -> BuildOutputs:
+    ) -> R:
         raise NotImplementedError
 
     async def release(
         self,
         *,
-        release_inputs: ReleaseInputs,
+        release_inputs: R,
+        environment_state: EnvironmentState,
         launchflow_uri: LaunchFlowURI,
         deployment_id: str,
-    ) -> ReleaseOutputs:
+    ) -> None:
         raise NotImplementedError
 
     def __repr__(self) -> str:

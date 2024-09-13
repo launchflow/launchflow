@@ -44,6 +44,7 @@ resource "google_sql_database_instance" "cloud_sql_instance" {
           value = "0.0.0.0/0" # Allows all IP addresses to connect
         }
       }
+      # TODO: investigate removing require_ssl, it was removed in future versions of the provider
       require_ssl     = var.allow_public_access ? false : true
       ssl_mode        = var.allow_public_access ? "ENCRYPTED_ONLY" : "TRUSTED_CLIENT_CERTIFICATE_REQUIRED"
       ipv4_enabled    = var.allow_public_access
@@ -86,6 +87,11 @@ resource "google_sql_database" "cloud_sql_database" {
     google_sql_database_instance.cloud_sql_instance,
     google_sql_user.cloud_sql_user
   ]
+
+  lifecycle {
+    # There are issues updating deletion policy after and import so just ignore it.
+    ignore_changes = [deletion_policy]
+  }
 
   name     = var.db_name
   instance = google_sql_database_instance.cloud_sql_instance.name

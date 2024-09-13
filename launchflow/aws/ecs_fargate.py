@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import IO, List, Optional
 
 import pkg_resources
 
@@ -38,7 +38,12 @@ class ECSFargateServiceInputs(Inputs):
     port: int = 80
 
 
-class ECSFargateService(AWSService):
+@dataclass
+class ECSFargateServiceReleaseInputs:
+    docker_image: str
+
+
+class ECSFargateService(AWSService[ECSFargateServiceReleaseInputs]):
     """A service hosted on AWS ECS Fargate.
 
     Like all [Services](/docs/concepts/services), this class configures itself across multiple [Environments](/docs/concepts/environments).
@@ -202,14 +207,15 @@ class ECSFargateService(AWSService):
 
         return service_outputs
 
-    async def build(
+    async def _build(
         self,
         *,
         aws_environment_config: AWSEnvironmentConfig,
         launchflow_uri: LaunchFlowURI,
         deployment_id: str,
+        build_log_file: IO,  # TODO: Update this service to use the build_log_file isntead of creating a new one
         build_local: bool,
-    ):
+    ) -> ECSFargateServiceReleaseInputs:
         ecr_outputs = self._ecr.outputs()
 
         if build_local:
@@ -238,10 +244,9 @@ class ECSFargateService(AWSService):
                 aws_environment_config=aws_environment_config,
             )
 
-        # TODO: Use a dataclass so we can return logs / links to logs
-        return (docker_image,)
+        return ECSFargateServiceReleaseInputs(docker_image=docker_image)
 
-    async def promote(
+    async def _promote(
         self,
         *,
         from_aws_environment_config: AWSEnvironmentConfig,
@@ -250,17 +255,19 @@ class ECSFargateService(AWSService):
         to_launchflow_uri: LaunchFlowURI,
         from_deployment_id: str,
         to_deployment_id: str,
+        promote_log_file: IO,  # TODO: Update this service to use the promote_log_file isntead of creating a new one
         promote_local: bool,
-    ):
+    ) -> ECSFargateServiceReleaseInputs:
         raise NotImplementedError
 
-    async def release(
+    async def _release(
         self,
-        docker_image: str,
         *,
+        release_inputs: ECSFargateServiceReleaseInputs,
         aws_environment_config: AWSEnvironmentConfig,
         launchflow_uri: LaunchFlowURI,
         deployment_id: str,
+        release_log_file: IO,  # TODO: Update this service to use the release_log_file isntead of creating a new one
     ):
         try:
             import boto3
@@ -270,7 +277,6 @@ class ECSFargateService(AWSService):
 
         try:
             ecs_cluster_outputs = self._ecs_cluster.outputs()
-            alb_outputs = self._alb.outputs()
 
             ecs_client = boto3.client("ecs", region_name=aws_environment_config.region)
 
@@ -282,7 +288,9 @@ class ECSFargateService(AWSService):
             )
             new_task_definition = existing_task_def_response["taskDefinition"]
             # Update the Docker image reference in the task definition
-            new_task_definition["containerDefinitions"][0]["image"] = docker_image
+            new_task_definition["containerDefinitions"][0][
+                "image"
+            ] = release_inputs.docker_image
             # Remove the hello world command and entrypoint
             if "command" in new_task_definition["containerDefinitions"][0]:
                 del new_task_definition["containerDefinitions"][0]["command"]
@@ -355,8 +363,6 @@ class ECSFargateService(AWSService):
                 # TODO: Raise a custom exception here
                 # TODO: Add a check to see if the task is crash looping, and maybe rollback the task definition
                 raise e
-
-            return f"http://{alb_outputs.alb_dns_name}"
 
         except Exception as e:
             raise exceptions.ServiceReleaseFailed(

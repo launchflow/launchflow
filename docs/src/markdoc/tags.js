@@ -6,8 +6,54 @@ import { TabProvider } from '@/components/TabProvider'
 import { Tabs } from '@/components/Tabs'
 import { Tab } from '@/components/Tab'
 import { FrameImage } from '@/components/FrameImage'
+import { GettingStartedSearch } from '@/components/GettingStartedSearch'
+import { GettingStartedSelector } from '@/components/GettingStartedSelector'
+import { GettingStartedSection } from '@/components/GettingStartedSection'
+import { LFInit } from '@/components/LFInit'
+import { Cleanup } from '@/components/Cleanup'
+import { DeployLaunchflow } from '@/components/DeployLaunchflow'
+import { LFCloud } from '@/components/LFCloud'
 
 const tags = {
+  lfcloud: {
+    render: LFCloud,
+  },
+  deploy: {
+    render: DeployLaunchflow,
+  },
+  cleanup: {
+    render: Cleanup,
+  },
+  lfInit: {
+    render: LFInit,
+  },
+  gettingStartedSearch: {
+    render: GettingStartedSearch,
+  },
+  gettingStartedSelector: {
+    render: GettingStartedSelector,
+    attributes: {
+      awsRuntimeOptions: {
+        type: Array,
+        validate: (value) => value.every((item) => typeof item === 'string'),
+      },
+      gcpRuntimeOptions: {
+        type: Array,
+        validate: (value) => value.every((item) => typeof item === 'string'),
+      },
+    },
+  },
+  gettingStartedSection: {
+    render: GettingStartedSection,
+    attributes: {
+      cloudProvider: {
+        type: String,
+      },
+      runtime: {
+        type: String,
+      },
+    },
+  },
   frameImage: {
     render: FrameImage,
     attributes: {
@@ -54,7 +100,6 @@ const tags = {
   },
   callout: {
     attributes: {
-      title: { type: String },
       type: {
         type: String,
         default: 'note',

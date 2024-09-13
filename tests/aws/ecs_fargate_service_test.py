@@ -10,7 +10,8 @@ from launchflow.aws.alb import ApplicationLoadBalancerOutputs
 from launchflow.aws.codebuild_project import CodeBuildProjectOutputs
 from launchflow.aws.ecr_repository import ECRRepositoryOutputs
 from launchflow.aws.ecs_cluster import ECSClusterOutputs
-from launchflow.aws.ecs_fargate import ECSFargateService
+from launchflow.aws.ecs_fargate import ECSFargateService, ECSFargateServiceReleaseInputs
+from launchflow.aws.ecs_fargate_container import ECSFargateServiceContainerOutputs
 from launchflow.config import config
 from launchflow.models.flow_state import AWSEnvironmentConfig
 from launchflow.models.launchflow_uri import LaunchFlowURI
@@ -59,13 +60,14 @@ class ECSFargateServiceTest(unittest.IsolatedAsyncioTestCase):
         )
 
         # Run the build and validate the result / mock calls
-        (docker_image_result,) = await ecs_fargate_service.build(
+        release_inputs = await ecs_fargate_service._build(
             aws_environment_config=self.aws_environment_config,
             launchflow_uri=self.launchflow_uri,
             deployment_id=self.deployment_id,
+            build_log_file=mock.MagicMock(),
             build_local=False,
         )
-        self.assertEqual(docker_image_result, fake_docker_image)
+        self.assertEqual(release_inputs.docker_image, fake_docker_image)
 
         build_docker_mock.assert_called_once_with(
             dockerfile_path="Dockerfile",
@@ -98,13 +100,14 @@ class ECSFargateServiceTest(unittest.IsolatedAsyncioTestCase):
         ecs_fargate_service._ecr.outputs = mock.MagicMock(return_value=ecr_outputs)
 
         # Run the build and validate the result / mock calls
-        (docker_image_result,) = await ecs_fargate_service.build(
+        release_inputs = await ecs_fargate_service._build(
             aws_environment_config=self.aws_environment_config,
             launchflow_uri=self.launchflow_uri,
             deployment_id=self.deployment_id,
+            build_log_file=mock.MagicMock(),
             build_local=True,
         )
-        self.assertEqual(docker_image_result, fake_docker_image)
+        self.assertEqual(release_inputs.docker_image, fake_docker_image)
 
         build_docker_mock.assert_called_once_with(
             dockerfile_path="Dockerfile",
@@ -121,13 +124,14 @@ class ECSFargateServiceTest(unittest.IsolatedAsyncioTestCase):
         ecs_fargate_service = ECSFargateService("my-ecs-service")
 
         with self.assertRaises(NotImplementedError):
-            await ecs_fargate_service.promote(
+            await ecs_fargate_service._promote(
                 from_aws_environment_config=self.aws_environment_config,
                 to_aws_environment_config=self.aws_environment_config,
                 from_launchflow_uri=self.launchflow_uri,
                 to_launchflow_uri=self.launchflow_uri,
                 from_deployment_id=self.deployment_id,
                 to_deployment_id=self.deployment_id,
+                promote_log_file=mock.MagicMock(),
                 promote_local=False,
             )
 
@@ -151,6 +155,12 @@ class ECSFargateServiceTest(unittest.IsolatedAsyncioTestCase):
             alb_target_group_arn="arn:aws:elasticloadbalancing:us-west-2:123456789012:targetgroup/test-target-group/123456",
         )
         ecs_fargate_service._alb.outputs = mock.MagicMock(return_value=alb_outputs)
+        ecs_fargate_service_container_outputs = ECSFargateServiceContainerOutputs(
+            public_ip="1.3.3.7"
+        )
+        ecs_fargate_service._ecs_fargate_service_container.outputs = mock.MagicMock(
+            return_value=ecs_fargate_service_container_outputs
+        )
 
         with mock_aws():
             # Setup the mock ECS data
@@ -204,15 +214,21 @@ class ECSFargateServiceTest(unittest.IsolatedAsyncioTestCase):
                 ecs_client.get_waiter = mock.MagicMock()
 
                 # Run the release
-                service_url = await ecs_fargate_service.release(
-                    docker_image="123456789012.dkr.ecr.us-west-2.amazonaws.com/my-ecs-service:latest",
+                await ecs_fargate_service._release(
+                    release_inputs=ECSFargateServiceReleaseInputs(
+                        docker_image="123456789012.dkr.ecr.us-west-2.amazonaws.com/my-ecs-service:latest"
+                    ),
                     aws_environment_config=self.aws_environment_config,
                     launchflow_uri=self.launchflow_uri,
                     deployment_id=self.deployment_id,
+                    release_log_file=mock.MagicMock(),
                 )
 
             # Validate the result / updated ECS service state
-            self.assertEqual(service_url, f"http://{alb_outputs.alb_dns_name}")
+            self.assertEqual(
+                ecs_fargate_service.outputs().service_url,
+                f"http://{alb_outputs.alb_dns_name}",
+            )
 
             # Validate the ECS service was updated with the new image, cpu, memory, and port mappings
             task_definition = ecs_client.describe_task_definition(

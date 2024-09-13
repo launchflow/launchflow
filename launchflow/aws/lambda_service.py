@@ -5,7 +5,7 @@ import subprocess
 import tempfile
 from dataclasses import dataclass
 from types import NoneType
-from typing import Dict, List, Optional, Union
+from typing import IO, Dict, List, Optional, Union
 
 import requests
 from typing_extensions import Callable
@@ -30,13 +30,7 @@ from launchflow.models.flow_state import AWSEnvironmentConfig
 from launchflow.models.launchflow_uri import LaunchFlowURI
 from launchflow.node import Inputs
 from launchflow.resource import Resource
-from launchflow.service import (
-    BuildOutputs,
-    ReleaseInputs,
-    ReleaseOutputs,
-    ServiceOutputs,
-)
-from launchflow.utils import dump_exception_with_stacktrace
+from launchflow.service import ServiceOutputs
 from launchflow.workflows.utils import zip_source
 
 
@@ -139,16 +133,11 @@ class APIGatewayURL:
 
 
 @dataclass
-class LambdaServiceReleaseInputs(ReleaseInputs):
+class LambdaServiceReleaseInputs:
     function_version: str
 
 
-@dataclass
-class LambdaServiceBuildOutputs(BuildOutputs):
-    release_inputs: LambdaServiceReleaseInputs
-
-
-class LambdaService(AWSService):
+class LambdaService(AWSService[LambdaServiceReleaseInputs]):
     """TODO"""
 
     product = ServiceProduct.AWS_LAMBDA.value
@@ -279,14 +268,15 @@ class LambdaService(AWSService):
 
         return service_outputs
 
-    async def build(
+    async def _build(
         self,
         *,
         aws_environment_config: AWSEnvironmentConfig,
         launchflow_uri: LaunchFlowURI,
         deployment_id: str,
+        build_log_file: IO,
         build_local: bool = True,
-    ) -> LambdaServiceBuildOutputs:
+    ) -> LambdaServiceReleaseInputs:
         try:
             import boto3
         except ImportError:
@@ -304,64 +294,51 @@ class LambdaService(AWSService):
             python_version = self.runtime_options.runtime.python_version()
             requirements_txt_path = self.runtime_options.requirements_txt_path
 
-        try:
-            zip_file_content = _zip_source(
-                build_directory=self.build_directory,
-                build_ignore=self.build_ignore,
-                python_version=python_version,
-                requirements_txt_path=requirements_txt_path,
-            )
-
-            _ = lambda_client.update_function_configuration(
-                FunctionName=lambda_function_outputs.function_name,
-                Handler=self.handler,
-                Environment={
-                    "Variables": {
-                        "LAUNCHFLOW_PROJECT": launchflow_uri.project_name,
-                        "LAUNCHFLOW_ENVIRONMENT": launchflow_uri.environment_name,
-                        "LAUNCHFLOW_CLOUD_PROVIDER": "aws",
-                        "LAUNCHFLOW_DEPLOYMENT_ID": deployment_id,
-                        "LAUNCHFLOW_ARTIFACT_BUCKET": f"s3://{aws_environment_config.artifact_bucket}",
-                        **self.env,
-                    }
-                },
-            )
-
-            # Wait for the configuration update to finish before publishing a new version
-            lambda_client.get_waiter("function_updated").wait(
-                FunctionName=lambda_function_outputs.function_name
-            )
-
-            # Try to update the existing function
-            response = lambda_client.update_function_code(
-                FunctionName=lambda_function_outputs.function_name,
-                Publish=True,
-                ZipFile=zip_file_content,
-                # TODO: Support Docker
-            )
-            function_version = response["Version"]
-
-            # Wait for the function to be active before returning the version
-            lambda_client.get_waiter("function_active").wait(
-                FunctionName=lambda_function_outputs.function_name,
-                Qualifier=function_version,
-            )
-
-        except Exception as e:
-            log_file = dump_exception_with_stacktrace(e)
-            raise exceptions.ServiceBuildFailed(
-                error_message=f"Error building Lambda function: {e}",
-                build_logs_or_link=log_file,
-            )
-
-        return LambdaServiceBuildOutputs(
-            release_inputs=LambdaServiceReleaseInputs(
-                function_version=function_version
-            ),
-            build_logs_or_link=None,  # TODO: Add build logs for Lambda
+        zip_file_content = _zip_source(
+            build_directory=self.build_directory,
+            build_ignore=self.build_ignore,
+            python_version=python_version,
+            requirements_txt_path=requirements_txt_path,
         )
 
-    async def promote(
+        _ = lambda_client.update_function_configuration(
+            FunctionName=lambda_function_outputs.function_name,
+            Handler=self.handler,
+            Environment={
+                "Variables": {
+                    "LAUNCHFLOW_PROJECT": launchflow_uri.project_name,
+                    "LAUNCHFLOW_ENVIRONMENT": launchflow_uri.environment_name,
+                    "LAUNCHFLOW_CLOUD_PROVIDER": "aws",
+                    "LAUNCHFLOW_DEPLOYMENT_ID": deployment_id,
+                    "LAUNCHFLOW_ARTIFACT_BUCKET": f"s3://{aws_environment_config.artifact_bucket}",
+                    **self.env,
+                }
+            },
+        )
+
+        # Wait for the configuration update to finish before publishing a new version
+        lambda_client.get_waiter("function_updated").wait(
+            FunctionName=lambda_function_outputs.function_name
+        )
+
+        # Try to update the existing function
+        response = lambda_client.update_function_code(
+            FunctionName=lambda_function_outputs.function_name,
+            Publish=True,
+            ZipFile=zip_file_content,
+            # TODO: Support Docker
+        )
+        function_version = response["Version"]
+
+        # Wait for the function to be active before returning the version
+        lambda_client.get_waiter("function_active").wait(
+            FunctionName=lambda_function_outputs.function_name,
+            Qualifier=function_version,
+        )
+
+        return LambdaServiceReleaseInputs(function_version=function_version)
+
+    async def _promote(
         self,
         *,
         from_aws_environment_config: AWSEnvironmentConfig,
@@ -370,8 +347,9 @@ class LambdaService(AWSService):
         to_launchflow_uri: LaunchFlowURI,
         from_deployment_id: str,
         to_deployment_id: str,
+        promote_log_file: IO,
         promote_local: bool = True,
-    ) -> LambdaServiceBuildOutputs:
+    ) -> LambdaServiceReleaseInputs:
         try:
             import boto3
         except ImportError:
@@ -393,68 +371,56 @@ class LambdaService(AWSService):
             "lambda", region_name=to_aws_environment_config.region
         )
 
-        try:
-            # Downloads the zip file of the function version
-            get_function_response = from_lambda_client.get_function(
-                FunctionName=from_lambda_outputs.function_name,
-                Qualifier=from_lambda_outputs.alias_name,
-            )
-            function_zip_file = get_function_response["Code"]["Location"]  # type: ignore
+        # Downloads the zip file of the function version
+        get_function_response = from_lambda_client.get_function(
+            FunctionName=from_lambda_outputs.function_name,
+            Qualifier=from_lambda_outputs.alias_name,
+        )
+        function_zip_file = get_function_response["Code"]["Location"]  # type: ignore
 
-            source_code = requests.get(function_zip_file).content
+        source_code = requests.get(function_zip_file).content
 
-            # Updates the DEPLOYMENT_ID environment variable
-            _ = to_lambda_client.update_function_configuration(
-                FunctionName=to_lambda_outputs.function_name,
-                Environment={
-                    "Variables": {
-                        "LAUNCHFLOW_PROJECT": to_launchflow_uri.project_name,
-                        "LAUNCHFLOW_ENVIRONMENT": to_launchflow_uri.environment_name,
-                        "LAUNCHFLOW_CLOUD_PROVIDER": "aws",
-                        "LAUNCHFLOW_DEPLOYMENT_ID": to_deployment_id,
-                        "LAUNCHFLOW_ARTIFACT_BUCKET": f"s3://{to_aws_environment_config.artifact_bucket}",
-                        **self.env,
-                    }
-                },
-            )
-
-            # Wait for the configuration update to finish before publishing a new version
-            to_lambda_client.get_waiter("function_updated").wait(
-                FunctionName=to_lambda_outputs.function_name
-            )
-
-            # Uploads the zip file to the new environment
-            update_code_response = to_lambda_client.update_function_code(
-                FunctionName=to_lambda_outputs.function_name,
-                ZipFile=source_code,
-                Publish=True,
-            )
-
-            # Returns the new function version
-            function_version = update_code_response["Version"]
-
-        except Exception as e:
-            log_file = dump_exception_with_stacktrace(e)
-            raise exceptions.ServicePromoteFailed(
-                error_message=f"Error promoting Lambda function: {str(e)}",
-                promote_logs_or_link=log_file,
-            )
-
-        return LambdaServiceBuildOutputs(
-            release_inputs=LambdaServiceReleaseInputs(
-                function_version=function_version
-            ),
-            build_logs_or_link=None,  # TODO: Add build logs for Lambda
+        # Updates the DEPLOYMENT_ID environment variable
+        _ = to_lambda_client.update_function_configuration(
+            FunctionName=to_lambda_outputs.function_name,
+            Environment={
+                "Variables": {
+                    "LAUNCHFLOW_PROJECT": to_launchflow_uri.project_name,
+                    "LAUNCHFLOW_ENVIRONMENT": to_launchflow_uri.environment_name,
+                    "LAUNCHFLOW_CLOUD_PROVIDER": "aws",
+                    "LAUNCHFLOW_DEPLOYMENT_ID": to_deployment_id,
+                    "LAUNCHFLOW_ARTIFACT_BUCKET": f"s3://{to_aws_environment_config.artifact_bucket}",
+                    **self.env,
+                }
+            },
         )
 
-    async def release(
+        # Wait for the configuration update to finish before publishing a new version
+        to_lambda_client.get_waiter("function_updated").wait(
+            FunctionName=to_lambda_outputs.function_name
+        )
+
+        # Uploads the zip file to the new environment
+        update_code_response = to_lambda_client.update_function_code(
+            FunctionName=to_lambda_outputs.function_name,
+            ZipFile=source_code,
+            Publish=True,
+        )
+
+        # Returns the new function version
+        function_version = update_code_response["Version"]
+
+        return LambdaServiceReleaseInputs(function_version=function_version)
+
+    async def _release(
         self,
         *,
         release_inputs: LambdaServiceReleaseInputs,
         aws_environment_config: AWSEnvironmentConfig,
         launchflow_uri: LaunchFlowURI,
         deployment_id: str,
-    ) -> ReleaseOutputs:
+        release_log_file: IO,
+    ) -> None:
         try:
             import boto3
         except ImportError:
@@ -466,17 +432,8 @@ class LambdaService(AWSService):
             "lambda", region_name=aws_environment_config.region
         )
 
-        try:
-            lambda_client.update_alias(
-                FunctionName=lambda_outputs.function_name,
-                Name=lambda_outputs.alias_name,
-                FunctionVersion=release_inputs.function_version,
-            )
-        except Exception as e:
-            log_file = dump_exception_with_stacktrace(e)
-            raise exceptions.ServiceReleaseFailed(
-                error_message=f"Error updating Lambda alias: {str(e)}",
-                release_logs_or_link=log_file,
-            )
-
-        return ReleaseOutputs(service_url=self.outputs().service_url)
+        lambda_client.update_alias(
+            FunctionName=lambda_outputs.function_name,
+            Name=lambda_outputs.alias_name,
+            FunctionVersion=release_inputs.function_version,
+        )

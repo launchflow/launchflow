@@ -1,6 +1,10 @@
 from launchflow.aws.acm import ACMCertificate
 from launchflow.aws.alb import ApplicationLoadBalancer
-from launchflow.aws.api_gateway import APIGateway
+from launchflow.aws.api_gateway import (
+    APIGateway,
+    APIGatewayLambdaIntegration,
+    APIGatewayRoute,
+)
 from launchflow.aws.codebuild_project import CodeBuildProject
 from launchflow.aws.ec2 import EC2
 from launchflow.aws.ecr_repository import ECRRepository
@@ -10,7 +14,7 @@ from launchflow.aws.ecs_fargate_container import ECSFargateServiceContainer
 from launchflow.aws.elastic_ip import ElasticIP
 from launchflow.aws.elasticache import ElasticacheRedis
 from launchflow.aws.lambda_event_mapping import LambdaEventMapping
-from launchflow.aws.lambda_function import LambdaFunction
+from launchflow.aws.lambda_function import LambdaFunction, LambdaFunctionURL
 from launchflow.aws.lambda_service import LambdaService
 from launchflow.aws.launchflow_cloud_releaser import (
     LaunchFlowCloudReleaser as AWSReleaser,
@@ -106,9 +110,12 @@ RESOURCE_PRODUCTS_TO_RESOURCES = {
     ResourceProduct.AWS_LAUNCHFLOW_CLOUD_RELEASER.value: AWSReleaser,
     ResourceProduct.AWS_NAT_GATEWAY.value: NATGateway,
     ResourceProduct.AWS_API_GATEWAY.value: APIGateway,
+    ResourceProduct.AWS_API_GATEWAY_ROUTE.value: APIGatewayRoute,
+    ResourceProduct.AWS_API_GATEWAY_LAMBDA_INTEGRATION.value: APIGatewayLambdaIntegration,
     ResourceProduct.AWS_ELASTIC_IP.value: ElasticIP,
     ResourceProduct.AWS_LAMBDA_EVENT_MAPPING.value: LambdaEventMapping,
     ResourceProduct.AWS_LAMBDA_FUNCTION.value: LambdaFunction,
+    ResourceProduct.AWS_LAMBDA_FUNCTION_URL.value: LambdaFunctionURL,
     # K8s resource
     ResourceProduct.KUBERNETES_SERVICE_CONTAINER: ServiceContainer,
     ResourceProduct.KUBERNETES_HORIZONTAL_POD_AUTOSCALER: HorizontalPodAutoscaler,

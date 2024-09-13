@@ -1,6 +1,7 @@
 import unittest
 from unittest import mock
 
+import pytest
 from google.cloud import compute
 
 from launchflow.gcp.compute_engine_service import ComputeEngineService
@@ -27,6 +28,7 @@ class FakeExtendedOperation:
         return self.calls <= 0
 
 
+@pytest.mark.usefixtures("launchflow_yaml_local_backend_fixture")
 class DeployGcpServiceTest(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self) -> None:
         self.service_manager = ServiceManager(

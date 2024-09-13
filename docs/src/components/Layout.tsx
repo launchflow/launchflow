@@ -9,7 +9,6 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
-import { Hero } from '@/components/Hero'
 import { MobileNavigation } from '@/components/MobileNavigation'
 import { Navigation } from '@/components/Navigation'
 import { Search } from '@/components/Search'
@@ -58,6 +57,7 @@ function Header() {
 
   return (
     <header
+      id="mainHeader"
       className={clsx(
         'sticky top-0 z-50  justify-between bg-white shadow-md shadow-background_dark/5 transition duration-500 sm:px-6 lg:px-8 dark:bg-background_dark/95 dark:shadow-none dark:backdrop-blur dark:[@supports(backdrop-filter:blur(0))]:bg-background_dark/75',
         isScrolled
@@ -150,9 +150,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex w-full flex-col">
       <Header />
-
-      {isHomePage && <Hero />}
-
       <div className="relative mx-auto flex w-full max-w-8xl flex-auto justify-center sm:px-2 lg:px-8 xl:px-12">
         <div className="hidden lg:relative lg:block lg:flex-none">
           <div className="absolute inset-y-0 right-0 w-[50vw] bg-slate-50 dark:hidden" />

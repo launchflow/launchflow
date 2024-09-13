@@ -1,8 +1,13 @@
 'use client'
 
 import { Fragment } from 'react'
-import { Highlight, themes } from 'prism-react-renderer'
+import { Prism, Highlight, themes } from 'prism-react-renderer'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
+
+// Import Docker syntax support
+;(typeof global !== 'undefined' ? global : window).Prism = Prism
+require('prismjs/components/prism-docker')
+require('prism-svelte')
 
 export function Fence({
   children,
@@ -72,7 +77,7 @@ export function Fence({
                           paddingTop: paddingTop,
                           paddingBottom: paddingBottom,
                         }}
-                        className={`w-full bg-opacity-50 ${highlightClass}`}
+                        className={`w-full bg-opacity-50 pl-3 ${highlightClass}`}
                       >
                         {line
                           .filter((token) => !token.empty)
