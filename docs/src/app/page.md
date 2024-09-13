@@ -9,7 +9,7 @@ Use the Python SDK to define your infrastructure in code, then run lf deploy to 
 
 ## Get Started
 
-Get started with the framework of your choice or any Docker image.
+Start by deploying your preferred framework or any Docker image to AWS or GCP, using serverless, VMs, or Kubernetes.
 
 {% gettingStartedSearch /%}
 
