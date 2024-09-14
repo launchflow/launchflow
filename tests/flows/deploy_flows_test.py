@@ -1,14 +1,11 @@
 import datetime
 import tempfile
 import unittest
-from platform import release
 from unittest import mock
 
 import pytest
 
 from launchflow import exceptions
-from launchflow.aws.alb import ApplicationLoadBalancerOutputs
-from launchflow.aws.ecs_cluster import ECSClusterOutputs
 from launchflow.aws.ecs_fargate import ECSFargateService
 from launchflow.aws.service import AWSService
 from launchflow.flows import deploy_flows
