@@ -422,6 +422,18 @@ async def create_environment(
             if gcp_project_id is None and org_name is None:
                 org_name = await lookup_organization(prompt)
 
+            if prompt:
+                rich.print("Select the default region for the environment:")
+                selected_region: Optional[str] = beaupy.select(
+                    _GCP_REGIONS, strict=True, pagination=True
+                )
+                if selected_region is None:
+                    typer.echo("No region selected - Exiting.")
+                    raise typer.Exit(1)
+                rich.print(f"[pink1]>[/pink1] {selected_region}\n")
+            else:
+                selected_region = "us-central1"
+
             vpc_connection_managed = None
             if (
                 existing_environment is not None
@@ -449,21 +461,6 @@ async def create_environment(
                 if gcp_environment_info.success
                 else EnvironmentStatus.CREATE_FAILED
             )
-
-            if gcp_environment_info.success and prompt:
-                rich.print("Select the region for the environment:")
-                selected_region: Optional[str] = beaupy.select(
-                    _GCP_REGIONS, strict=True, pagination=True
-                )
-                if selected_region is not None:
-                    rich.print(f"[pink1]>[/pink1] {selected_region}\n")
-                else:
-                    selected_region = "us-central1"
-                    rich.print(
-                        f"[yellow]No region selected. Defaulting to {selected_region}[/yellow]\n"
-                    )
-            else:
-                selected_region = "us-central1"
 
             env = EnvironmentState(
                 created_at=create_time,
@@ -540,7 +537,7 @@ async def create_environment(
                     select_options = sorted_regions.copy()
                     select_options[0] = f"{select_options[0]} (default)"
 
-                    print("Select the region for the environment:")
+                    print("Select the default region for the environment:")
                     region_index: Optional[int] = beaupy.select(
                         select_options, strict=True, pagination=True, return_index=True
                     )
