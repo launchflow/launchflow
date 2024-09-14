@@ -37,6 +37,33 @@ from launchflow.workflows import (
     delete_gcp_environment,
 )
 
+_GCP_REGIONS = [
+    "us-central1",  # Iowa, USA
+    "us-east1",  # South Carolina, USA
+    "us-east4",  # Northern Virginia, USA
+    "us-west1",  # Oregon, USA
+    "us-west2",  # Los Angeles, California, USA
+    "us-west3",  # Salt Lake City, Utah, USA
+    "us-west4",  # Las Vegas, Nevada, USA
+    "northamerica-northeast1",  # Montréal, Canada
+    "southamerica-east1",  # São Paulo, Brazil
+    "europe-west1",  # Belgium
+    "europe-west2",  # London, UK
+    "europe-west3",  # Frankfurt, Germany
+    "europe-west4",  # Netherlands
+    "europe-west6",  # Zürich, Switzerland
+    "europe-north1",  # Finland
+    "asia-east1",  # Taiwan
+    "asia-east2",  # Hong Kong
+    "asia-northeast1",  # Tokyo, Japan
+    "asia-northeast2",  # Osaka, Japan
+    "asia-northeast3",  # Seoul, South Korea
+    "asia-southeast1",  # Singapore
+    "asia-southeast2",  # Jakarta, Indonesia
+    "australia-southeast1",  # Sydney, Australia
+    "australia-southeast2",  # Melbourne, Australia
+]
+
 
 async def get_environment(
     project_state_manager: ProjectManager,
@@ -422,13 +449,29 @@ async def create_environment(
                 if gcp_environment_info.success
                 else EnvironmentStatus.CREATE_FAILED
             )
+
+            if gcp_environment_info.success and prompt:
+                rich.print("Select the region for the environment:")
+                selected_region: Optional[str] = beaupy.select(
+                    _GCP_REGIONS, strict=True, pagination=True
+                )
+                if selected_region is not None:
+                    rich.print(f"[pink1]>[/pink1] {selected_region}\n")
+                else:
+                    selected_region = "us-central1"
+                    rich.print(
+                        f"[yellow]No region selected. Defaulting to {selected_region}[/yellow]\n"
+                    )
+            else:
+                selected_region = "us-central1"
+
             env = EnvironmentState(
                 created_at=create_time,
                 updated_at=create_time,
                 gcp_config=GCPEnvironmentConfig(
                     project_id=gcp_environment_info.gcp_project_id,
-                    default_region="us-central1",
-                    default_zone="us-central1-a",
+                    default_region=selected_region,
+                    default_zone=f"{selected_region}-a",
                     service_account_email=gcp_environment_info.environment_service_account_email,
                     artifact_bucket=gcp_environment_info.artifact_bucket,
                     vpc_connection_managed=gcp_environment_info.vpc_connection_managed,

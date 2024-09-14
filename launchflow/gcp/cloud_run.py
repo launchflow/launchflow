@@ -124,7 +124,7 @@ class CloudRun(GCPDockerService):
 
         # Resources - flows should not access these directly
         self._artifact_registry = ArtifactRegistryRepository(
-            f"{name}-repository", format=RegistryFormat.DOCKER
+            f"{name}-repository", format=RegistryFormat.DOCKER, location=region
         )
         self._artifact_registry.resource_id = name
         self._cloud_run_service_container = CloudRunServiceContainer(
