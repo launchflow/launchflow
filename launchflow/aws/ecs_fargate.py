@@ -146,9 +146,11 @@ class ECSFargateService(AWSService[ECSFargateServiceReleaseInputs]):
         self._code_build_project.resource_id = resource_id_with_launchflow_prefix
         self._code_build_project.ignore_arguments.add("build_source.buildspec_path")
 
-        if cluster:
+        if cluster is not None:
+            self._manage_ecs_cluster = False
             self._ecs_cluster = cluster
         else:
+            self._manage_ecs_cluster = True
             self._ecs_cluster = ECSCluster(f"{name}-cluster")
             self._ecs_cluster.resource_id = resource_id_with_launchflow_prefix
 
@@ -158,7 +160,7 @@ class ECSFargateService(AWSService[ECSFargateServiceReleaseInputs]):
 
         self._ecs_fargate_service_container = ECSFargateServiceContainer(
             name,
-            self._ecs_cluster,
+            ecs_cluster=self._ecs_cluster,
             alb=self._alb,
             desired_count=desired_count,
             port=port,
@@ -183,10 +185,11 @@ class ECSFargateService(AWSService[ECSFargateServiceReleaseInputs]):
         to_return: List[Resource] = [
             self._ecr,
             self._code_build_project,
-            self._ecs_cluster,
             self._ecs_fargate_service_container,
             self._alb,
         ]
+        if self._manage_ecs_cluster:
+            to_return.append(self._ecs_cluster)
         return to_return  # type: ignore
 
     def outputs(self) -> ServiceOutputs:
