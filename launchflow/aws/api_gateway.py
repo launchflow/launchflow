@@ -139,9 +139,9 @@ class APIGatewayLambdaIntegration(AWSResource[APIGatewayLambdaIntegrationOutputs
 
         return APIGatewayLambdaIntegrationInputs(
             resource_id=self.resource_id,
-            api_gateway_id=Depends(self._api_gateway).api_gateway_id,
-            function_arn=Depends(self._function).aws_arn,
-            function_alias=Depends(self._function).alias_name,
+            api_gateway_id=Depends(self._api_gateway).api_gateway_id,  # type: ignore
+            function_arn=Depends(self._function).aws_arn,  # type: ignore
+            function_alias=Depends(self._function).alias_name,  # type: ignore
         )
 
 
@@ -212,12 +212,12 @@ class APIGatewayRoute(AWSResource[APIGatewayRouteOutputs]):
         if self._api_gateway_integration is not None:
             api_integration_id = Depends(
                 self._api_gateway_integration
-            ).api_integration_id
+            ).api_integration_id  # type: ignore
 
         return APIGatewayRouteInputs(
             resource_id=self.resource_id,
-            api_gateway_id=Depends(self._api_gateway).api_gateway_id,
+            api_gateway_id=Depends(self._api_gateway).api_gateway_id,  # type: ignore
             route_key=self.route_key,
-            authorization=self.authorization,
+            authorization=self.authorization,  # type: ignore
             api_integration_id=api_integration_id,
         )

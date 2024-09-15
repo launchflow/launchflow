@@ -4,7 +4,7 @@ import shutil
 import subprocess
 import tempfile
 from dataclasses import dataclass
-from typing import IO, Dict, List, Optional, Union
+from typing import IO, Any, Dict, List, Optional, Union
 
 import requests
 from typing_extensions import Callable
@@ -161,10 +161,10 @@ class LambdaService(AWSService[LambdaServiceReleaseInputs]):
         if isinstance(runtime, DockerRuntime):
             raise exceptions.ComingSoon(issue_number=72)
 
-        if isinstance(handler, Callable):
-            handler = _get_relative_handler_import_path(handler)
+        if isinstance(handler, Callable):  # type: ignore
+            handler = _get_relative_handler_import_path(handler)  # type: ignore
 
-        build_diff_args = {
+        build_diff_args: Dict[str, Any] = {
             "handler": handler,
             "runtime": runtime.value
             if isinstance(runtime, LambdaRuntime)
@@ -302,7 +302,7 @@ class LambdaService(AWSService[LambdaServiceReleaseInputs]):
 
         _ = lambda_client.update_function_configuration(
             FunctionName=lambda_function_outputs.function_name,
-            Handler=self.handler,
+            Handler=self.handler,  # type: ignore
             Environment={
                 "Variables": {
                     "LAUNCHFLOW_PROJECT": launchflow_uri.project_name,

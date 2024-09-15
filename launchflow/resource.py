@@ -245,13 +245,19 @@ class Resource(Node[T]):
         )
         return _to_output_type(resource_outputs, self._outputs_type)  # type: ignore
 
-    async def outputs_async(self, *, use_cache: bool = True) -> T:
+    async def outputs_async(
+        self,
+        *,
+        project: Optional[str] = None,
+        environment: Optional[str] = None,
+        use_cache: bool = True,
+    ) -> T:
         """
         Asynchronously connect to the resource by fetching its outputs.
         """
 
-        project_name = launchflow.project
-        environment_name = launchflow.environment
+        project_name = project or launchflow.project
+        environment_name = environment or launchflow.environment
         resource_uri = _ResourceURI(
             project_name,
             environment_name,

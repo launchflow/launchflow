@@ -10,6 +10,7 @@ from typing import (
     Optional,
     Set,
     Tuple,
+    Type,
     TypeVar,
     get_args,
     get_origin,
@@ -73,7 +74,7 @@ class DependsOnValue:
 
 
 class Depends:
-    _outputs_cache = {}
+    _outputs_cache: Dict[int, Any] = {}
     # The mode determines whether th dependencies should be resolved. There are three options:
     # - maybe_resolve (default): The dependencies are resolved if the outputs are available. If not, a DependsOnValue object is returned.
     #       - This mode is used when we are not sure if the outputs are available and we want to resolve them if they are.
@@ -237,10 +238,10 @@ class Node(Generic[T]):
         # TODO: The Resource generics are a bit of a hack. We should update them then use the generic map that the service ones use
         if node_type == NodeType.RESOURCE:
             # This line extracts the type argument from the Generic base
-            self._outputs_type: T = get_args(self.__class__.__orig_bases__[0])[0]  # type: ignore
+            self._outputs_type: Type = get_args(self.__class__.__orig_bases__[0])[0]  # type: ignore
         else:
             type_map = get_generic_map(Node, type(self))
-            self._outputs_type: T = type_map[T]
+            self._outputs_type: Type = type_map[T]  # type: ignore
 
         if not dataclasses.is_dataclass(self._outputs_type):
             raise ValueError(

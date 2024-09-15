@@ -46,10 +46,10 @@ def write_file(file_path: str, content: Union[str, bytes]):
         # Write to GCS
         file_path = file_path.replace("gs://", "")
         bucket, prefix = file_path.split("/", 1)
-        write_to_gcs_sync(bucket, prefix, content)
+        write_to_gcs_sync(bucket, prefix, content)  # type: ignore
     else:
         with open(file_path, "w") as f:
-            f.write(content)
+            f.write(content)  # type: ignore
 
 
 def delete_file(file_path: str):

@@ -193,8 +193,8 @@ class LambdaFunctionURL(AWSResource[LambdaFunctionURLOutputs]):
 
         return LambdaFunctionURLInputs(
             resource_id=self.resource_id,
-            function_arn=Depends(self.function).aws_arn,
-            function_alias=Depends(self.function).alias_name,
-            authorization=self.authorization,
+            function_arn=Depends(self.function).aws_arn,  # type: ignore
+            function_alias=Depends(self.function).alias_name,  # type: ignore
+            authorization=self.authorization,  # type: ignore
             cors=self.cors,
         )

@@ -1,6 +1,6 @@
 import os
 from dataclasses import dataclass
-from typing import Dict, Generic, List, Literal, Optional, TypeVar
+from typing import IO, Any, Dict, Generic, List, Literal, Optional, TypeVar
 
 from launchflow.config import config
 from launchflow.models.enums import ServiceProduct
@@ -41,7 +41,7 @@ class Service(Node[ServiceOutputs], Generic[R]):
         *,
         build_directory: str = ".",
         build_ignore: List[str] = [],  # type: ignore
-        build_diff_args: Dict[str, str] = {},  # type: ignore
+        build_diff_args: Dict[str, Any] = {},  # type: ignore
     ) -> None:
         super().__init__(name, NodeType.SERVICE)
 
@@ -67,6 +67,7 @@ class Service(Node[ServiceOutputs], Generic[R]):
         environment_state: EnvironmentState,
         launchflow_uri: LaunchFlowURI,
         deployment_id: str,
+        build_log_file: IO,
         build_local: bool,
     ) -> R:
         raise NotImplementedError
@@ -80,6 +81,7 @@ class Service(Node[ServiceOutputs], Generic[R]):
         to_launchflow_uri: LaunchFlowURI,
         from_deployment_id: str,
         to_deployment_id: str,
+        promote_log_file: IO,
         promote_local: bool,
     ) -> R:
         raise NotImplementedError
@@ -91,6 +93,7 @@ class Service(Node[ServiceOutputs], Generic[R]):
         environment_state: EnvironmentState,
         launchflow_uri: LaunchFlowURI,
         deployment_id: str,
+        release_log_file: IO,
     ) -> None:
         raise NotImplementedError
 

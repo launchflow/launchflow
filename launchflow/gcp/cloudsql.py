@@ -228,9 +228,9 @@ class CloudSQLPostgres(
             "google_sql_database_instance.cloud_sql_instance": self.name,
         }
         if self.include_default_db:
-            imports["google_sql_database.cloud_sql_database[0]"] = (
-                f"{self.name}/{self._default_db.name}"  # type: ignore
-            )
+            imports[
+                "google_sql_database.cloud_sql_database[0]"
+            ] = f"{self.name}/{self._default_db.name}"  # type: ignore
         if self.include_default_user:
             pw = beaupy.prompt(
                 f"Please provide the password for user: `{self.name}-user` in db instance `{self.name}`:",
@@ -239,9 +239,9 @@ class CloudSQLPostgres(
             if not pw:
                 raise ValueError(f"A password is required for user `{self.name}-user`")
             imports["random_password.user-password[0]"] = pw
-            imports["google_sql_user.cloud_sql_user[0]"] = (
-                f"{environment_state.gcp_config.project_id}/{self.name}/{self.name}-user"  # type: ignore
-            )
+            imports[
+                "google_sql_user.cloud_sql_user[0]"
+            ] = f"{environment_state.gcp_config.project_id}/{self.name}/{self.name}-user"  # type: ignore
         return imports
 
     def inputs(self, environment_state: EnvironmentState) -> CloudSQLPostgresInputs:
@@ -521,14 +521,30 @@ class CloudSQLUser(GCPResource[CloudSQLUserOutputs]):
 
         return imports
 
-    def outputs(self, *, use_cache: bool = True) -> CloudSQLUserOutputs:
+    def outputs(
+        self,
+        *,
+        project: Optional[str] = None,
+        environment: Optional[str] = None,
+        use_cache: bool = True,
+    ) -> CloudSQLUserOutputs:
         if self.password is None:
-            return super().outputs()
+            return super().outputs(
+                project=project, environment=environment, use_cache=use_cache
+            )
         return CloudSQLUserOutputs(user=self.user, password=self.password)
 
-    async def outputs_async(self, *, use_cache: bool = True) -> CloudSQLUserOutputs:
+    async def outputs_async(
+        self,
+        *,
+        project: Optional[str] = None,
+        environment: Optional[str] = None,
+        use_cache: bool = True,
+    ) -> CloudSQLUserOutputs:
         if self.password is None:
-            return await super().outputs_async()
+            return await super().outputs_async(
+                project=project, environment=environment, use_cache=use_cache
+            )
         return CloudSQLUserOutputs(user=self.user, password=self.password)
 
     def inputs(self, environment_state: EnvironmentState) -> CloudSQLUserInputs:
@@ -573,10 +589,22 @@ class CloudSQLDatabase(GCPResource[CloudSQLDataBaseOutputs]):
         self.cloud_sql_instance = cloud_sql_instance
         self.depends_on(cloud_sql_instance)
 
-    def outputs(self, *, use_cache: bool = True) -> CloudSQLDataBaseOutputs:
+    def outputs(
+        self,
+        *,
+        project: Optional[str] = None,
+        environment: Optional[str] = None,
+        use_cache: bool = True,
+    ) -> CloudSQLDataBaseOutputs:
         return CloudSQLDataBaseOutputs(database_name=self.name)
 
-    async def outputs_async(self, *, use_cache: bool = True) -> CloudSQLDataBaseOutputs:
+    async def outputs_async(
+        self,
+        *,
+        project: Optional[str] = None,
+        environment: Optional[str] = None,
+        use_cache: bool = True,
+    ) -> CloudSQLDataBaseOutputs:
         return CloudSQLDataBaseOutputs(database_name=self.name)
 
     def inputs(self, environment_state: EnvironmentState) -> CloudSQLDatabaseInputs:
