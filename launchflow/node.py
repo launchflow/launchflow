@@ -155,6 +155,8 @@ class NodeType(Enum):
 T = TypeVar("T", bound=Outputs)
 
 
+# This function was pulled from this Stackoverflow answer:
+# https://stackoverflow.com/questions/57706180/generict-base-class-how-to-get-type-of-t-from-within-instance/71720366#answer-76250220
 def get_generic_map(
     base_cls: type,
     instance_cls: type,
