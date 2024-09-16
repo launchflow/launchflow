@@ -1,3 +1,5 @@
+import { title } from 'process'
+
 export const homeNavigation = [
   {
     title: 'Introduction',
@@ -38,6 +40,14 @@ export const homeNavigation = [
       {
         title: 'GCP Authentication',
         href: '/docs/user-guides/gcp-authentication',
+      },
+      {
+        title: 'Add Resources',
+        href: '/docs/user-guides/add-resources',
+      },
+      {
+        title: 'Promote Deployments',
+        href: '/docs/user-guides/promote-deployments',
       },
       { title: 'Secrets', href: '/docs/user-guides/secrets' },
       {
