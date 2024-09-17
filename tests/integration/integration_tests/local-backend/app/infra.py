@@ -1,5 +1,4 @@
 import launchflow as lf
-from launchflow.aws.lambda_service import LambdaService
 from launchflow.managers.environment_manager import EnvironmentManager
 
 environment_manager = EnvironmentManager(
@@ -8,8 +7,6 @@ environment_manager = EnvironmentManager(
     backend=lf.lf_config.launchflow_yaml.backend,
 )
 environment = environment_manager.load_environment_sync()
-
-run_service = None
 
 if environment.gcp_config is not None:
     bucket = lf.gcp.GCSBucket(f"{lf.project}-{lf.environment}-gcs-bucket")
@@ -34,8 +31,8 @@ elif environment.aws_config is not None:
         "fastapi-service", dockerfile="Dockerfile.aws", port=8080, desired_count=2
     )
     # See run.sh to run this test
-    lambda_service: LambdaService = lf.aws.LambdaService(
-        "lambda-service", handler="lambda.handler"
+    lambda_service = lf.aws.LambdaService(
+        "lambda-service", handler="app.lambda_handler.handler"
     )
 
 else:

@@ -1,4 +1,4 @@
-## CloudRun
+## CloudRunService
 
 A service hosted on GCP Cloud Run.
 
@@ -8,14 +8,14 @@ A service hosted on GCP Cloud Run.
 ```python
 import launchflow as lf
 
-service = lf.gcp.CloudRun("my-service", cpu=4)
+service = lf.gcp.CloudRunService("my-service", cpu=4)
 ```
 
 #### Custom Environment Variables
 ```python
 import launchflow as lf
 
-service = lf.gcp.CloudRun(
+service = lf.gcp.CloudRunService(
     "my-service",
     environment_variables={"MY_ENV_VAR": "my-value"}
 )

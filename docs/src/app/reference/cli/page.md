@@ -150,7 +150,7 @@ $ lf create [OPTIONS] [ENVIRONMENT]
 
 * `--resource TEXT`: Resource name to create. If none we will scan the directory for available resources. This can be specified multiple times to create multiple resources.  [default: <class 'list'>]
 * `--service TEXT`: Service name to create. If none we will scan the directory for available services. This can be specified multiple times to create multiple services.  [default: <class 'list'>]
-* `--scan-directory TEXT`: Directory to scan for resources. Defaults to the current working directory.  [default: .]
+* `-d, --scan-directory TEXT`: Directory to scan for resources. Defaults to the current working directory.  [default: .]
 * `-y, --auto-approve`: Auto approve resource creation.
 * `--local`: Create only local resources.
 * `--launchflow-api-key TEXT`: API key to use for this request. If not set will fallback to your user local credentials from `lf login`

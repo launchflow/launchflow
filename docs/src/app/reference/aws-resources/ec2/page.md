@@ -385,3 +385,143 @@ Get the inputs for the EC2SimpleServer resource.
 
 **Returns:**
 - `VMConfig`: The configuration for the VM.
+
+## EC2MySQL
+
+An EC2 instance running MySQL on Docker.
+
+### Example usage
+```python
+from sqlalchemy import text
+import launchflow as lf
+
+mysql = lf.aws.EC2MySQL("my-mysql-db")
+engine = mysql.sqlalchemy_engine()
+
+with engine.connect() as connection:
+    print(connection.execute(text("SELECT 1")).fetchone())  # prints (1,)
+```
+
+### initialization
+
+Create a new EC2MySQL resource.
+
+**Args:**
+- `name (str)`: The name of the MySQL VM resource. This must be globally unique.
+- `password (Optional[str])`: The password for the MySQL DB. If not provided, a random password will be generated.
+- `instance_type (Optional[str])`: The type of machine to use. Defaults to `t3.micro` for development environments and `t3.medium` for production environments.
+- `disk_size_gb (Optional[str])`: The size of the disk in GB. Defaults to 8.
+
+### inputs
+
+```python
+EC2MySQL.inputs(environment_state: EnvironmentState)
+```
+
+Get the inputs for the EC2MySQL resource.
+
+**Args:**
+- `environment_type` (EnvironmentType): The environment type (e.g., development, production).
+
+**Returns:**
+- `VMConfig`: The configuration for the VM.
+
+### query
+
+```python
+EC2MySQL.query(query: str)
+```
+
+Executes a SQL query on the MySQL instance running on the EC2 VM.
+
+**Args:**
+- `query`: The SQL query to execute.
+
+**Returns:**
+- The result of the query.
+
+**Example usage:**
+```python
+import launchflow as lf
+
+mysql = lf.aws.EC2MySQL("my-mysql-db")
+
+# Executes a query on the MySQL instance running on the EC2 VM
+mysql.query("SELECT 1")
+```
+
+**NOTE**: This method is not recommended for production use. Use `sqlalchemy_engine` instead.
+
+### django\_settings
+
+```python
+EC2MySQL.django_settings()
+```
+
+Returns a Django settings dictionary for connecting to the MySQL instance running on EC2.
+
+**Returns:**
+- A dictionary of Django settings for connecting to the MySQL instance.
+
+**Example usage:**
+```python
+import launchflow as lf
+
+mysql = lf.aws.EC2MySQL("my-mysql-db")
+
+# settings.py
+DATABASES = {
+    # Connect Django's ORM to the MySQL instance running on EC2
+    "default": mysql.django_settings(),
+}
+```
+
+### sqlalchemy\_engine\_options
+
+```python
+EC2MySQL.sqlalchemy_engine_options()
+```
+
+Returns SQLAlchemy engine options for connecting to the MySQL instance running on EC2.
+
+**Returns:**
+- A dictionary of SQLAlchemy engine options.
+
+### sqlalchemy\_async\_engine\_options
+
+```python
+async EC2MySQL.sqlalchemy_async_engine_options()
+```
+
+Returns async SQLAlchemy engine options for connecting to the MySQL instance running on EC2.
+
+**Returns:**
+- A dictionary of async SQLAlchemy engine options.
+
+### sqlalchemy\_engine
+
+```python
+EC2MySQL.sqlalchemy_engine(**engine_kwargs)
+```
+
+Returns a SQLAlchemy engine for connecting to a MySQL instance hosted on EC2.
+
+**Args:**
+- `**engine_kwargs`: Additional keyword arguments to pass to `sqlalchemy.create_engine`.
+
+**Returns:**
+- A SQLAlchemy engine.
+
+### sqlalchemy\_async\_engine
+
+```python
+async EC2MySQL.sqlalchemy_async_engine(**engine_kwargs)
+```
+
+Returns an async SQLAlchemy engine for connecting to a MySQL instance hosted on EC2.
+
+**Args:**
+- `**engine_kwargs`: Additional keyword arguments to pass to `create_async_engine`.
+
+**Returns:**
+- An async SQLAlchemy engine.

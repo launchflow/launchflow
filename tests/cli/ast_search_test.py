@@ -10,7 +10,7 @@ from launchflow.cli.ast_search import (
 SERVICE_PY = """\
 import launchflow as lf
 
-service = lf.gcp.CloudRun("name")
+service = lf.gcp.CloudRunService("name")
 """
 
 TEST_DIR = os.path.join(os.path.dirname(__file__), "test_apps")

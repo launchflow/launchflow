@@ -1,8 +1,8 @@
 ---
-title: Django with LaunchFlow
+title: Deploy Django with LaunchFlow
 nextjs:
   metadata:
-    title: Django with LaunchFlow
+    title: Deploy Django with LaunchFlow
     description: Deploy Django to AWS / GCP with LaunchFlow
 ---
 

@@ -13,11 +13,12 @@ export const homeNavigation = [
       { title: 'FastAPI', href: '/docs/get-started/fastapi' },
       { title: 'Flask', href: '/docs/get-started/flask' },
       { title: 'Django', href: '/docs/get-started/django' },
-      { title: 'Go', href: '/docs/get-started/golang' },
+      { title: 'Golang', href: '/docs/get-started/golang' },
       { title: 'Next.js', href: '/docs/get-started/next-js' },
       { title: 'Svelte', href: '/docs/get-started/svelte' },
       { title: 'Spring Boot', href: '/docs/get-started/spring-boot' },
       { title: 'Docker Image', href: '/docs/get-started/docker-image' },
+      { title: 'AWS Lambda', href: '/docs/get-started/aws-lambda' },
     ],
   },
   {
@@ -85,6 +86,7 @@ export const referenceNavigation = [
     title: 'Services',
     links: [
       { title: 'AWS ECS Fargate', href: '/reference/aws-services/ecs-fargate' },
+      { title: 'AWS Lambda', href: '/reference/aws-services/lambda-service' },
       { title: 'GCP Cloud Run', href: '/reference/gcp-services/cloud-run' },
       {
         title: 'GCP Compute Engine',

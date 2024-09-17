@@ -1,8 +1,8 @@
 ---
-title: Flask with LaunchFlow
+title: Deploy Flask with LaunchFlow
 nextjs:
   metadata:
-    title: Flask with LaunchFlow
+    title: Deploy Flask with LaunchFlow
     description: Deploy Flask to AWS / GCP with LaunchFlow
 ---
 

@@ -1,8 +1,8 @@
 ---
-title: Svelte with LaunchFlow
+title: Deploy Svelte with LaunchFlow
 svelte:
   metadata:
-    title: Svelte with LaunchFlow
+    title: Deploy Svelte with LaunchFlow
     description: Deploy Svelte to AWS / GCP with LaunchFlow
 ---
 

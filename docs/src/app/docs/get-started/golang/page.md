@@ -1,9 +1,9 @@
 ---
-title: Go with LaunchFlow
+title: Deploy Golang with LaunchFlow
 nextjs:
   metadata:
-    title: Go with LaunchFlow
-    description: Deploy Go to AWS / GCP with LaunchFlow
+    title: Deploy Golang with LaunchFlow
+    description: Deploy Golang applications to AWS / GCP with LaunchFlow
 ---
 
 {% gettingStartedSelector %}

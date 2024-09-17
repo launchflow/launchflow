@@ -56,7 +56,7 @@ class ECSFargateService(AWSService[ECSFargateServiceReleaseInputs]):
     import launchflow as lf
 
     # Automatically creates / connects to an ECS Fargate Service in your AWS account
-    service = lf.aws.ECSFargate("my-service")
+    service = lf.aws.ECSFargateService("my-service")
     ```
 
     **NOTE:** This will create the following infrastructure in your AWS account:
@@ -216,16 +216,17 @@ class ECSFargateService(AWSService[ECSFargateServiceReleaseInputs]):
         aws_environment_config: AWSEnvironmentConfig,
         launchflow_uri: LaunchFlowURI,
         deployment_id: str,
-        build_log_file: IO,  # TODO: Update this service to use the build_log_file isntead of creating a new one
+        build_log_file: IO,
         build_local: bool,
     ) -> ECSFargateServiceReleaseInputs:
         ecr_outputs = self._ecr.outputs()
 
         if build_local:
-            docker_image, build_logs_file = await build_ecr_docker_image_locally(
+            docker_image = await build_ecr_docker_image_locally(
                 dockerfile_path=self.dockerfile,
                 build_directory=self.build_directory,
                 build_ignore=self.build_ignore,
+                build_log_file=build_log_file,
                 ecr_repository=ecr_outputs.repository_url,
                 launchflow_service_name=self.name,
                 launchflow_deployment_id=deployment_id,
@@ -234,10 +235,11 @@ class ECSFargateService(AWSService[ECSFargateServiceReleaseInputs]):
         else:
             code_build_outputs = self._code_build_project.outputs()
 
-            docker_image, code_build_url = await build_ecr_docker_image_on_code_build(
+            docker_image = await build_ecr_docker_image_on_code_build(
                 dockerfile_path=self.dockerfile,
                 build_directory=self.build_directory,
                 build_ignore=self.build_ignore,
+                build_log_file=build_log_file,
                 ecr_repository=ecr_outputs.repository_url,
                 code_build_project_name=code_build_outputs.project_name,
                 launchflow_project_name=launchflow_uri.project_name,

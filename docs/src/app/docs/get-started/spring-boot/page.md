@@ -1,8 +1,8 @@
 ---
-title: Spring Boot with LaunchFlow
+title: Deploy Spring Boot with LaunchFlow
 springboot:
   metadata:
-    title: Spring Boot with LaunchFlow
+    title: Deploy Spring Boot with LaunchFlow
     description: Deploy Spring Boot to AWS / GCP with LaunchFlow
 ---
 

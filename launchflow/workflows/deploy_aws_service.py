@@ -3,7 +3,7 @@ import base64
 import logging
 import os
 import time
-from typing import List, Tuple
+from typing import IO, List, Tuple
 
 from docker.errors import BuildError  # type: ignore
 
@@ -78,10 +78,10 @@ async def _run_docker_aws_code_build(
     launchflow_project_name: str,
     launchflow_environment_name: str,
     launchflow_service_name: str,
+    build_log_file: IO,
 ):
     try:
         import boto3
-        from botocore.exceptions import ClientError
     except ImportError:
         raise exceptions.MissingAWSDependency()
 
@@ -114,21 +114,20 @@ async def _run_docker_aws_code_build(
 
     try:
         await _poll_build_completion(client, build_id)
-    except ClientError as e:
-        raise exceptions.ServiceBuildFailed(
-            error_message=f"Error running AWS CodeBuild: {e}",
-            build_logs_or_link=build_url,
+    except Exception as e:
+        build_log_file.write(
+            f"Error running AWS CodeBuild: {e}\nSee remote build logs at: {build_url}"
         )
+        raise e
 
     # Return the docker image name and build url
-    return f"{docker_repository}:{docker_image_tag}", build_url
+    return f"{docker_repository}:{docker_image_tag}"
 
 
-def _write_build_logs(file_path: str, log_stream):
-    with open(file_path, "w") as f:
-        for chunk in log_stream:
-            if "stream" in chunk:
-                f.write(chunk["stream"])
+def _write_build_logs(f: IO, log_stream):
+    for chunk in log_stream:
+        if "stream" in chunk:
+            f.write(chunk["stream"])
 
 
 # TODO: Look into cleaning up old images. I noticed my docker images were taking up a lot of space
@@ -141,7 +140,7 @@ async def _build_docker_image_local(
     docker_image_tag: str,
     local_source_dir: str,
     dockerfile_path: str,
-    build_logs_file: str,
+    build_log_file: IO,
 ):
     try:
         from docker import errors, from_env  # type: ignore
@@ -191,13 +190,10 @@ async def _build_docker_image_local(
                 platform="linux/amd64",
             ),
         )
-        _write_build_logs(build_logs_file, log_stream)
+        _write_build_logs(build_log_file, log_stream)
     except BuildError as e:
-        _write_build_logs(build_logs_file, e.build_log)
-        raise exceptions.ServiceBuildFailed(
-            error_message=f"Error building docker image: {e}",
-            build_logs_or_link=build_logs_file,
-        )
+        _write_build_logs(build_log_file, e.build_log)
+        raise e
 
     # Tag as latest
     docker_client.images.get(tagged_image_name).tag(latest_image_name)
@@ -289,6 +285,7 @@ async def build_ecr_docker_image_on_code_build(
     dockerfile_path: str,
     build_directory: str,
     build_ignore: List[str],
+    build_log_file: IO,
     ecr_repository: str,
     code_build_project_name: str,
     launchflow_project_name: str,
@@ -296,7 +293,7 @@ async def build_ecr_docker_image_on_code_build(
     launchflow_service_name: str,
     launchflow_deployment_id: str,
     aws_environment_config: AWSEnvironmentConfig,
-) -> Tuple[str, str]:
+) -> str:
     source_tarball_s3_path = f"builds/{launchflow_project_name}/{launchflow_environment_name}/services/{launchflow_service_name}/source.tar.gz"
     # Step 1 - Upload the source tarball to S3
     await _upload_source_tarball_to_s3(
@@ -307,7 +304,7 @@ async def build_ecr_docker_image_on_code_build(
     )
 
     # Step 2 - Build and push the docker image
-    docker_image, build_url = await _run_docker_aws_code_build(
+    docker_image = await _run_docker_aws_code_build(
         docker_repository=ecr_repository,
         docker_image_tag=launchflow_deployment_id,
         aws_account_id=aws_environment_config.account_id,
@@ -318,27 +315,23 @@ async def build_ecr_docker_image_on_code_build(
         launchflow_project_name=launchflow_project_name,
         launchflow_environment_name=launchflow_environment_name,
         launchflow_service_name=launchflow_service_name,
+        build_log_file=build_log_file,
     )
 
-    return docker_image, build_url
+    return docker_image
 
 
 async def build_ecr_docker_image_locally(
     dockerfile_path: str,
     build_directory: str,
     build_ignore: List[str],
+    build_log_file: IO,
     ecr_repository: str,
     launchflow_service_name: str,
     launchflow_deployment_id: str,
     aws_environment_config: AWSEnvironmentConfig,
-) -> Tuple[str, str]:
+) -> str:
     del build_ignore  # TODO: Use this to ignore files while building the docker image
-
-    base_logging_dir = "/tmp/launchflow"
-    os.makedirs(base_logging_dir, exist_ok=True)
-    build_logs_file = (
-        f"{base_logging_dir}/{launchflow_service_name}-{int(time.time())}.log"
-    )
 
     # Step 1 - Build and push the docker image
     docker_image = await _build_docker_image_local(
@@ -348,7 +341,7 @@ async def build_ecr_docker_image_locally(
         docker_image_tag=launchflow_deployment_id,
         local_source_dir=build_directory,
         dockerfile_path=dockerfile_path,
-        build_logs_file=build_logs_file,
+        build_log_file=build_log_file,
     )
 
-    return docker_image, build_logs_file
+    return docker_image

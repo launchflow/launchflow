@@ -49,7 +49,7 @@ _Click the dropdown below to see the service types that are currently supported.
 </summary>
 
 - Serverless APIs
-  - [x] (AWS) Lambda Service - [Docs](https://docs.launchflow.com/reference/aws-services/lambda)
+  - [x] (AWS) Lambda Service - [Docs](https://docs.launchflow.com/reference/aws-services/lambda-service)
   - [x] (GCP) Cloud Run Service - [Docs](https://docs.launchflow.com/reference/gcp-services/cloud-run)
 - Auto-Scaling VMs
   - [x] (AWS) ECS Fargate Service - [Docs](https://docs.launchflow.com/reference/aws-services/ecs-fargate)
@@ -144,7 +144,7 @@ def index():
     return f'Hello from {lf.environment}!'
 
 # Deploy this FastAPI app to ECS Fargate on AWS
-api = lf.aws.ECSFargate("my-api")
+api = lf.aws.ECSFargateService("my-api")
 ```
 
 #### Step 3. Run the `lf deploy` command to deploy your infrastructure:
@@ -179,7 +179,7 @@ def index():
     return bucket.download_file("hello.txt").decode()
 
 # You can customize the Fargate service with Python
-api = lf.aws.ECSFargate("my-api", domain="your-domain.com", memory=512, cpu=256)
+api = lf.aws.ECSFargateService("my-api", domain="your-domain.com", memory=512, cpu=256)
 ```
 
 ### Step 5. Run the `lf deploy` command to deploy your updated infrastructure:
@@ -206,7 +206,7 @@ def index():
     return f'Hello from {lf.environment}!'
 
 # Deploy this FastAPI app to ECS Fargate on AWS
-api = lf.aws.ECSFargate("my-api", domain="your-domain.com")
+api = lf.aws.ECSFargateService("my-api", domain="your-domain.com")
 ```
 
 </details>
@@ -226,7 +226,7 @@ def index():
     return f'Hello from {lf.environment}!'
 
 # Deploy Postgres hosted on (GCP) Cloud SQL
-api = lf.gcp.CloudRun("my-api", domain="your-domain.com")
+api = lf.gcp.CloudRunService("my-api", domain="your-domain.com")
 ```
 
 </details>
@@ -313,7 +313,7 @@ if __name__ == "__main__":
 import launchflow as lf
 
 
-backend = lf.gcp.CloudRun(
+backend = lf.gcp.CloudRunService(
     "fastapi-api", domain=f"{lf.environment}.api.launchflow.com"
 )
 

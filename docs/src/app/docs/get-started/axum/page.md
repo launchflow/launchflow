@@ -1,8 +1,8 @@
 ---
-title: Axum with LaunchFlow
+title: Deploy Axum with LaunchFlow
 nextjs:
   metadata:
-    title: Axum with LaunchFlow
+    title: Deploy Axum with LaunchFlow
     description: Deploy Axum to AWS / GCP with Launchflow
 ---
 

@@ -102,7 +102,18 @@ class LambdaFunction(AWSResource[LambdaFunctionOutputs]):
         package_type: Literal["Image", "Zip"] = "Zip",
         runtime: Optional[LambdaRuntime] = LambdaRuntime.PYTHON3_11,
     ) -> None:
-        """TODO"""
+        """Create a new Lambda Function.
+
+        **Args:**
+        - `name (str)`: The name of the Lambda Function.
+        - `timeout_seconds (int)`: The number of seconds before the Lambda function times out.
+        - `memory_size_mb (int)`: The amount of memory in MB allocated to the Lambda function.
+        - `package_type (Literal["Image", "Zip"])`: The type of package for the Lambda function.
+        - `runtime (Optional[LambdaRuntime])`: The runtime for the Lambda function.
+
+        **Raises:**
+        - `ValueError`: If `runtime` is `None` and `package_type` is "Zip".
+        """
         if runtime is None and package_type == "Zip":
             raise ValueError(
                 '`runtime` argument is required when `package_type` is "Zip"'

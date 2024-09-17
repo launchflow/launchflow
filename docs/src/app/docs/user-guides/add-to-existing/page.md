@@ -115,7 +115,7 @@ import uvicorn
 app = FastAPI()
 
 postgres = lf.gcp.ComputeEnginePostgres("vm-postgres")
-cloud_run = lf.gcp.CloudRun("my-cloud-run")
+cloud_run = lf.gcp.CloudRunService("my-cloud-run")
 
 @app.get("/value")
 def get_value():

@@ -67,7 +67,7 @@ from launchflow.models.launchflow_uri import LaunchFlowURI
 from launchflow.node import Node
 from launchflow.resource import Resource
 from launchflow.service import DockerService, Service
-from launchflow.utils import generate_deployment_id
+from launchflow.utils import dump_exception_with_stacktrace, generate_deployment_id
 from launchflow.validation import validate_service_name
 from launchflow.workflows.deploy_gcp_service import (
     build_and_push_gcp_service,
@@ -158,9 +158,10 @@ class BuildServicePlan(ServicePlan):
                             build_local=self.build_local,
                         )
                     except Exception as e:
+                        dump_exception_with_stacktrace(e, build_log_file)
                         # TODO: Move the try catch up to the top of the flow once the GCPServices are refactored to implement the build method
                         raise exceptions.ServiceBuildFailed(
-                            error_message=f"Failed to build {self.service}",
+                            error_message=str(e),
                             build_logs_or_link=build_logs_file,
                         ) from e
                 return BuildServiceResult(self, True, build_outputs=build_outputs)
@@ -370,6 +371,7 @@ class ReleaseServicePlan(ServicePlan):
                             release_log_file=release_log_file,
                         )
                     except Exception as e:
+                        dump_exception_with_stacktrace(e, release_log_file)
                         # TODO: Move the try catch up to the top of the flow once the GCPServices are refactored to implement the release method
                         raise exceptions.ServiceReleaseFailed(
                             error_message=f"Failed to release {self.service}",
