@@ -25,20 +25,6 @@ Create a new Secrets Manager Secret resource.
 - `name (str)`: The name of the secret.
 - `recovery_window_in_days (int)`: The number of days that AWS Secrets Manager waits before it can delete the secret. Defaults to 30 days. If 0 is provided, the secret can be deleted immediately.
 
-### inputs
-
-```python
-SecretsManagerSecret.inputs(environment_state: EnvironmentState) -> SecretsManagerSecretInputs
-```
-
-Get the inputs for the Secrets Manager Secret resource.
-
-**Args:**
-- `environment_type` (EnvironmentType): The type of environment.
-
-**Returns:**
-- SecretsManagerSecretInputs: The inputs for the Secrets Manager Secret resource.
-
 ### version
 
 ```python

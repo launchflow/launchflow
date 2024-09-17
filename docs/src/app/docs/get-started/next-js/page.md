@@ -1,12 +1,12 @@
 ---
-title: Next.js with LaunchFlow
+title: Deploy Next.js with LaunchFlow
 nextjs:
   metadata:
-    title: Next.js with LaunchFlow
+    title: Deploy Next.js with LaunchFlow
     description: Deploy Next.js to AWS / GCP with Launchflow
 ---
 
-{% gettingStartedSelector  %}
+{% gettingStartedSelector awsRuntimeOptions=["ECS Fargate"]  %}
 
 {% gettingStartedSection cloudProvider="AWS" runtime="ECS Fargate" %}
 

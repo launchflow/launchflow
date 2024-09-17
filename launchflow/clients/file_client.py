@@ -1,4 +1,5 @@
 import os
+from typing import Union
 
 from launchflow import exceptions
 from launchflow.gcp_clients import (
@@ -34,7 +35,7 @@ def read_file(file_path: str) -> str:
             return f.read()
 
 
-def write_file(file_path: str, content: str):
+def write_file(file_path: str, content: Union[str, bytes]):
     if file_path.startswith("s3://"):
         # Write to S3
         s3_client = _get_boto_client()
@@ -45,10 +46,10 @@ def write_file(file_path: str, content: str):
         # Write to GCS
         file_path = file_path.replace("gs://", "")
         bucket, prefix = file_path.split("/", 1)
-        write_to_gcs_sync(bucket, prefix, content)
+        write_to_gcs_sync(bucket, prefix, content)  # type: ignore
     else:
         with open(file_path, "w") as f:
-            f.write(content)
+            f.write(content)  # type: ignore
 
 
 def delete_file(file_path: str):

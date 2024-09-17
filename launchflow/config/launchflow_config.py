@@ -92,6 +92,14 @@ class LaunchFlowConfig:
             return None
 
     @property
+    def backend(self):
+        try:
+            return self.launchflow_yaml.backend
+        except exceptions.LaunchFlowYamlNotFound:
+            # Default to None if launchflow.yaml is not found
+            return None
+
+    @property
     def ignore_roots(self):
         default_ignore_roots = [
             "__pycache__",

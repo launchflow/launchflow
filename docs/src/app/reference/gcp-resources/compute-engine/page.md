@@ -76,20 +76,6 @@ Create a Compute Engine resource.
     - `firewall_cfg (FirewallConfig)`: The configuration for the firewall rules.
         - `expose_ports (List[int])`: The ports to expose in the firewall.
 
-### inputs
-
-```python
-ComputeEngine.inputs(environment_state: EnvironmentState) -> VMConfig
-```
-
-Get the inputs for the Compute Engine VM resource.
-
-**Args:**
-- `environment_state (EnvironmentState)`: The environment to get inputs for
-
-**Returns:**
-- `VMConfig`: The inputs for the Compute Engine VM resource.
-
 ## ComputeEnginePostgres
 
 A Postgres instance running on a VM in Google Compute Engine.
@@ -113,20 +99,6 @@ Create a new Compute Engine Postgres resource.
 **Args:**
 - `name (str)`: The name of the Postgres VM resource. This must be globally unique.
 - `password (str)`: The password for the Postgres DB. If not provided, a random password will be generated.
-
-### inputs
-
-```python
-ComputeEnginePostgres.inputs(environment_state: EnvironmentState) -> VMConfig
-```
-
-Get the inputs for the Compute Engine Postgres resource.
-
-**Args:**
-- `environment_state (EnvironmentState)`: The environment to get inputs for
-
-**Returns:**
-- `VMConfig`: The inputs for the Compute Engine Postgres resource.
 
 ### query
 
@@ -268,20 +240,6 @@ Create a new Compute Engine Redis resource.
 **Args:**
 - `name (str)`: The name of the Redis VM resource. This must be globally unique.
 - `password (str)`: The password for the Redis DB. If not provided, a random password will be generated.
-
-### inputs
-
-```python
-ComputeEngineRedis.inputs(environment_state: EnvironmentState) -> VMConfig
-```
-
-Get the inputs for the Compute Engine Redis resource.
-
-**Args:**
-- `environment_state (EnvironmentState)`: The environment to get inputs for
-
-**Returns:**
-- `VMConfig`: The inputs for the Compute Engine Redis resource.
 
 ### django\_settings
 

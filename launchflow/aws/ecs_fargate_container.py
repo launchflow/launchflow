@@ -29,7 +29,7 @@ class ECSFargateServiceContainerOutputs(Outputs):
 class ECSFargateServiceContainer(AWSResource[ECSFargateServiceContainerOutputs]):
     """A container for a service running on ECS Fargate.
 
-    ****Example usage:****
+    ### Example Usage
     ```python
     import launchflow as lf
 
@@ -75,18 +75,10 @@ class ECSFargateServiceContainer(AWSResource[ECSFargateServiceContainerOutputs])
     def inputs(
         self, environment_state: EnvironmentState
     ) -> ECSFargateServiceContainerInputs:
-        """Get the inputs for the ECS Fargate service container resource.
-
-        **Args:**
-         - `environment_state (EnvironmentState)`: The environment to get inputs for
-
-        **Returns:**
-         - `ECSFargateServiceContainerInputs`: The inputs required for the ECS Fargate service container.
-        """
         if isinstance(self.ecs_cluster, ECSCluster):
             ecs_cluster_name = Depends(  # type: ignore
                 self.ecs_cluster
-            ).cluster_name  # TODO: fix the typing here
+            ).cluster_name  # type: ignore
         elif isinstance(self.ecs_cluster, str):
             ecs_cluster_name = self.ecs_cluster
         else:

@@ -51,14 +51,6 @@ class SecretManagerSecret(GCPResource[SecretManagerOutputs]):
         self._cached_versions: Dict[str, bytes] = {}
 
     def inputs(self, environment_state: EnvironmentState) -> SecretManagerInputs:
-        """Get the inputs for the Secret Manager secret resource.
-
-        **Args:**
-        - `environment_state (EnvironmentState)`: The environment state to get the inputs for.
-
-        **Returns:**
-        - `SecretManagerInputs`: The inputs for the Secret Manager secret resource.
-        """
         return SecretManagerInputs(resource_id=self.resource_id)
 
     def version(self, version: str = "latest", use_cache: bool = False) -> bytes:

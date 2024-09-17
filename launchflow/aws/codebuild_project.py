@@ -183,14 +183,6 @@ class CodeBuildProject(AWSResource[CodeBuildProjectOutputs]):
         self.build_timeout_minutes = build_timeout_minutes
 
     def inputs(self, environment_state: EnvironmentState) -> CodeBuildProjectInputs:
-        """Get the inputs for the CodeBuild project resource.
-
-        **Args:**
-        - `environment_state` (EnvironmentState): The environment state to get the inputs for.
-
-        **Returns:**
-        - A `CodeBuildProjectInputs` object containing the inputs for the CodeBuild project.
-        """
         return CodeBuildProjectInputs(
             resource_id=self.resource_id,
             build_timeout_minutes=self.build_timeout_minutes,

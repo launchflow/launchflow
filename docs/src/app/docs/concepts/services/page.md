@@ -14,7 +14,7 @@ nextjs:
 ## Overview
 
 
-Services allow you to deploy websites, APIs, and other types of applications to your cloud account with minimal configuration. All you need to provide is a Dockerfile that can build and run your application. LaunchFlow will take care of the rest, setting up a deployment pipeline that includes:
+Services allow you to deploy web apps, APIs, and other types of applications to your cloud account with minimal configuration. All you need to provide is a Dockerfile that can build and run your application. LaunchFlow will take care of the rest, setting up a deployment pipeline that includes:
 
 {% tabProvider defaultLabel="GCP" %}
 {% tabs %}

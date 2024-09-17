@@ -19,7 +19,7 @@ def index():
     return f"Hello from {lf.environment}!"
 
 # Deploy this FastAPI app to ECS Fargate on AWS
-api = lf.aws.ECSFargate("my-api", domain="launchflow.com")`
+api = lf.aws.ECSFargateService("my-api", domain="launchflow.com")`
 
 const gcpCode = `from fastapi import FastAPI
 import launchflow as lf
@@ -31,7 +31,7 @@ def index():
     return f"Hello from {lf.environment}!"
 
 # Deploy this FastAPI app to Cloud Run on GCP
-api = lf.gcp.CloudRun("my-api", domain="launchflow.com")`
+api = lf.gcp.CloudRunService("my-api", domain="launchflow.com")`
 
 const tabs = [
   { name: 'aws.py', isActive: true, code: awsCode },

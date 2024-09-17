@@ -3,11 +3,11 @@ from typing import List, Optional
 
 from launchflow import exceptions
 from launchflow.gcp.firebase import FirebaseHostingSite, FirebaseProject
-from launchflow.gcp.service import GCPStaticService
+from launchflow.gcp.service import GCPService
 from launchflow.models.enums import ServiceProduct
 from launchflow.node import Inputs
 from launchflow.resource import Resource
-from launchflow.service import DNSOutputs, DNSRecord, StaticServiceOutputs
+from launchflow.service import DNSOutputs, DNSRecord, ServiceOutputs
 
 
 @dataclass
@@ -15,14 +15,14 @@ class FirebaseStaticSiteInputs(Inputs):
     pass
 
 
-class FirebaseStaticSite(GCPStaticService):
+class FirebaseStaticSite(GCPService):
     """A service hosted on Firebase Hosting.
 
     ### Example Usage
     ```python
     import launchflow as lf
 
-    website = lf.gcp.FirebaseStaticSite("my-website", static_directory="path/to/local/files")
+    website = lf.gcp.FirebaseStaticSite("my-website", build_directory="path/to/local/files")
     ```
     """
 
@@ -32,9 +32,9 @@ class FirebaseStaticSite(GCPStaticService):
         self,
         name: str,
         # static inputs
-        static_directory: str,
+        build_directory: str,
         *,
-        static_ignore: List[str] = [],
+        build_ignore: List[str] = [],
         # backend bucket inputs
         region: Optional[str] = None,
         domain: Optional[str] = None,
@@ -43,15 +43,15 @@ class FirebaseStaticSite(GCPStaticService):
 
         **Args:**
         - `name (str)`: The name of the service.
-        - `static_directory (str)`: The directory of static files to serve. This should be a relative path from the project root where your `launchflow.yaml` is defined.
-        - `static_ignore (List[str])`: A list of files to ignore when deploying the service. This can be in the same syntax you would use for a `.gitignore`.
+        - `build_directory (str)`: The directory of static files to serve. This should be a relative path from the project root where your `launchflow.yaml` is defined.
+        - `build_ignore (List[str])`: A list of files to ignore when deploying the service. This can be in the same syntax you would use for a `.gitignore`.
         - `region (Optional[str])`: The region to deploy the service to.
         - `domain (Optional[str])`: The custom domain to map to the service.
         """
         super().__init__(
             name=name,
-            static_directory=static_directory,
-            static_ignore=static_ignore,
+            build_directory=build_directory,
+            build_ignore=build_ignore,
         )
         self.region = region
         self.domain = domain
@@ -73,7 +73,7 @@ class FirebaseStaticSite(GCPStaticService):
             self._firebase_hosting_site,
         ]
 
-    def outputs(self) -> StaticServiceOutputs:
+    def outputs(self) -> ServiceOutputs:
         try:
             firebase_hosting_outputs = self._firebase_hosting_site.outputs()
         except exceptions.ResourceOutputsNotFound:
@@ -99,7 +99,7 @@ class FirebaseStaticSite(GCPStaticService):
         if self.domain:
             service_url = f"https://{self.domain}"
 
-        service_outputs = StaticServiceOutputs(
+        service_outputs = ServiceOutputs(
             service_url=service_url,
             dns_outputs=dns_outputs,
         )

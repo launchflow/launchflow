@@ -30,20 +30,6 @@ Create a new S3 bucket resource.
 - `name (str)`: The name of the bucket. This must be globally unique.
 - `force_destroy (bool)`: If true, the bucket will be destroyed even if it contains objects.
 
-### inputs
-
-```python
-S3Bucket.inputs(environment_state: EnvironmentState) -> S3BucketInputs
-```
-
-Get the inputs for the S3 bucket resource.
-
-**Args:**
-- `environment_state (EnvironmentState)`: The environment state to get the inputs for.
-
-**Returns:**
-- `S3BucketInputs`: The inputs for the S3 bucket resource.
-
 ### bucket
 
 ```python

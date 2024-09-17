@@ -33,20 +33,6 @@ Create a new Memorystore Redis resource.
 - `name (str)`: The name of the Redis VM resource. This must be globally unique.
 - `memory_size_gb (int)`: The memory size of the Redis instance in GB. Defaults to 1.
 
-### inputs
-
-```python
-MemorystoreRedis.inputs(environment_state: EnvironmentState) -> MemoryStoreInputs
-```
-
-Get the inputs for the Memorystore Redis resource.
-
-**Args:**
-- `environment_state (EnvironmentState)`: The environment to get inputs for
-
-**Returns:**
-- `MemoryStoreInputs`: The inputs for the Memorystore Redis resource.
-
 ### django\_settings
 
 ```python

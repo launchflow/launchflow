@@ -1,4 +1,4 @@
-## ECSFargate
+## ECSFargateService
 
 A service hosted on AWS ECS Fargate.
 
@@ -12,7 +12,7 @@ For more information see [the official documentation](https://docs.aws.amazon.co
 import launchflow as lf
 
 # Automatically creates / connects to an ECS Fargate Service in your AWS account
-service = lf.aws.ECSFargate("my-service")
+service = lf.aws.ECSFargateService("my-service")
 ```
 
 **NOTE:** This will create the following infrastructure in your AWS account:
@@ -27,7 +27,6 @@ Creates a new ECS Fargate service.
 
 **Args:**
 - `name (str)`: The name of the service.
-- `ecs_cluster (Union[ECSCluster, str])`: The ECS cluster or the name of the ECS cluster.
 - `cpu (int)`: The CPU units to allocate to the container. Defaults to 256.
 - `memory (int)`: The memory to allocate to the container. Defaults to 512.
 - `port (int)`: The port the container listens on. Defaults to 80.
@@ -36,3 +35,5 @@ Creates a new ECS Fargate service.
 - `dockerfile (str)`: The Dockerfile to use for building the service. This should be a relative path from the `build_directory`.
 - `build_ignore (List[str])`: A list of files to ignore when building the service. This can be in the same syntax you would use for a `.gitignore`.
 - `domain (Optional[str])`: The domain name to use for the service. This will create an ACM certificate and configure the ALB to use HTTPS.
+- `certificate (Optional[ACMCertificate])`: An existing ACM certificate to use for the service. This will configure the ALB to use HTTPS.
+- `cluster (Optional[ECSCluster])`: The ECS cluster to use for the service. If not provided, a new cluster will be created.

@@ -35,20 +35,6 @@ Create a new Elasticache Redis resource.
 - `parameter_group_name (str)`: The name of the parameter group to associate with the Elasticache Redis cluster. Defaults to `default.redis7`.
 - `engine_version (str)`: Version number of the cache engine to use. Defaults to `7.0`.
 
-### inputs
-
-```python
-ElasticacheRedis.inputs(environment_state: EnvironmentState) -> ElasticacheRedisInputs
-```
-
-Get the inputs for the Elasticache Redis resource.
-
-**Args:**
-- `environment_state (EnvironmentState)`: The environment to get inputs for.
-
-**Returns:**
-- `ElasticacheRedisInputs`: The inputs for the Elasticache Redis resource.
-
 ### django\_settings
 
 ```python

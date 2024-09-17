@@ -92,14 +92,6 @@ class BigQueryDataset(GCPResource[BigQueryDatasetOutputs]):
         self.allow_nonempty_delete = allow_nonempty_delete
 
     def inputs(self, environment_state: EnvironmentState) -> BigQueryDatasetInputs:
-        """Get the inputs for the BigQuery Dataset resource.
-
-        **Args:**
-        - `environment_state (EnvironmentState)`: The environment state to get the inputs for.
-
-        **Returns:**
-        - BigQueryDatasetInputs: The inputs for the BigQuery Dataset resource.
-        """
         return BigQueryDatasetInputs(
             resource_id=self.resource_id,
             location=self.location,

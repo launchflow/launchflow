@@ -62,14 +62,6 @@ class CloudTasksQueue(GCPResource[CloudTasksQueueOutputs]):
         self.location = location
 
     def inputs(self, environment_state: EnvironmentState) -> CloudTasksQueueInputs:
-        """Get the inputs for the CloudTasksQueue resource.
-
-        **Args:**
-        - `environment_state (EnvironmentState)`: The environment to get the inputs for.
-
-        **Returns:**
-        - `CloudTasksQueueInputs`: The inputs for the CloudTasksQueue resource.
-        """
         return CloudTasksQueueInputs(
             resource_id=self.resource_id, location=self.location
         )

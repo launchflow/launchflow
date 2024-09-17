@@ -4,6 +4,18 @@ from typing import Any, List, Optional
 from launchflow.utils import get_failure_text
 
 
+class ComingSoon(Exception):
+    def __init__(self, issue_number: int) -> None:
+        super().__init__(
+            f"""ComingSoon!
+
+This feature is coming soon or may have been added in a newer version of LaunchFlow.
+                
+See https://github.com/launchflow/launchflow/issues/{issue_number} for more information.
+"""
+        )
+
+
 class LaunchFlowException(Exception):
     def pretty_print(self):
         print(self)
@@ -450,6 +462,14 @@ class ServiceBuildFailed(Exception):
             f"Service build failed with error: {error_message}. For more details see: {build_logs_or_link}"
         )
         self.build_logs_or_link = build_logs_or_link
+
+
+class ServiceReleaseFailed(Exception):
+    def __init__(self, error_message: str, release_logs_or_link: str) -> None:
+        super().__init__(
+            f"Service release failed with error: {error_message}. For more details see: {release_logs_or_link}"
+        )
+        self.release_logs_or_link = release_logs_or_link
 
 
 class ServicePromoteFailed(Exception):

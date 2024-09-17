@@ -24,20 +24,6 @@ Create a new CloudTasksQueue.
 - `name (str)`: The name of the Cloud Tasks Queue.
 - `location (Optional[str])`: The location of the queue. If None, the environments default region is used. Defaults to None.
 
-### inputs
-
-```python
-CloudTasksQueue.inputs(environment_state: EnvironmentState) -> CloudTasksQueueInputs
-```
-
-Get the inputs for the CloudTasksQueue resource.
-
-**Args:**
-- `environment_state (EnvironmentState)`: The environment to get the inputs for.
-
-**Returns:**
-- `CloudTasksQueueInputs`: The inputs for the CloudTasksQueue resource.
-
 ### enqueue
 
 ```python

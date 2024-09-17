@@ -1,4 +1,4 @@
 fastapi
 gunicorn
-git+https://github.com/launchflow/launchflow.git#egg=launchflow[gcp,aws]
+git+https://github.com/launchflow/launchflow.git@contributing#egg=launchflow[gcp,aws]
 uvicorn

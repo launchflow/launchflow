@@ -60,14 +60,6 @@ class SecretsManagerSecret(AWSResource[SecretsManagerSecretOutputs]):
         self._cached_versions: Dict[str, str] = {}
 
     def inputs(self, environment_state: EnvironmentState) -> SecretsManagerSecretInputs:
-        """Get the inputs for the Secrets Manager Secret resource.
-
-        **Args:**
-        - `environment_type` (EnvironmentType): The type of environment.
-
-        **Returns:**
-        - SecretsManagerSecretInputs: The inputs for the Secrets Manager Secret resource.
-        """
         return SecretsManagerSecretInputs(
             self.resource_id, self.recovery_window_in_days
         )

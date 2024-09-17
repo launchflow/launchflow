@@ -109,14 +109,6 @@ class PubsubTopic(GCPResource[PubsubTopicOutputs]):
         return {"google_pubsub_topic.topic": self.name}
 
     def inputs(self, environment_state: EnvironmentState) -> PubsubTopicInputs:
-        """Get the inputs for the PubsubTopic resource.
-
-        **Args:**
-        - `environment_state (EnvironmentState)`: The environment to get inputs for
-
-        **Returns:**
-        - `PubsubTopicInputs`: The inputs for the PubsubTopic resource.
-        """
         if self.message_retention_duration is not None:
             duration_str = f"{int(self.message_retention_duration.total_seconds())}s"
         else:
@@ -283,14 +275,6 @@ class PubsubSubscription(GCPResource[PubsubSubscriptionOutputs]):
         return {"google_pubsub_subscription.subscription": self.name}
 
     def inputs(self, environment_state: EnvironmentState) -> PubsubSubscriptionInputs:
-        """Get the inputs for the PubsubSubscription resource.
-
-        **Args:**
-        - `environment_state (EnvironmentState)`: The environment to get inputs for
-
-        **Returns:**
-        - `PubsubSubscriptionInputs`: The inputs for the PubsubSubscription resource.
-        """
         if isinstance(self.topic, PubsubTopic):
             topic_id = Depends(self.topic).topic_id  # type: ignore
         elif isinstance(self.topic, str):

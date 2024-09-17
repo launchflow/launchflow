@@ -25,7 +25,7 @@ class ElasticIPOutputs(Outputs):
 class ElasticIP(AWSResource[ElasticIPOutputs]):
     """An Elastic IP address.
 
-    ****Example usage:****
+    ### Example Usage
     ```python
     import launchflow as lf
 
@@ -41,7 +41,6 @@ class ElasticIP(AWSResource[ElasticIPOutputs]):
         *,
         domain: Union[None, Literal["vpc"]] = "vpc",
     ) -> None:
-        """TODO"""
         super().__init__(
             name=name,
             resource_id=f"{name}-{lf.project}-{lf.environment}",
@@ -49,15 +48,6 @@ class ElasticIP(AWSResource[ElasticIPOutputs]):
         self.domain = domain
 
     def inputs(self, environment_state: EnvironmentState) -> ElasticIPInputs:
-        """Get the inputs required for the Elastic IP service container.
-
-        **Args:**
-         - `environment_state (EnvironmentState)`: The environment to get inputs for
-
-        **Returns:**
-         - `ElasticIPInputs`: The inputs required for the Elastic IP service container
-        """
-
         return ElasticIPInputs(
             resource_id=self.resource_id,
             domain=self.domain,

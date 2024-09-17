@@ -2,7 +2,7 @@
 
 A container for a service running on ECS Fargate.
 
-****Example usage:****
+### Example Usage
 ```python
 import launchflow as lf
 
@@ -21,17 +21,3 @@ Creates a new ECS Fargate service container.
 
 **Raises:**
  - `ValueError`: If `ecs_cluster` is not an instance of `ECSCluster` or `str`.
-
-### inputs
-
-```python
-ECSFargateServiceContainer.inputs(environment_state: EnvironmentState) -> ECSFargateServiceContainerInputs
-```
-
-Get the inputs for the ECS Fargate service container resource.
-
-**Args:**
- - `environment_state (EnvironmentState)`: The environment to get inputs for
-
-**Returns:**
- - `ECSFargateServiceContainerInputs`: The inputs required for the ECS Fargate service container.

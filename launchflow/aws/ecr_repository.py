@@ -58,14 +58,6 @@ class ECRRepository(AWSResource[ECRRepositoryOutputs]):
         self.image_tag_mutability = image_tag_mutability
 
     def inputs(self, environment_state: EnvironmentState) -> ECRRepositoryInputs:
-        """Get the inputs required for the ECR repository.
-
-        **Args:**
-        - `environment_state` (EnvironmentState): The environment to get the inputs for.
-
-        **Returns:**
-        - An `ECRRepositoryInputs` object containing the inputs for the ECR repository.
-        """
         return ECRRepositoryInputs(
             resource_id=self.resource_id,
             force_delete=self.force_delete,

@@ -1,12 +1,12 @@
 ---
-title: Flask with LaunchFlow
+title: Deploy Flask with LaunchFlow
 nextjs:
   metadata:
-    title: Flask with LaunchFlow
+    title: Deploy Flask with LaunchFlow
     description: Deploy Flask to AWS / GCP with LaunchFlow
 ---
 
-{% gettingStartedSelector %}
+{% gettingStartedSelector awsRuntimeOptions=["ECS Fargate"]  %}
 
 {% gettingStartedSection cloudProvider="AWS" runtime="ECS Fargate" %}
 

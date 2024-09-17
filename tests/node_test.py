@@ -44,6 +44,10 @@ class ChildNode(Node[ChildNodeOuputs]):
 
 
 class NodeTest(unittest.TestCase):
+    def setUp(self):
+        # TODO: Determine if there is a better way to handle the cache between tests
+        Depends._outputs_cache = {}
+
     def test_parent_doesnt_exist(self):
         parent_outputs_mock = mock.MagicMock()
         parent_outputs_mock.side_effect = ResourceOutputsNotFound("parent")

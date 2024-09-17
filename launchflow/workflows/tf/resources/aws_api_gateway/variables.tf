@@ -41,3 +41,15 @@ variable "launchflow_environment" {
 variable "protocol_type" {
   type = string
 }
+
+variable "cors" {
+  type = object({
+    allow_credentials = bool
+    allow_headers     = list(string)
+    allow_methods     = list(string)
+    allow_origins     = list(string)
+    expose_headers    = list(string)
+    max_age           = number
+  })
+  default = null
+}

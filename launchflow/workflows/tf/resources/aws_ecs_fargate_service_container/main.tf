@@ -47,7 +47,7 @@ resource "aws_ecs_task_definition" "task_definition" {
 
   container_definitions = jsonencode([
     {
-      command    = ["/bin/sh -c 'echo \"<html> <head> <title>ECSFargate(${var.resource_name})</title> <style>body {margin-top: 40px; background-color: #333;} </style> </head><body> <div style=color:white;text-align:center> <h1>ECSFargate(${var.resource_name}) running in ${var.launchflow_environment}</h1> <h2>Congratulations!</h2> <p>Your application is now running on a container in Amazon ECS Fargate.</p> </div></body></html>\" >  /usr/local/apache2/htdocs/index.html && httpd-foreground'"]
+      command    = ["/bin/sh -c 'echo \"<html> <head> <title>ECSFargateService(${var.resource_name})</title> <style>body {margin-top: 40px; background-color: #333;} </style> </head><body> <div style=color:white;text-align:center> <h1>ECSFargateService(${var.resource_name}) running in ${var.launchflow_environment}</h1> <h2>Congratulations!</h2> <p>Your application is now running on a container in Amazon ECS Fargate.</p> </div></body></html>\" >  /usr/local/apache2/htdocs/index.html && httpd-foreground'"]
       entryPoint = ["sh", "-c"]
       name       = var.resource_id
       image      = "httpd:2.4"

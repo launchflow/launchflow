@@ -118,14 +118,6 @@ class CloudRunServiceContainer(GCPResource[CloudRunServiceContainerOutputs]):
     def inputs(
         self, environment_state: EnvironmentState
     ) -> CloudRunServiceContainerInputs:
-        """Get the inputs for the Cloud Run service container resource.
-
-        **Args:**
-        - `environment_state (EnvironmentState)`: The environment state to get the inputs for.
-
-        **Returns:**
-        - CloudRunServiceContainerInputs: The inputs for the Cloud Run service container resource.
-        """
         return CloudRunServiceContainerInputs(
             resource_id=self.resource_id,
             region=self.region,

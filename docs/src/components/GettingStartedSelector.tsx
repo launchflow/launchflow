@@ -5,16 +5,7 @@ import { CheckIcon, ChevronUpDownIcon } from '@heroicons/react/20/solid'
 import clsx from 'clsx'
 
 import Image from 'next/image'
-import {
-  createContext,
-  Dispatch,
-  SetStateAction,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 
 type SelectionOption = {
   name: string
@@ -33,6 +24,10 @@ const cloudProviders = [
 
 const runtimes = {
   AWS: [
+    {
+      name: 'Lambda',
+      avatar: '/images/lambda-icon.svg',
+    },
     {
       name: 'ECS Fargate',
       avatar: '/images/aws_fargate.svg',

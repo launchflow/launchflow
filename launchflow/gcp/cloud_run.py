@@ -22,7 +22,7 @@ class CloudRunInputs(Inputs):
     pass
 
 
-class CloudRun(GCPDockerService):
+class CloudRunService(GCPDockerService):
     """A service hosted on GCP Cloud Run.
 
     ### Example Usage
@@ -31,14 +31,14 @@ class CloudRun(GCPDockerService):
     ```python
     import launchflow as lf
 
-    service = lf.gcp.CloudRun("my-service", cpu=4)
+    service = lf.gcp.CloudRunService("my-service", cpu=4)
     ```
 
     #### Custom Environment Variables
     ```python
     import launchflow as lf
 
-    service = lf.gcp.CloudRun(
+    service = lf.gcp.CloudRunService(
         "my-service",
         environment_variables={"MY_ENV_VAR": "my-value"}
     )

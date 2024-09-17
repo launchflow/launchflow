@@ -44,6 +44,10 @@ class LaunchFlowDotYaml:
                     self.default_environment, str(e)
                 )
 
+    @property
+    def project_directory_abs_path(self):
+        return os.path.dirname(os.path.abspath(self.config_path))
+
     @classmethod
     def load_from_cwd(cls, start_path="."):
         file_path = _find_launchflow_yaml(start_path)

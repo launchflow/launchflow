@@ -20,17 +20,3 @@ Creates a new ACM Certificate resource.
 **Args:**
 - `name (str)`: The name of the resource.
 - `domain_name (str)`: The domain name to use for the certificate.
-
-### inputs
-
-```python
-ACMCertificate.inputs(environment_state: EnvironmentState) -> ACMCertificateInputs
-```
-
-Get the inputs for the ACM Certificate.
-
-**Args:**
-- `environment_state (EnvironmentState)`: The environment to get inputs for.
-
-**Returns:**
-- An `ACMCertificateInputs` object containing the inputs for the ACM Certificate.

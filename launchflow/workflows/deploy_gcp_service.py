@@ -16,17 +16,18 @@ from pathspec import PathSpec
 
 from launchflow import exceptions
 from launchflow.config import config
-from launchflow.gcp.cloud_run import CloudRun
+from launchflow.gcp.cloud_run import CloudRunService
 from launchflow.gcp.compute_engine_service import ComputeEngineService
 from launchflow.gcp.firebase_site import FirebaseStaticSite
 from launchflow.gcp.gke_service import GKEService
 from launchflow.gcp.service import GCPDockerService
-from launchflow.gcp.static_site import StaticSite
+from launchflow.gcp.static_site import GCSWebsite
 from launchflow.managers.service_manager import ServiceManager
 from launchflow.models.flow_state import GCPEnvironmentConfig, ServiceState
 from launchflow.workflows.k8s_service import update_k8s_service
 from launchflow.workflows.utils import tar_source_in_memory
 
+4
 if TYPE_CHECKING:
     from google.cloud.container import Cluster
 
@@ -44,7 +45,6 @@ async def _upload_source_tarball_to_gcs(
 
     def upload_async():
         source_tarball = tar_source_in_memory(local_source_dir, build_ignore)
-
         try:
             bucket = storage.Client().get_bucket(artifact_bucket)
             blob = bucket.blob(source_tarball_gcs_path)
@@ -447,7 +447,7 @@ async def build_gcp_service_locally(
 
 async def upload_local_files_to_static_site(
     gcp_environment_config: GCPEnvironmentConfig,
-    static_site: StaticSite,
+    static_site: GCSWebsite,
 ):
     try:
         import google.auth
@@ -463,14 +463,14 @@ async def upload_local_files_to_static_site(
 
     local_dir = os.path.join(
         os.path.dirname(os.path.abspath(config.launchflow_yaml.config_path)),
-        static_site.static_directory,
+        static_site.build_directory,
     )
 
     def should_include_file(pathspec: PathSpec, file_path: str, root_dir: str):
         relative_path = os.path.relpath(file_path, root_dir)
         return not pathspec.match_file(relative_path)
 
-    pathspec = PathSpec.from_lines("gitwildmatch", static_site.static_ignore)
+    pathspec = PathSpec.from_lines("gitwildmatch", static_site.build_ignore)
     for root, _, files in os.walk(local_dir):
         for file in files:
             file_path = os.path.join(root, file)
@@ -543,7 +543,7 @@ async def deploy_local_files_to_firebase_static_site(
 
     local_dir = os.path.join(
         os.path.dirname(os.path.abspath(config.launchflow_yaml.config_path)),
-        firebase_static_site.static_directory,
+        firebase_static_site.build_directory,
     )
 
     # Authenticate with the docker registry
@@ -584,7 +584,7 @@ async def deploy_local_files_to_firebase_static_site(
     if not VERSION_ID:
         raise ValueError("Failed to create a new version. VERSION_ID not found.")
 
-    pathspec = PathSpec.from_lines("gitwildmatch", firebase_static_site.static_ignore)
+    pathspec = PathSpec.from_lines("gitwildmatch", firebase_static_site.build_ignore)
 
     # Function to determine if a file should be included based on pathspec rules
     def should_include_file(pathspec: PathSpec, file_path: str, root_dir: str):
@@ -706,7 +706,7 @@ async def release_docker_image_to_cloud_run(
     docker_image: str,
     service_manager: ServiceManager,
     gcp_environment_config: GCPEnvironmentConfig,
-    cloud_run_service: CloudRun,
+    cloud_run_service: CloudRunService,
     deployment_id: str,
 ) -> str:
     try:

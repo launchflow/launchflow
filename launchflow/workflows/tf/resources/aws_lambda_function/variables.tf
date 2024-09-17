@@ -38,11 +38,11 @@ variable "launchflow_environment" {
 # Lambda service container specific variables
 #
 
-variable "timeout" {
+variable "timeout_seconds" {
   type = number
 }
 
-variable "memory_size" {
+variable "memory_size_mb" {
   type = number
 }
 
@@ -52,12 +52,10 @@ variable "package_type" {
 
 variable "runtime" {
   type = string
+  default = null
 }
 
-variable "api_gateway_config" {
-  type = object({
-    api_gateway_id = string
-    api_route_key  = string
-  })
+variable "image_uri" {
+  type = string
   default = null
 }

@@ -8,11 +8,9 @@ environment_manager = EnvironmentManager(
 )
 environment = environment_manager.load_environment_sync()
 
-run_service = None
-
 if environment.gcp_config is not None:
     bucket = lf.gcp.GCSBucket(f"{lf.project}-{lf.environment}-gcs-bucket")
-    run_service = lf.gcp.CloudRun(
+    run_service = lf.gcp.CloudRunService(
         "fastapi-service",
         dockerfile="Dockerfile.gcp",
         domain="cr.launchflow.app",
@@ -29,8 +27,13 @@ if environment.gcp_config is not None:
     )
 elif environment.aws_config is not None:
     bucket = lf.aws.S3Bucket(f"{lf.project}-{lf.environment}-s3-bucket")
-    run_service = lf.aws.ECSFargate(
+    ecs_service = lf.aws.ECSFargateService(
         "fastapi-service", dockerfile="Dockerfile.aws", port=8080, desired_count=2
     )
+    # See run.sh to run this test
+    lambda_service = lf.aws.LambdaService(
+        "lambda-service", handler="app.lambda_handler.handler"
+    )
+
 else:
     raise AssertionError("Environment wasn't set up properly")

@@ -141,14 +141,6 @@ class RDSPostgres(AWSResource[RDSPostgresOutputs], PostgresClient):
         self.postgres_version = postgres_version
 
     def inputs(self, environment_state: EnvironmentState) -> RDSPostgresInputs:
-        """Get the inputs for the RDS Postgres resource.
-
-        **Args:**
-        - `environment_state (EnvironmentState)`: The environment to get state for.
-
-        **Returns:**
-        - `RDSPostgresInputs`: The inputs for the RDS Postgres resource.
-        """
         db_name = _convert_resource_id_to_camel_case(self.resource_id)
         if environment_state.environment_type == EnvironmentType.DEVELOPMENT:
             return RDSPostgresInputs(

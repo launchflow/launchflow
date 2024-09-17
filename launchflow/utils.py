@@ -6,11 +6,14 @@ import secrets
 import string
 import sys
 import time
+import traceback
 from io import IOBase
-from typing import Optional, Union
+from typing import IO, Optional, Union
 
 import httpx
 from requests import Response
+
+from launchflow.logger import logger
 
 
 # TODO: Move "potential fix" messsages into the server.
@@ -98,3 +101,19 @@ def redirect_stdout_stderr(fh: IOBase):
         sys.stdout = old_stdout
         sys.stderr = old_stderr
         logging.root.handlers = old_handlers
+
+
+def dump_exception_with_stacktrace(e: Exception, file: IO):
+    file.write("Exception occurred:\n")
+    file.write(f"Type: {type(e).__name__}\n")
+    file.write(f"Message: {str(e)}\n")
+    file.write("Stacktrace:\n")
+    file.write(traceback.format_exc())
+    file.write("\n\n")
+
+    # Log the exception to the logger
+    logger.debug(
+        "Exception occurred.\nException: %s",
+        e,
+        exc_info=True,
+    )

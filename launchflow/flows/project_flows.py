@@ -16,6 +16,7 @@ async def get_project(
     project_name: Optional[str],
     prompt_for_creation: bool = False,
     custom_selection_prompt: Optional[str] = None,
+    console: rich.console.Console = rich.console.Console(),
 ) -> ProjectResponse:
     if project_name is None:
         with Progress(
@@ -30,10 +31,14 @@ async def get_project(
         if prompt_for_creation:
             project_names.append("[i yellow]Create new project[/i yellow]")
         if custom_selection_prompt is not None:
-            print(custom_selection_prompt)
+            console.print(custom_selection_prompt)
         else:
-            print("Select the project to use:")
+            console.print("Select the project to use:")
         selected_project = beaupy.select(project_names, return_index=True, strict=True)
+        if selected_project is None:
+            console.print("[pink1]No project selected.[/pink1]")
+            console.print("\n[red]✗ Project selection canceled.[/red]")
+            raise typer.Exit(1)
         if prompt_for_creation and selected_project == len(project_names) - 1:
             if project_name is None:
                 project_name = beaupy.prompt("Enter the project name:")
@@ -44,11 +49,11 @@ async def get_project(
             if project_name is None:
                 typer.echo("Project creation canceled.")
                 raise typer.Exit(1)
-            rich.print(f"[pink1]>[/pink1] {project_name}")
+            console.print(f"[pink1]>[/pink1] {project_name}")
             project = await create_project(client, project_name, account_id)
         else:
             project = projects[selected_project]
-            rich.print(f"[pink1]>[/pink1] {project.name}")
+            console.print(f"[pink1]>[/pink1] {project.name}")
         return project
     try:
         # Fetch the project to ensure it exists

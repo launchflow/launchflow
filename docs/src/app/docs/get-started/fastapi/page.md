@@ -1,12 +1,12 @@
 ---
-title: FastAPI with LaunchFlow
+title: Deploy FastAPI with LaunchFlow
 nextjs:
   metadata:
-    title: FastAPI with LaunchFlow
+    title: Deploy FastAPI with LaunchFlow
     description: Deploy FastAPI to AWS / GCP with Launchflow
 ---
 
-{% gettingStartedSelector  %}
+{% gettingStartedSelector awsRuntimeOptions=["ECS Fargate"]  %}
 
 {% gettingStartedSection cloudProvider="AWS" runtime="ECS Fargate" %}
 

@@ -49,9 +49,12 @@ class ResourceProduct(str, Enum):
     AWS_ECR_REPOSITORY = "aws_ecr_repository"
     AWS_ECS_FARGATE_SERVICE_CONTAINER = "aws_ecs_fargate_service_container"
     AWS_LAMBDA_FUNCTION = "aws_lambda_function"
+    AWS_LAMBDA_FUNCTION_URL = "aws_lambda_function_url"
     AWS_NAT_GATEWAY = "aws_nat_gateway"
     AWS_ELASTIC_IP = "aws_elastic_ip"
     AWS_API_GATEWAY = "aws_api_gateway"
+    AWS_API_GATEWAY_LAMBDA_INTEGRATION = "aws_api_gateway_lambda_integration"
+    AWS_API_GATEWAY_ROUTE = "aws_api_gateway_route"
     AWS_LAMBDA_EVENT_MAPPING = "aws_lambda_event_mapping"
     AWS_ECS_CLUSTER = "aws_ecs_cluster"
     AWS_ALB = "aws_application_load_balancer"
@@ -75,8 +78,7 @@ class ServiceProduct(str, Enum):
     GCP_GKE = "gcp_gke"
     # AWS product types
     AWS_ECS_FARGATE = "aws_ecs_fargate"
-    AWS_STATIC_LAMBDA = "aws_static_lambda"
-    AWS_DOCKER_LAMBDA = "aws_docker_lambda"
+    AWS_LAMBDA = "aws_lambda"
 
 
 class EnvironmentType(str, Enum):

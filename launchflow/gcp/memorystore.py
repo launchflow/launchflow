@@ -83,14 +83,6 @@ class MemorystoreRedis(GCPResource[MemorystoreRedisOutputs], RedisClient):
         self.memory_size_gb = memory_size_gb
 
     def inputs(self, environment_state: EnvironmentState) -> MemoryStoreInputs:
-        """Get the inputs for the Memorystore Redis resource.
-
-        **Args:**
-        - `environment_state (EnvironmentState)`: The environment to get inputs for
-
-        **Returns:**
-        - `MemoryStoreInputs`: The inputs for the Memorystore Redis resource.
-        """
         if environment_state.environment_type == EnvironmentType.PRODUCTION:
             return MemoryStoreInputs(
                 resource_id=self.resource_id,

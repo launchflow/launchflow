@@ -86,20 +86,6 @@ Create a new Cloud SQL Postgres resource.
 - `database_tier (Literal["BASIC", "STANDARD_HA", "ENTERPRISE"])`: The tier of the Cloud SQL Postgres instance. Defaults to `"db-f1-micro"` for development environments and `"db-custom-1-3840"` for production environments.
 - `database_flags (Dict[Any, Any])`: Additional database flags to pass to your database instance. See: https://cloud.google.com/sql/docs/postgres/flags
 
-### inputs
-
-```python
-CloudSQLPostgres.inputs(environment_state: EnvironmentState) -> CloudSQLPostgresInputs
-```
-
-Get the inputs for the Cloud SQL Postgres resource.
-
-**Args:**
-- `environment_state (EnvironmentState)`: The environment to get inputs for
-
-**Returns:**
-- `CloudSQLPostgresInputs`: The inputs for the Cloud SQL Postgres resource.
-
 ### query
 
 ```python
@@ -262,20 +248,6 @@ Create a new Cloud SQL User resource.
 - `cloud_sql_instance (CloudSQLPostgres)`: The Cloud SQL Postgres instance.
 - `password (Optional[str])`: The password for the Cloud SQL User. Defaults to `None`.
 
-### inputs
-
-```python
-CloudSQLUser.inputs(environment_state: EnvironmentState) -> CloudSQLUserInputs
-```
-
-Get the inputs for the Cloud SQL User resource.
-
-**Args:**
-- `environment_state (EnvironmentState)`: The environment to get inputs for
-
-**Returns:**
-- `CloudSQLUserInputs`: The inputs for the Cloud SQL User resource.
-
 ## CloudSQLDatabase
 
 ### initialization
@@ -285,20 +257,6 @@ Create a new Cloud SQL Database resource.
 **Args:**
 - `name (str)`: The name of the Cloud SQL Database.
 - `cloud_sql_instance (CloudSQLPostgres)`: The Cloud SQL Postgres instance.
-
-### inputs
-
-```python
-CloudSQLDatabase.inputs(environment_state: EnvironmentState) -> CloudSQLDatabaseInputs
-```
-
-Get the inputs for the Cloud SQL Database resource.
-
-**Args:**
-- `environment_state (EnvironmentState)`: The environment to get inputs for
-
-**Returns:**
-- `CloudSQLDatabaseInputs`: The inputs for the Cloud SQL Database resource.
 
 ### query
 
