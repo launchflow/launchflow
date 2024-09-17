@@ -2,8 +2,7 @@ import asyncio
 import base64
 import logging
 import os
-import time
-from typing import IO, List, Tuple
+from typing import IO, List
 
 from docker.errors import BuildError  # type: ignore
 
