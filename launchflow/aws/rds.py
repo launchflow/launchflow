@@ -157,14 +157,6 @@ class RDS(AWSResource[RDSOutputs]):
         self.engine_version = engine_version
 
     def inputs(self, environment_state: EnvironmentState) -> RDSInputs:
-        """Get the inputs for the RDS resource.
-
-        **Args:**
-        - `environment_state (EnvironmentState)`: The environment to get state for.
-
-        **Returns:**
-        - `RDSInputs`: The inputs for the RDS resource.
-        """
         db_name = _convert_resource_id_to_camel_case(self.resource_id)
         if environment_state.environment_type == EnvironmentType.DEVELOPMENT:
             return RDSInputs(

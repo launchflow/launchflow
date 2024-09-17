@@ -49,14 +49,6 @@ class ACMCertificate(AWSResource[ACMCertificateOutputs]):
         self.domain_name = domain_name
 
     def inputs(self, environment_state: EnvironmentState) -> ACMCertificateInputs:
-        """Get the inputs for the ACM Certificate.
-
-        **Args:**
-        - `environment_state (EnvironmentState)`: The environment to get inputs for.
-
-        **Returns:**
-        - An `ACMCertificateInputs` object containing the inputs for the ACM Certificate.
-        """
         return ACMCertificateInputs(
             resource_id=self.resource_id,
             domain_name=self.domain_name,

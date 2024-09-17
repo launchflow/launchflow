@@ -26,7 +26,7 @@ class LambdaEventMappingOutputs(Outputs):
 class LambdaEventMapping(AWSResource[LambdaEventMappingOutputs]):
     """A mapping between an event source and a Lambda function.
 
-    ****Example usage:****
+    ### Example Usage
     ```python
     import launchflow as lf
 
@@ -44,7 +44,6 @@ class LambdaEventMapping(AWSResource[LambdaEventMappingOutputs]):
         sqs_queue: SQSQueue,
         batch_size: int = 10,
     ) -> None:
-        """TODO"""
         super().__init__(
             name=name,
             resource_id=f"{name}-{lf.project}-{lf.environment}",
@@ -54,14 +53,6 @@ class LambdaEventMapping(AWSResource[LambdaEventMappingOutputs]):
         self.batch_size = batch_size
 
     def inputs(self, environment_state: EnvironmentState) -> LambdaEventMappingInputs:
-        """Get the inputs for the Lambda event mapping resource.
-
-        **Args:**
-         - `environment_state (EnvironmentState)`: The environment to get inputs for
-
-        **Returns:**
-         - `LambdaEventMappingInputs`: The inputs required for the Lambda event mapping
-        """
         event_source_arn = Depends(self.sqs_queue).aws_arn  # type: ignore
         function_arn = Depends(self.lambda_container).aws_arn  # type: ignore
         return LambdaEventMappingInputs(

@@ -73,14 +73,6 @@ class LaunchFlowCloudReleaser(AWSResource[LaunchFlowCloudReleaserOutputs]):
     def inputs(
         self, environment_state: EnvironmentState
     ) -> LaunchFlowCloudReleaserInputs:
-        """Get the inputs for the LaunchFlowCloudReleaser resource.
-
-        **Args:**
-        - `environment_type` (EnvironmentType): The type of environment.
-
-        **Returns:**
-        - LaunchFlowCloudReleaserInputs: The inputs for the LaunchFlowCloudReleaser resource.
-        """
         backend = config.launchflow_yaml.backend
         if not isinstance(backend, LaunchFlowBackend):
             raise exceptions.LaunchFlowBackendRequired()

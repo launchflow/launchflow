@@ -27,7 +27,7 @@ class APIGatewayOutputs(Outputs):
 class APIGateway(AWSResource[APIGatewayOutputs]):
     """An API Gateway
 
-    ****Example usage:****
+    ### Example Usage
     ```python
     import launchflow as lf
 
@@ -45,7 +45,6 @@ class APIGateway(AWSResource[APIGatewayOutputs]):
         protocol_type: Literal["HTTP"] = "HTTP",
         cors: Optional[CORS] = None,
     ) -> None:
-        """TODO"""
         super().__init__(
             name=name,
             resource_id=f"{name}-{lf.project}-{lf.environment}",
@@ -54,15 +53,6 @@ class APIGateway(AWSResource[APIGatewayOutputs]):
         self.cors = cors
 
     def inputs(self, environment_state: EnvironmentState) -> APIGatewayInputs:
-        """Get the inputs required for the API Gateway.
-
-        **Args:**
-         - `environment_state (EnvironmentState)`: The environment to get inputs for
-
-        **Returns:**
-         - `APIGatewayInputs`: The inputs required for the API Gateway
-        """
-
         return APIGatewayInputs(
             resource_id=self.resource_id,
             protocol_type=self.protocol_type,
@@ -71,7 +61,6 @@ class APIGateway(AWSResource[APIGatewayOutputs]):
 
     # TODO: add builder pattern API for adding routes. Requires Resource.subresources()
     def add_route(self, path: str) -> None:
-        """TODO"""
         raise NotImplementedError
 
 
@@ -90,7 +79,7 @@ class APIGatewayLambdaIntegrationOutputs(Outputs):
 class APIGatewayLambdaIntegration(AWSResource[APIGatewayLambdaIntegrationOutputs]):
     """An API Gateway Integration
 
-    ****Example usage:****
+    ### Example Usage
     ```python
     import launchflow as lf
 
@@ -114,7 +103,6 @@ class APIGatewayLambdaIntegration(AWSResource[APIGatewayLambdaIntegrationOutputs
         # NOTE: This only supports Lambda function integrations for now
         function: LambdaFunction,
     ) -> None:
-        """TODO"""
         super().__init__(
             name=name,
             resource_id=f"{name}-{lf.project}-{lf.environment}",
@@ -128,15 +116,6 @@ class APIGatewayLambdaIntegration(AWSResource[APIGatewayLambdaIntegrationOutputs
     def inputs(
         self, environment_state: EnvironmentState
     ) -> APIGatewayLambdaIntegrationInputs:
-        """Get the inputs required for the API Gateway Lambda Integration.
-
-        **Args:**
-         - `environment_state (EnvironmentState)`: The environment to get inputs for
-
-        **Returns:**
-         - `APIGatewayLambdaIntegrationInputs`: The inputs required for the API Gateway Lambda Integration
-        """
-
         return APIGatewayLambdaIntegrationInputs(
             resource_id=self.resource_id,
             api_gateway_id=Depends(self._api_gateway).api_gateway_id,  # type: ignore
@@ -162,7 +141,7 @@ class APIGatewayRouteOutputs(Outputs):
 class APIGatewayRoute(AWSResource[APIGatewayRouteOutputs]):
     """An API Gateway Route
 
-    ****Example usage:****
+    ### Example Usage
     ```python
     import launchflow as lf
 
@@ -183,7 +162,6 @@ class APIGatewayRoute(AWSResource[APIGatewayRouteOutputs]):
         authorization: Literal["NONE", "AWS_IAM"] = "NONE",  # NONE == public
         api_gateway_integration: Optional[APIGatewayLambdaIntegration] = None,
     ) -> None:
-        """TODO"""
         super().__init__(
             name=name,
             resource_id=f"{name}-{lf.project}-{lf.environment}",
@@ -200,14 +178,6 @@ class APIGatewayRoute(AWSResource[APIGatewayRouteOutputs]):
         self.authorization = authorization
 
     def inputs(self, environment_state: EnvironmentState) -> APIGatewayRouteInputs:
-        """Get the inputs required for the API Gateway Route.
-
-        **Args:**
-         - `environment_state (EnvironmentState)`: The environment to get inputs for
-
-        **Returns:**
-         - `APIGatewayRouteInputs`: The inputs required for the API Gateway Route
-        """
         api_integration_id = None
         if self._api_gateway_integration is not None:
             api_integration_id = Depends(

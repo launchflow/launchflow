@@ -30,7 +30,7 @@ class NATGatewayOutputs(Outputs):
 class NATGateway(AWSResource[NATGatewayOutputs]):
     """A NAT Gateway
 
-    ****Example usage:****
+    ### Example Usage
     ```python
     import launchflow as lf
 
@@ -49,7 +49,6 @@ class NATGateway(AWSResource[NATGatewayOutputs]):
             destination_cidr_block="0.0.0.0/0"
         ),
     ) -> None:
-        """TODO"""
         super().__init__(
             name=name,
             resource_id=f"{name}-{lf.project}-{lf.environment}",
@@ -60,14 +59,6 @@ class NATGateway(AWSResource[NATGatewayOutputs]):
         self.depends_on(self.elastic_ip)
 
     def inputs(self, environment_state: EnvironmentState) -> NATGatewayInputs:
-        """Get the inputs required for the NAT Gateway.
-
-        **Args:**
-         - `environment_state (EnvironmentState)`: The environment to get inputs for
-
-        **Returns:**
-         - `NATGatewayInputs`: The inputs required for the NAT Gateway
-        """
         eip_allocation_id = Depends(self.elastic_ip).allocation_id  # type: ignore
         return NATGatewayInputs(
             resource_id=self.resource_id,

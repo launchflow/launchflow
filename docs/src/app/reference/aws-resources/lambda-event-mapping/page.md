@@ -2,7 +2,7 @@
 
 A mapping between an event source and a Lambda function.
 
-****Example usage:****
+### Example Usage
 ```python
 import launchflow as lf
 

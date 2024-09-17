@@ -74,14 +74,6 @@ class ApplicationLoadBalancer(AWSResource[ApplicationLoadBalancerOutputs]):
     def inputs(
         self, environment_state: EnvironmentState
     ) -> ApplicationLoadBalancerInputs:
-        """Get the inputs for the Application Load Balancer resource.
-
-        **Args:**
-        - `environment_state (EnvironmentState)`: The environment to get inputs for.
-
-        **Returns:**
-        - An `ApplicationLoadBalancerInputs` object containing the inputs for the ALB.
-        """
         domain_name = None
         if self.certificate:
             domain_name = Depends(self.certificate).domain_name  # type: ignore

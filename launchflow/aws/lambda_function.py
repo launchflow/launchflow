@@ -83,7 +83,7 @@ class LambdaFunctionOutputs(Outputs):
 class LambdaFunction(AWSResource[LambdaFunctionOutputs]):
     """A Lambda function.
 
-    ****Example usage:****
+    ### Example Usage
     ```python
     import launchflow as lf
 
@@ -129,15 +129,6 @@ class LambdaFunction(AWSResource[LambdaFunctionOutputs]):
         self.runtime = runtime
 
     def inputs(self, environment_state: EnvironmentState) -> LambdaFunctionInputs:
-        """Get the inputs for the Lambda function resource.
-
-        **Args:**
-         - `environment_state (EnvironmentState)`: The environment to get inputs for
-
-        **Returns:**
-         - `LambdaFunctionInputs`: The inputs required for the Lambda function resource
-        """
-
         return LambdaFunctionInputs(
             resource_id=self.resource_id,
             timeout_seconds=self.timeout_seconds,
@@ -164,7 +155,7 @@ class LambdaFunctionURLOutputs(Outputs):
 class LambdaFunctionURL(AWSResource[LambdaFunctionURLOutputs]):
     """A Lambda function URL.
 
-    ****Example usage:****
+    ### Example Usage
     ```python
     import launchflow as lf
 
@@ -183,7 +174,6 @@ class LambdaFunctionURL(AWSResource[LambdaFunctionURLOutputs]):
         authorization: Literal["AWS_IAM", "NONE"] = "NONE",  # NONE == public
         cors: Optional[CORS] = None,
     ) -> None:
-        """TODO"""
         super().__init__(
             name=name,
             resource_id=f"{name}-{lf.project}-{lf.environment}",
@@ -193,15 +183,6 @@ class LambdaFunctionURL(AWSResource[LambdaFunctionURLOutputs]):
         self.cors = cors
 
     def inputs(self, environment_state: EnvironmentState) -> LambdaFunctionURLInputs:
-        """Get the inputs for the Lambda function resource.
-
-        **Args:**
-         - `environment_state (EnvironmentState)`: The environment to get inputs for
-
-        **Returns:**
-         - `LambdaFunctionURLInputs`: The inputs required for the Lambda function URL resource
-        """
-
         return LambdaFunctionURLInputs(
             resource_id=self.resource_id,
             function_arn=Depends(self.function).aws_arn,  # type: ignore

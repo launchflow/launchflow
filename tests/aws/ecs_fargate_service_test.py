@@ -43,8 +43,7 @@ class ECSFargateServiceTest(unittest.IsolatedAsyncioTestCase):
         fake_docker_image = (
             f"123456789012.dkr.ecr.us-west-2.amazonaws.com/{service_name}:latest"
         )
-        fake_build_url = f"https://console.aws.amazon.com/codesuite/codebuild/123456789012/projects/test-project/build/{service_name}:latest"
-        build_docker_mock.return_value = (fake_docker_image, fake_build_url)
+        build_docker_mock.return_value = fake_docker_image
 
         ecs_fargate_service = ECSFargateService(service_name)
         # Setup the resource output mocks
@@ -73,6 +72,7 @@ class ECSFargateServiceTest(unittest.IsolatedAsyncioTestCase):
             dockerfile_path="Dockerfile",
             build_directory=self.launchflow_yaml_abspath,
             build_ignore=mock.ANY,
+            build_log_file=mock.ANY,
             ecr_repository=ecr_outputs.repository_url,
             code_build_project_name=code_build_outputs.project_name,
             launchflow_project_name=self.launchflow_uri.project_name,
@@ -89,8 +89,7 @@ class ECSFargateServiceTest(unittest.IsolatedAsyncioTestCase):
         fake_docker_image = (
             f"123456789012.dkr.ecr.us-west-2.amazonaws.com/{service_name}:latest"
         )
-        fake_build_logs_path = f"{service_name}/build.log"
-        build_docker_mock.return_value = (fake_docker_image, fake_build_logs_path)
+        build_docker_mock.return_value = fake_docker_image
 
         ecs_fargate_service = ECSFargateService(service_name)
         # Setup the resource output mocks
@@ -113,6 +112,7 @@ class ECSFargateServiceTest(unittest.IsolatedAsyncioTestCase):
             dockerfile_path="Dockerfile",
             build_directory=self.launchflow_yaml_abspath,
             build_ignore=mock.ANY,
+            build_log_file=mock.ANY,
             ecr_repository=ecr_outputs.repository_url,
             launchflow_service_name=service_name,
             launchflow_deployment_id=self.deployment_id,

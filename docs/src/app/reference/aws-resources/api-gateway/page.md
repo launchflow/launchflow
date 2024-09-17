@@ -2,7 +2,7 @@
 
 An API Gateway
 
-****Example usage:****
+### Example Usage
 ```python
 import launchflow as lf
 
@@ -39,7 +39,7 @@ TODO
 
 An API Gateway Integration
 
-****Example usage:****
+### Example Usage
 ```python
 import launchflow as lf
 
@@ -74,7 +74,7 @@ Get the inputs required for the API Gateway Lambda Integration.
 
 An API Gateway Route
 
-****Example usage:****
+### Example Usage
 ```python
 import launchflow as lf
 

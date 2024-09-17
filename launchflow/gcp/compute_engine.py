@@ -195,14 +195,6 @@ class ComputeEngine(GCPResource[T]):
         self.vm_config = vm_config
 
     def inputs(self, environment_state: EnvironmentState) -> VMConfig:
-        """Get the inputs for the Compute Engine VM resource.
-
-        **Args:**
-        - `environment_state (EnvironmentState)`: The environment to get inputs for
-
-        **Returns:**
-        - `VMConfig`: The inputs for the Compute Engine VM resource.
-        """
         if self.vm_config is None:
             raise ValueError("VM configuration is required.")
 
@@ -266,14 +258,6 @@ class ComputeEnginePostgres(ComputeEngine[ComputeEnginePostgresOutputs]):
         self.machine_type = machine_type
 
     def inputs(self, environment_state: EnvironmentState) -> VMConfig:
-        """Get the inputs for the Compute Engine Postgres resource.
-
-        **Args:**
-        - `environment_state (EnvironmentState)`: The environment to get inputs for
-
-        **Returns:**
-        - `VMConfig`: The inputs for the Compute Engine Postgres resource.
-        """
         if self.password is None:
             try:
                 # Attempt to see if the resource exists yet
@@ -493,14 +477,6 @@ class ComputeEngineRedis(ComputeEngine[ComputeEngineRedisOutputs]):
         self._sync_client = None
 
     def inputs(self, environment_state: EnvironmentState) -> VMConfig:
-        """Get the inputs for the Compute Engine Redis resource.
-
-        **Args:**
-        - `environment_state (EnvironmentState)`: The environment to get inputs for
-
-        **Returns:**
-        - `VMConfig`: The inputs for the Compute Engine Redis resource.
-        """
         if self.password is None:
             try:
                 # Attempt to see if the resource exists yet

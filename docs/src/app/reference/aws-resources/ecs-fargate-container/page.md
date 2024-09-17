@@ -2,7 +2,7 @@
 
 A container for a service running on ECS Fargate.
 
-****Example usage:****
+### Example Usage
 ```python
 import launchflow as lf
 

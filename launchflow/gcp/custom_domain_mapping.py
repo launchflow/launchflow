@@ -100,14 +100,6 @@ class CustomDomainMapping(GCPResource[CustomDomainMappingOutputs]):
             )
 
     def inputs(self, environment_state: EnvironmentState) -> CustomDomainMappingInputs:
-        """Get the inputs for the Custom Domain Mapping resource.
-
-        **Args:**
-        - `environment_type` (EnvironmentType): The type of environment.
-
-        **Returns:**
-        - CustomDomainMappingInputs: The inputs for the Custom Domain Mapping resource.
-        """
         region = None
         if self.cloud_run:
             region = self.cloud_run.region

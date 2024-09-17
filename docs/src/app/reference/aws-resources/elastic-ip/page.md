@@ -2,7 +2,7 @@
 
 An Elastic IP address.
 
-****Example usage:****
+### Example Usage
 ```python
 import launchflow as lf
 

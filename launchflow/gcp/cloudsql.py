@@ -245,14 +245,6 @@ class CloudSQLPostgres(
         return imports
 
     def inputs(self, environment_state: EnvironmentState) -> CloudSQLPostgresInputs:
-        """Get the inputs for the Cloud SQL Postgres resource.
-
-        **Args:**
-        - `environment_state (EnvironmentState)`: The environment to get inputs for
-
-        **Returns:**
-        - `CloudSQLPostgresInputs`: The inputs for the Cloud SQL Postgres resource.
-        """
         user_name = f"{self.name}-user"
         database_tier = self.database_tier
         if database_tier is None:
@@ -548,14 +540,6 @@ class CloudSQLUser(GCPResource[CloudSQLUserOutputs]):
         return CloudSQLUserOutputs(user=self.user, password=self.password)
 
     def inputs(self, environment_state: EnvironmentState) -> CloudSQLUserInputs:
-        """Get the inputs for the Cloud SQL User resource.
-
-        **Args:**
-        - `environment_state (EnvironmentState)`: The environment to get inputs for
-
-        **Returns:**
-        - `CloudSQLUserInputs`: The inputs for the Cloud SQL User resource.
-        """
         return CloudSQLUserInputs(
             resource_id=self.resource_id,
             cloud_sql_instance=self.cloud_sql_instance.resource_id,
@@ -608,14 +592,6 @@ class CloudSQLDatabase(GCPResource[CloudSQLDataBaseOutputs]):
         return CloudSQLDataBaseOutputs(database_name=self.name)
 
     def inputs(self, environment_state: EnvironmentState) -> CloudSQLDatabaseInputs:
-        """Get the inputs for the Cloud SQL Database resource.
-
-        **Args:**
-        - `environment_state (EnvironmentState)`: The environment to get inputs for
-
-        **Returns:**
-        - `CloudSQLDatabaseInputs`: The inputs for the Cloud SQL Database resource.
-        """
         return CloudSQLDatabaseInputs(
             resource_id=self.resource_id,
             cloud_sql_instance=self.cloud_sql_instance.resource_id,

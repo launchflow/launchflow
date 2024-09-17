@@ -70,14 +70,6 @@ class S3Bucket(AWSResource[S3BucketOutputs]):
         self.force_destroy = force_destroy
 
     def inputs(self, environment_state: EnvironmentState) -> S3BucketInputs:
-        """Get the inputs for the S3 bucket resource.
-
-        **Args:**
-        - `environment_state (EnvironmentState)`: The environment state to get the inputs for.
-
-        **Returns:**
-        - `S3BucketInputs`: The inputs for the S3 bucket resource.
-        """
         return S3BucketInputs(
             resource_id=self.resource_id, force_destroy=self.force_destroy
         )

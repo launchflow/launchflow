@@ -38,7 +38,6 @@ def _get_relative_handler_import_path(func: Callable) -> str:
     launchflow_yaml_abspath = os.path.dirname(
         os.path.abspath(config.launchflow_yaml.config_path)
     )
-    # Get the absolute path of the file where the function is defined
     func_file_path = os.path.abspath(inspect.getfile(func))
     # Ensure the cwd has a trailing slash to avoid issues with relative path calculation
     cwd = os.path.abspath(launchflow_yaml_abspath) + os.path.sep
@@ -50,16 +49,6 @@ def _get_relative_handler_import_path(func: Callable) -> str:
     full_import_path = f"{module_path}.{func.__name__}"
 
     return full_import_path
-
-
-def _clean_pycache(directory: str):
-    for root, dirs, files in os.walk(directory):
-        for file in files:
-            if file.endswith(".pyc"):
-                os.remove(os.path.join(root, file))
-        for dir in dirs:
-            if dir == "__pycache__":
-                shutil.rmtree(os.path.join(root, dir))
 
 
 def _zip_source(
@@ -81,7 +70,8 @@ def _zip_source(
                 stdout=subprocess.DEVNULL,  # TODO: Dump to the build logs file
                 stderr=subprocess.DEVNULL,  # TODO: Dump to the build logs file
             )
-            _clean_pycache(temp_dir)
+            # Include __pycache__ directories and .pyc files in the build ignore to filter out artifacts that were created by the pip install
+            build_ignore = list(set(build_ignore + ["__pycache__", "*.pyc"]))
 
         # 3. Zip the contents of the temp directory
         zip_file_path = os.path.join(temp_dir, "lambda.zip")
@@ -101,10 +91,19 @@ class LambdaServiceInputs(Inputs):
 
 @dataclass
 class PythonRuntime:
+    """
+    Python runtime options for Lambda functions.
+
+    **Args:**
+    - `runtime (LambdaRuntime)`: The Python runtime to use. Defaults to Python 3.11.
+    - `requirements_txt_path (Optional[str])`: The path to the requirements.txt file to install dependencies from. Defaults to None.
+    """
+
     runtime: LambdaRuntime = LambdaRuntime.PYTHON3_11
     requirements_txt_path: Optional[str] = None
 
 
+# TODO: Add docstring for DockerRuntime once it's supported
 @dataclass
 class DockerRuntime:
     runtime: None = None
@@ -113,12 +112,30 @@ class DockerRuntime:
 
 @dataclass
 class LambdaURL:
+    """
+    URL configuration for a Lambda function.
+
+    **Args:**
+    - `public (bool)`: Whether the Lambda function is public. Defaults to True.
+    - `cors (Optional[CORS])`: Optional CORS configuration for the Lambda function. Defaults to None.
+    """
+
     public: bool = True
     cors: Optional[CORS] = None
 
 
 @dataclass
 class APIGatewayURL:
+    """
+    URL configuration for a Lambda function hosted on API Gateway.
+
+    **Args:**
+    - `api_gateway (APIGateway)`: The API Gateway resource to use.
+    - `path (str)`: The path for the API Gateway route. Defaults to "/".
+    - `request (str)`: The request method for the API Gateway route. Defaults to "GET".
+    - `public (bool)`: Whether the API Gateway route is public. Defaults to True.
+    """
+
     api_gateway: APIGateway
     path: str = "/"
     request = "GET"

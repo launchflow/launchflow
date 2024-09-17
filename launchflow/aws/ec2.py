@@ -221,14 +221,6 @@ class EC2(AWSResource[T]):
         self.vm_config = vm_config
 
     def inputs(self, environment_state: EnvironmentState) -> VMConfig:
-        """Get the inputs for the EC2 resource.
-
-        **Args:**
-        - `environment_type` (EnvironmentType): The environment type (e.g., development, production).
-
-        **Returns:**
-        - `VMConfig`: The configuration for the VM.
-        """
         if self.vm_config is None:
             raise ValueError("vm_config is required")
         if self.vm_config.instance_type is not None:
@@ -321,14 +313,6 @@ class EC2Postgres(EC2[EC2PostgresOutputs]):
         self.disk_size_gb = disk_size_gb
 
     def inputs(self, environment_state: EnvironmentState):
-        """Get the inputs for the EC2Postgres resource.
-
-        **Args:**
-        - `environment_type` (EnvironmentType): The environment type (e.g., development, production).
-
-        **Returns:**
-        - `VMConfig`: The configuration for the VM.
-        """
         if self.password is None:
             try:
                 # Attempt to see if the resource exists yet
@@ -537,14 +521,6 @@ class EC2Redis(EC2[EC2RedisOutputs], RedisClient):
         self._sync_client = None
 
     def inputs(self, environment_state: EnvironmentState) -> VMConfig:
-        """Get the inputs for the EC2Redis resource.
-
-        **Args:**
-        - `environment_type` (EnvironmentType): The environment type (e.g., development, production).
-
-        **Returns:**
-        - `VMConfig`: The configuration for the VM.
-        """
         if self.password is None:
             try:
                 # Attempt to see if the resource exists yet
@@ -680,15 +656,6 @@ class EC2SimpleServer(EC2[EC2BaseOutputs]):
         self.disk_size_gb = disk_size_gb
 
     def inputs(self, environment_state: EnvironmentState) -> VMConfig:
-        """Get the inputs for the EC2SimpleServer resource.
-
-        **Args:**
-        - `environment_type` (EnvironmentType): The environment type (e.g., development, production).
-
-        **Returns:**
-        - `VMConfig`: The configuration for the VM.
-        """
-
         if environment_state.environment_type == EnvironmentType.PRODUCTION:
             publicly_accessible = False
         else:
@@ -749,14 +716,6 @@ class EC2MySQL(EC2[EC2MySQLOutputs]):
         self.disk_size_gb = disk_size_gb
 
     def inputs(self, environment_state: EnvironmentState):
-        """Get the inputs for the EC2MySQL resource.
-
-        **Args:**
-        - `environment_type` (EnvironmentType): The environment type (e.g., development, production).
-
-        **Returns:**
-        - `VMConfig`: The configuration for the VM.
-        """
         if self.password is None:
             try:
                 # Attempt to see if the resource exists yet

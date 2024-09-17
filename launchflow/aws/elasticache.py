@@ -89,14 +89,6 @@ class ElasticacheRedis(AWSResource[ElasticacheRedisOutputs], RedisClient):
         self.engine_version = engine_version
 
     def inputs(self, environment_state: EnvironmentState) -> ElasticacheRedisInputs:
-        """Get the inputs for the Elasticache Redis resource.
-
-        **Args:**
-        - `environment_state (EnvironmentState)`: The environment to get inputs for.
-
-        **Returns:**
-        - `ElasticacheRedisInputs`: The inputs for the Elasticache Redis resource.
-        """
         node_type = self.node_type
         if node_type is None:
             if environment_state.environment_type == EnvironmentType.DEVELOPMENT:

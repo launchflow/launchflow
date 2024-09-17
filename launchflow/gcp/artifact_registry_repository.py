@@ -95,14 +95,6 @@ class ArtifactRegistryRepository(GCPResource[ArtifactRegistryOutputs]):
         }
 
     def inputs(self, environment_state: EnvironmentState) -> ArtifactRegistryInputs:
-        """Get the inputs for the Artifact Registry repository resource.
-
-        **Args:**
-        - `environment_state (EnvironmentState)`: The envirionment state to get the inputs for.
-
-        **Returns:**
-        - ArtifactRegistryInputs: The inputs for the Artifact Registry repository resource.
-        """
         return ArtifactRegistryInputs(
             resource_id=self.resource_id,
             format=self.format.value,

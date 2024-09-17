@@ -260,7 +260,7 @@ class ECSFargateService(AWSService[ECSFargateServiceReleaseInputs]):
         to_launchflow_uri: LaunchFlowURI,
         from_deployment_id: str,
         to_deployment_id: str,
-        promote_log_file: IO,  # TODO: Update this service to use the promote_log_file isntead of creating a new one
+        promote_log_file: IO,  # TODO: Update this service to use the promote_log_file instead of creating a new one
         promote_local: bool,
     ) -> ECSFargateServiceReleaseInputs:
         raise NotImplementedError
@@ -272,7 +272,7 @@ class ECSFargateService(AWSService[ECSFargateServiceReleaseInputs]):
         aws_environment_config: AWSEnvironmentConfig,
         launchflow_uri: LaunchFlowURI,
         deployment_id: str,
-        release_log_file: IO,  # TODO: Update this service to use the release_log_file isntead of creating a new one
+        release_log_file: IO,  # TODO: Update this service to use the release_log_file instead of creating a new one
     ):
         try:
             import boto3

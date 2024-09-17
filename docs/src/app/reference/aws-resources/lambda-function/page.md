@@ -2,7 +2,7 @@
 
 A Lambda function.
 
-****Example usage:****
+### Example Usage
 ```python
 import launchflow as lf
 
@@ -41,7 +41,7 @@ Get the inputs for the Lambda function resource.
 
 A Lambda function URL.
 
-****Example usage:****
+### Example Usage
 ```python
 import launchflow as lf
 

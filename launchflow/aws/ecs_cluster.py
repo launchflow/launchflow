@@ -21,7 +21,7 @@ class ECSClusterOutputs(Outputs):
 class ECSCluster(AWSResource[ECSClusterOutputs]):
     """An ECS cluster.
 
-    ****Example usage:****
+    ### Example Usage
     ```python
     import launchflow as lf
 
@@ -40,12 +40,4 @@ class ECSCluster(AWSResource[ECSClusterOutputs]):
         super().__init__(name=name, resource_id=f"{name}-{lf.project}-{lf.environment}")
 
     def inputs(self, environment_state: EnvironmentState) -> ECSClusterInputs:
-        """Get the inputs for the ECS cluster resource.
-
-        **Args:**
-        - `environment_state (EnvironmentState)`: The environment to get inputs for.
-
-        **Returns:**
-        - An `ECSClusterInputs` object containing the inputs for the ECS cluster.
-        """
         return ECSClusterInputs(resource_id=self.resource_id)
