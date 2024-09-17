@@ -13,8 +13,12 @@ import { LFInit } from '@/components/LFInit'
 import { Cleanup } from '@/components/Cleanup'
 import { DeployLaunchflow } from '@/components/DeployLaunchflow'
 import { LFCloud } from '@/components/LFCloud'
+import { WhatsNext } from '@/components/GettingStartedWhatsNext'
 
 const tags = {
+  whatsnext: {
+    render: WhatsNext,
+  },
   lfcloud: {
     render: LFCloud,
   },

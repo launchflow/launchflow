@@ -378,11 +378,6 @@ If you're coming from a platform like Vercel you will need update two things:
 
 ## What's next?
 
-- View your application in the [LaunchFlow console](https://console.launchflow.com)
-- Learn more about [Environments](/docs/concepts/environments), [Resources](/docs/concepts/resources), and [Services](/docs/concepts/services)
-- Explore the [Resource Reference](/docs/reference/resources) to see all the resources you can create
-- Join the [LaunchFlow Slack community](https://join.slack.com/t/launchflowusers/shared_invite/zt-2pc3o5cbq-HZrMzlZXW2~Xs1CABbgPKQ) to ask questions and get help
-
-<!-- - Checkout out our [example applications](/examples) to see even more way to use LaunchFlow. -->
+{% whatsnext /%}
 
 {% /gettingStartedSelector %}
