@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.4.11](https://github.com/launchflow/launchflow/compare/v0.4.10...v0.4.11) (2024-09-17)
+
+
+### Bug Fixes
+
+* allow password to be specified when importing cloud sql and fix some import bugs ([#43](https://github.com/launchflow/launchflow/issues/43)) ([534e1ca](https://github.com/launchflow/launchflow/commit/534e1ca03025b5ca4ab188cf2b25c5c1b3e83239))
+* redo init flow ([#74](https://github.com/launchflow/launchflow/issues/74)) ([ad20cd4](https://github.com/launchflow/launchflow/commit/ad20cd4bab56b6720161ba352fc36251c83768b2))
+
+
+### Documentation
+
+* add a couple user guides page and clean up whats next ([#92](https://github.com/launchflow/launchflow/issues/92)) ([ba1e7a0](https://github.com/launchflow/launchflow/commit/ba1e7a0eca0cc18c5f33ee7b7f0f688bfb3bff3d))
+* add axum getting started ([#87](https://github.com/launchflow/launchflow/issues/87)) ([ff41b8e](https://github.com/launchflow/launchflow/commit/ff41b8eaa2468082a49e5f4b370d73e345a6af1f))
+* add fastapi getting started guide ([#67](https://github.com/launchflow/launchflow/issues/67)) ([350662a](https://github.com/launchflow/launchflow/commit/350662a37cf52836abc15162e601654783934017))
+* add go docs ([#88](https://github.com/launchflow/launchflow/issues/88)) ([9b24875](https://github.com/launchflow/launchflow/commit/9b248750817113498e17ff2a23cb1d52ad224b2f))
+* add next js guide ([#85](https://github.com/launchflow/launchflow/issues/85)) ([e04df7c](https://github.com/launchflow/launchflow/commit/e04df7c3f1586a998b2fd4389eb3db7e139faf2e))
+* add spring boot guide ([#86](https://github.com/launchflow/launchflow/issues/86)) ([67793c2](https://github.com/launchflow/launchflow/commit/67793c24ddc0b620823706fe94c24b255e3e109d))
+* add svelte guide ([#89](https://github.com/launchflow/launchflow/issues/89)) ([d11e77f](https://github.com/launchflow/launchflow/commit/d11e77f907f109dbe85e37966daa435e79a3fdc0))
+* use new callouts ([#84](https://github.com/launchflow/launchflow/issues/84)) ([2553e76](https://github.com/launchflow/launchflow/commit/2553e762e6687be794e89a336f046f5cd3878623))
+
 ## [0.4.10](https://github.com/launchflow/launchflow/compare/v0.4.9...v0.4.10) (2024-09-05)
 
 
