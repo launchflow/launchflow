@@ -45,20 +45,6 @@ Create a new BigQuery Dataset resource.
 - `location (str)`: The location of the dataset. Defaults to "US".
 - `allow_nonempty_delete (bool)`: If True, the dataset can be deleted even if it is not empty. Defaults to False.
 
-### inputs
-
-```python
-BigQueryDataset.inputs(environment_state: EnvironmentState) -> BigQueryDatasetInputs
-```
-
-Get the inputs for the BigQuery Dataset resource.
-
-**Args:**
-- `environment_state (EnvironmentState)`: The environment state to get the inputs for.
-
-**Returns:**
-- BigQueryDatasetInputs: The inputs for the BigQuery Dataset resource.
-
 ### dataset\_id
 
 ```python

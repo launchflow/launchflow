@@ -25,20 +25,6 @@ Create a new Secret Manager secret resource.
 **Args:**
 - `name (str)`: The name of the secret.
 
-### inputs
-
-```python
-SecretManagerSecret.inputs(environment_state: EnvironmentState) -> SecretManagerInputs
-```
-
-Get the inputs for the Secret Manager secret resource.
-
-**Args:**
-- `environment_state (EnvironmentState)`: The environment state to get the inputs for.
-
-**Returns:**
-- `SecretManagerInputs`: The inputs for the Secret Manager secret resource.
-
 ### version
 
 ```python

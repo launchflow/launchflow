@@ -33,20 +33,6 @@ Create a new RDS Postgres resource.
 - `publicly_accessible (Optionally[bool])`: Whether the database should be publicly accessible. Defaults to `True` for development environments and `False` for production.
 - `postgres_version (PostgresVersion)`: The version of Postgres to use. Defaults to `PostgresVersion.POSTGRES16`.
 
-### inputs
-
-```python
-RDSPostgres.inputs(environment_state: EnvironmentState) -> RDSPostgresInputs
-```
-
-Get the inputs for the RDS Postgres resource.
-
-**Args:**
-- `environment_state (EnvironmentState)`: The environment to get state for.
-
-**Returns:**
-- `RDSPostgresInputs`: The inputs for the RDS Postgres resource.
-
 ### query
 
 ```python

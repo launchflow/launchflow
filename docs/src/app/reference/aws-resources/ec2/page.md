@@ -76,20 +76,6 @@ Create a new EC2 resource.
         - `expose_ports (List[int])`: The ports to expose in the firewall.
     - `disk_size_gb (int)`: The size of the disk in GB. Defaults to 8.
 
-### inputs
-
-```python
-EC2.inputs(environment_state: EnvironmentState) -> VMConfig
-```
-
-Get the inputs for the EC2 resource.
-
-**Args:**
-- `environment_type` (EnvironmentType): The environment type (e.g., development, production).
-
-**Returns:**
-- `VMConfig`: The configuration for the VM.
-
 ### ssh
 
 ```python
@@ -131,20 +117,6 @@ Create a new EC2Postgres resource.
 - `password (Optional[str])`: The password for the Postgres DB. If not provided, a random password will be generated.
 - `instance_type (Optional[str)`: The type of machine to use. Defaults to `t3.micro` for development environments and `t3.medium` for production environments.
 - `disk_size_gb (Optional[str])`: The size of the disk in GB. Defaults to 8.
-
-### inputs
-
-```python
-EC2Postgres.inputs(environment_state: EnvironmentState)
-```
-
-Get the inputs for the EC2Postgres resource.
-
-**Args:**
-- `environment_type` (EnvironmentType): The environment type (e.g., development, production).
-
-**Returns:**
-- `VMConfig`: The configuration for the VM.
 
 ### query
 
@@ -275,20 +247,6 @@ Create a new EC2Redis resource.
 - `instance_type (Optional[str])`: The type of machine to use. Defaults to `t3.micro` for development environments and `t3.medium` for production environments.
 - `disk_size_gb (Optional[int])`: The size of the disk in GB. Defaults to 8.
 
-### inputs
-
-```python
-EC2Redis.inputs(environment_state: EnvironmentState) -> VMConfig
-```
-
-Get the inputs for the EC2Redis resource.
-
-**Args:**
-- `environment_type` (EnvironmentType): The environment type (e.g., development, production).
-
-**Returns:**
-- `VMConfig`: The configuration for the VM.
-
 ### django\_settings
 
 ```python
@@ -372,20 +330,6 @@ Create a new EC2SimpleServer resource.
 - `instance_type`: The type of machine to use. Defaults to `t3.micro` for development environments and `t3.medium` for production environments.
 - `disk_size_gb`: The size of the disk in GB. Defaults to 8.
 
-### inputs
-
-```python
-EC2SimpleServer.inputs(environment_state: EnvironmentState) -> VMConfig
-```
-
-Get the inputs for the EC2SimpleServer resource.
-
-**Args:**
-- `environment_type` (EnvironmentType): The environment type (e.g., development, production).
-
-**Returns:**
-- `VMConfig`: The configuration for the VM.
-
 ## EC2MySQL
 
 An EC2 instance running MySQL on Docker.
@@ -411,20 +355,6 @@ Create a new EC2MySQL resource.
 - `password (Optional[str])`: The password for the MySQL DB. If not provided, a random password will be generated.
 - `instance_type (Optional[str])`: The type of machine to use. Defaults to `t3.micro` for development environments and `t3.medium` for production environments.
 - `disk_size_gb (Optional[str])`: The size of the disk in GB. Defaults to 8.
-
-### inputs
-
-```python
-EC2MySQL.inputs(environment_state: EnvironmentState)
-```
-
-Get the inputs for the EC2MySQL resource.
-
-**Args:**
-- `environment_type` (EnvironmentType): The environment type (e.g., development, production).
-
-**Returns:**
-- `VMConfig`: The configuration for the VM.
 
 ### query
 

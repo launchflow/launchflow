@@ -26,20 +26,6 @@ Create a new RDS resource.
 - `publicly_accessible (Optional[bool])`: Whether the database should be publicly accessible. Defaults to `True` for development environments and `False` for production.
 - `engine_version (RDSEngineVersion)`: The engine version to use. Defaults to `RDSEngineVersion.POSTGRES16`.
 
-### inputs
-
-```python
-RDS.inputs(environment_state: EnvironmentState) -> RDSInputs
-```
-
-Get the inputs for the RDS resource.
-
-**Args:**
-- `environment_state (EnvironmentState)`: The environment to get state for.
-
-**Returns:**
-- `RDSInputs`: The inputs for the RDS resource.
-
 ### query
 
 ```python

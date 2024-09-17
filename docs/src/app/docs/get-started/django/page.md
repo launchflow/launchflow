@@ -7,7 +7,7 @@ nextjs:
 ---
 
 
-{% gettingStartedSelector %}
+{% gettingStartedSelector awsRuntimeOptions=["ECS Fargate"]  %}
 
 {% gettingStartedSection cloudProvider="AWS" runtime="ECS Fargate" %}
 

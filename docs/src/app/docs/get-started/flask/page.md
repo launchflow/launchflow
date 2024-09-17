@@ -6,7 +6,7 @@ nextjs:
     description: Deploy Flask to AWS / GCP with LaunchFlow
 ---
 
-{% gettingStartedSelector %}
+{% gettingStartedSelector awsRuntimeOptions=["ECS Fargate"]  %}
 
 {% gettingStartedSection cloudProvider="AWS" runtime="ECS Fargate" %}
 

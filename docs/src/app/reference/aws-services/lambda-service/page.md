@@ -76,3 +76,29 @@ Create a new Lambda Service.
 - `domain (Optional[str])`: Optional custom domain. Currently unsupported, will raise an exception if provided.
 - `build_directory (str)`: The directory to build the Lambda function from. Defaults to the current directory.
 - `build_ignore (List[str])`: A list of files or directories to ignore during the build process. Defaults to an empty list.
+
+## PythonRuntime
+
+Python runtime options for Lambda functions.
+
+**Args:**
+- `runtime (LambdaRuntime)`: The Python runtime to use. Defaults to Python 3.11.
+- `requirements_txt_path (Optional[str])`: The path to the requirements.txt file to install dependencies from. Defaults to None.
+
+## LambdaURL
+
+URL configuration for a Lambda function.
+
+**Args:**
+- `public (bool)`: Whether the Lambda function is public. Defaults to True.
+- `cors (Optional[CORS])`: Optional CORS configuration for the Lambda function. Defaults to None.
+
+## APIGatewayURL
+
+URL configuration for a Lambda function hosted on API Gateway.
+
+**Args:**
+- `api_gateway (APIGateway)`: The API Gateway resource to use.
+- `path (str)`: The path for the API Gateway route. Defaults to "/".
+- `request (str)`: The request method for the API Gateway route. Defaults to "GET".
+- `public (bool)`: Whether the API Gateway route is public. Defaults to True.

@@ -1,10 +1,10 @@
 'use client'
 
+import { useGettingStartedContext } from '@/components/GettingStartedSelector' // Import the context
 import Link from 'next/link'
+import { Callout } from './Callout'
 import { Fence } from './Fence'
 import { FrameImage } from './FrameImage'
-import { useGettingStartedContext } from '@/components/GettingStartedSelector' // Import the context
-import { Callout } from './Callout'
 
 export function DeployLaunchflow() {
   const ctx = useGettingStartedContext()
@@ -34,7 +34,7 @@ export function DeployLaunchflow() {
         </li>
         <li>
           Select your cloud provider{' '}
-          <code>{ctx.selectedCloudProvider.name}</code>)
+          <code>{ctx.selectedCloudProvider.name}</code>
         </li>
         <li>Confirm the resources to be created</li>
         <li>Select the service to deploy</li>

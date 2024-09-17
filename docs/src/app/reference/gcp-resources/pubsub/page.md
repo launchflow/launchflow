@@ -54,20 +54,6 @@ Create a new PubsubTopic resource.
 **Raises:***:
 - `ValueError`: If the message retention duration is not within the allowed range.
 
-### inputs
-
-```python
-PubsubTopic.inputs(environment_state: EnvironmentState) -> PubsubTopicInputs
-```
-
-Get the inputs for the PubsubTopic resource.
-
-**Args:**
-- `environment_state (EnvironmentState)`: The environment to get inputs for
-
-**Returns:**
-- `PubsubTopicInputs`: The inputs for the PubsubTopic resource.
-
 ### publish
 
 ```python
@@ -156,17 +142,3 @@ Create a new PubsubSubscription resource.
 
 **Raises:***:
 - `ValueError`: If the topic is not a PubsubTopic or a str.
-
-### inputs
-
-```python
-PubsubSubscription.inputs(environment_state: EnvironmentState) -> PubsubSubscriptionInputs
-```
-
-Get the inputs for the PubsubSubscription resource.
-
-**Args:**
-- `environment_state (EnvironmentState)`: The environment to get inputs for
-
-**Returns:**
-- `PubsubSubscriptionInputs`: The inputs for the PubsubSubscription resource.

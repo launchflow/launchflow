@@ -6,7 +6,7 @@ nextjs:
     description: Deploy Axum to AWS / GCP with Launchflow
 ---
 
-{% gettingStartedSelector  %}
+{% gettingStartedSelector awsRuntimeOptions=["ECS Fargate"]  %}
 
 {% gettingStartedSection cloudProvider="AWS" runtime="ECS Fargate" %}
 
