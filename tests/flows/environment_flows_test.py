@@ -116,6 +116,7 @@ class EnvironmentFlowTest(unittest.IsolatedAsyncioTestCase):
                 enums.EnvironmentType.DEVELOPMENT,
                 cloud_provider=enums.CloudProvider.GCP,
                 manager=manager,
+                prompt=False,
             )
 
     @freeze_time("2022-01-01")
@@ -141,6 +142,7 @@ class EnvironmentFlowTest(unittest.IsolatedAsyncioTestCase):
             enums.CloudProvider.GCP,
             manager=manager,
             gcp_organization_name="org",
+            prompt=False,
         )
         mock_create_gcp_environment.assert_called_once_with(
             inputs=GCPEnvironmentCreationInputs(
@@ -155,7 +157,7 @@ class EnvironmentFlowTest(unittest.IsolatedAsyncioTestCase):
                 org_name="org",
                 logs_file=f"/tmp/launchflow/create-environment-dev-{int(time.time())}.log",
             ),
-            prompt=True,
+            prompt=False,
         )
 
         got_env = await manager.load_environment()
@@ -221,7 +223,10 @@ class EnvironmentFlowTest(unittest.IsolatedAsyncioTestCase):
             success=True,
         )
         got_env = await environments_flows.create_environment(
-            enums.EnvironmentType.DEVELOPMENT, enums.CloudProvider.GCP, manager=manager
+            enums.EnvironmentType.DEVELOPMENT,
+            enums.CloudProvider.GCP,
+            manager=manager,
+            prompt=False,
         )
         mock_create_gcp_environment.assert_called_once_with(
             inputs=GCPEnvironmentCreationInputs(
@@ -236,7 +241,7 @@ class EnvironmentFlowTest(unittest.IsolatedAsyncioTestCase):
                 vpc_connection_managed=True,
                 logs_file=f"/tmp/launchflow/create-environment-dev-{int(time.time())}.log",
             ),
-            prompt=True,
+            prompt=False,
         )
 
         got_env = await manager.load_environment()
@@ -265,6 +270,7 @@ class EnvironmentFlowTest(unittest.IsolatedAsyncioTestCase):
             enums.CloudProvider.GCP,
             manager=manager,
             gcp_organization_name="org",
+            prompt=False,
         )
         mock_create_gcp_environment.assert_called_once_with(
             inputs=GCPEnvironmentCreationInputs(
@@ -280,7 +286,7 @@ class EnvironmentFlowTest(unittest.IsolatedAsyncioTestCase):
                 org_name="org",
                 logs_file=f"/tmp/launchflow/create-environment-dev-{int(time.time())}.log",
             ),
-            prompt=True,
+            prompt=False,
         )
 
         saved_env = await manager.load_environment()
@@ -327,6 +333,7 @@ class EnvironmentFlowTest(unittest.IsolatedAsyncioTestCase):
                 enums.CloudProvider.GCP,
                 manager=manager,
                 gcp_organization_name="org",
+                prompt=False,
             )
         )
 
@@ -337,6 +344,7 @@ class EnvironmentFlowTest(unittest.IsolatedAsyncioTestCase):
                 enums.EnvironmentType.DEVELOPMENT,
                 enums.CloudProvider.GCP,
                 manager=manager,
+                prompt=False,
             )
         try:
             task.cancel()
@@ -446,6 +454,7 @@ class EnvironmentFlowTest(unittest.IsolatedAsyncioTestCase):
                     enums.EnvironmentType.DEVELOPMENT,
                     enums.CloudProvider.AWS,
                     manager=manager,
+                    prompt=False,
                 )
         mock_create_aws_environment.assert_called_once_with(
             inputs=AWSEnvironmentCreationInputs(
