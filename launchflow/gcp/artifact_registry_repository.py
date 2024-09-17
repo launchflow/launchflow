@@ -68,9 +68,7 @@ class ArtifactRegistryRepository(GCPResource[ArtifactRegistryOutputs]):
         self,
         name: str,
         format: Union[str, RegistryFormat],
-        location: Optional[
-            str
-        ] = None,  # TODO: Rename this to region and deprecate location
+        location: Optional[str] = None,
     ) -> None:
         """Create a new ArtifactRegistryRepository resource.
 
