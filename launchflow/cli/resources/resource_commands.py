@@ -11,6 +11,7 @@ from launchflow.cli.utils import OutputFormat, json_to_yaml
 from launchflow.cli.utyper import UTyper
 from launchflow.config import config
 from launchflow.flows.environments_flows import get_environment
+from launchflow.flows.unlock_flows import unlock_resource
 from launchflow.managers.project_manager import ProjectManager
 from launchflow.models.utils import RESOURCE_PRODUCTS_TO_RESOURCES
 from launchflow.resource import Resource
@@ -90,7 +91,7 @@ async def unlock(
             raise typer.Exit(0)
 
     try:
-        await resource_manager.force_unlock_resource()
+        await unlock_resource(resource_manager)
         rich.print(
             f"[green]Resource '{resource}' force unlocked in Environment '{environment_name}'.[/green]"
         )

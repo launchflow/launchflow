@@ -15,6 +15,7 @@ from launchflow.flows.environments_flows import (
     delete_environment,
     get_environment,
 )
+from launchflow.flows.unlock_flows import unlock_resource, unlock_service
 from launchflow.logger import logger
 from launchflow.managers.environment_manager import EnvironmentManager
 from launchflow.managers.project_manager import ProjectManager
@@ -414,7 +415,7 @@ async def unlock(
                 resource_name
             )
             try:
-                await resource_manager.force_unlock_resource()
+                await unlock_resource(resource_manager)
                 rich.print(
                     f"[green]Resource '{resource_name}' force unlocked in Environment '{name}'.[/green]"
                 )
@@ -442,7 +443,7 @@ async def unlock(
         for service_name in services:
             service_manager = environment_manager.create_service_manager(service_name)
             try:
-                await service_manager.force_unlock_service()
+                await unlock_service(service_manager)
                 rich.print(
                     f"[green]Service '{service_name}' force unlocked in Environment '{name}'.[/green]"
                 )

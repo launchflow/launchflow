@@ -11,6 +11,7 @@ from launchflow.cli.utils import OutputFormat, json_to_yaml
 from launchflow.cli.utyper import UTyper
 from launchflow.config import config
 from launchflow.flows.environments_flows import get_environment
+from launchflow.flows.unlock_flows import unlock_service
 from launchflow.managers.project_manager import ProjectManager
 from launchflow.models.utils import SERVICE_PRODUCTS_TO_SERVICES
 
@@ -84,7 +85,7 @@ async def unlock(
             raise typer.Exit(0)
 
     try:
-        await service_manager.force_unlock_service()
+        await unlock_service(service_manager)
         rich.print(
             f"[green]Service '{service}' force unlocked in Environment '{environment_name}'.[/green]"
         )
