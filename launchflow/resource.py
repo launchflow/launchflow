@@ -31,6 +31,8 @@ class _ResourceURI:
 
 
 def _to_output_type(outputs: Dict[str, Any], init_fn: Callable):
+    if not dataclasses.is_dataclass(init_fn):
+        return outputs
     fields = dataclasses.fields(init_fn)  # type: ignore
     # First filter so only the types matching the signature are passed
     filtered_outputs = {
@@ -101,16 +103,10 @@ def _get_artifact_bucket_path_from_local(resource_uri: _ResourceURI):
 
 
 def _resource_path_from_env(resource_uri: _ResourceURI, env: EnvironmentState) -> str:
-    if resource_uri.cloud_provider == CloudProvider.GCP:
-        if env.gcp_config is None:
-            raise exceptions.GCPConfigNotFound(resource_uri.environment_name)
-        bucket_url = f"gs://{env.gcp_config.artifact_bucket}"
-    elif resource_uri.cloud_provider == CloudProvider.AWS:
-        if env.aws_config is None:
-            raise exceptions.AWSConfigNotFound(resource_uri.environment_name)
-        bucket_url = f"s3://{env.aws_config.artifact_bucket}"
-
-    return f"{bucket_url}/resources/{resource_uri.resource_name}.yaml"
+    if env.gcp_config is not None:
+        return f"gs://{env.gcp_config.artifact_bucket}/resources/{resource_uri.resource_name}.yaml"
+    elif env.aws_config is not None:
+        return f"s3://{env.aws_config.artifact_bucket}/resources/{resource_uri.resource_name}.yaml"
 
 
 async def _get_artifact_bucket_from_remote_async(resource_uri: _ResourceURI):

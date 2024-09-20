@@ -4,6 +4,7 @@ from typing import List
 
 from launchflow.config import config as lf_config
 from launchflow.node import Outputs
+from launchflow.opentofu import OpenTofuModule
 from launchflow.resource import Resource
 from launchflow.version import __version__
 

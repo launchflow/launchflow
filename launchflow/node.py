@@ -82,9 +82,9 @@ class Depends:
     #       - This mode is used when we are sure that the outputs are available and we want to resolve them.
     # - never_resolve: The dependencies are not resolved and the DependsOnValue object is returned.
     #      - This mode is used when we only want to know what the dependencies are without actually resolving them.
-    _mode: Literal[
-        "maybe_resolve", "always_resolve", "never_resolve"
-    ] = "maybe_resolve"  # default mode
+    _mode: Literal["maybe_resolve", "always_resolve", "never_resolve"] = (
+        "maybe_resolve"  # default mode
+    )
 
     def __init__(self, node: "Node"):
         self.node = node
@@ -152,7 +152,7 @@ class NodeType(Enum):
     SERVICE = "service"
 
 
-T = TypeVar("T", bound=Outputs)
+T = TypeVar("T")
 
 
 # This function was pulled from this Stackoverflow answer:
@@ -245,13 +245,16 @@ class Node(Generic[T]):
             type_map = get_generic_map(Node, type(self))
             self._outputs_type: Type = type_map[T]  # type: ignore
 
-        if not dataclasses.is_dataclass(self._outputs_type):
+        if (
+            not dataclasses.is_dataclass(self._outputs_type)
+            and self._outputs_type.__origin__ is not dict
+        ):
             raise ValueError(
-                f"Node outputs must be a dataclass, got {self._outputs_type}"
+                f"Node outputs must be a dataclass or a dictionary, got {self._outputs_type}"
             )
 
-    def cloud_provider(self) -> CloudProvider:
-        raise NotImplementedError
+    def cloud_provider(self) -> Optional[CloudProvider]:
+        return None
 
     def __hash__(self):
         return hash(f"{self._node_type.value}/{self.name}")

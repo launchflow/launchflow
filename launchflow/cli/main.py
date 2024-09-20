@@ -644,7 +644,7 @@ async def run(
                 environment=environment,
                 product=resource.product,
                 resource=resource.name,
-            ): outputs.to_dict()
+            ): outputs.to_dict() if isinstance(outputs, Outputs) else outputs
             for resource, outputs in zip(remote_resources, resource_outputs)
             if outputs is not None
         }
