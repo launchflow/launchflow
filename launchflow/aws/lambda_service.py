@@ -316,7 +316,7 @@ class LambdaService(AWSService[LambdaServiceReleaseInputs]):
         self.handler = handler
 
     def inputs(self) -> LambdaServiceInputs:
-        return LambdaServiceInputs(handler=self.handler)
+        return LambdaServiceInputs(handler=self.handler)  # type: ignore
 
     def resources(self) -> List[Resource]:
         to_return: List[Resource] = [self._lambda_function]
