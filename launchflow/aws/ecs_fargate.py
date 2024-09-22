@@ -19,16 +19,13 @@ from launchflow.aws.ecr_repository import ECRRepository
 from launchflow.aws.ecs_cluster import ECSCluster
 from launchflow.aws.ecs_fargate_container import ECSFargateServiceContainer
 from launchflow.aws.service import AWSService
+from launchflow.builds.ecr_builder import ECRDockerBuilder
 from launchflow.models.enums import ServiceProduct
 from launchflow.models.flow_state import AWSEnvironmentConfig
 from launchflow.models.launchflow_uri import LaunchFlowURI
 from launchflow.node import Inputs
 from launchflow.resource import Resource
 from launchflow.service import ServiceOutputs
-from launchflow.workflows.deploy_aws_service import (
-    build_ecr_docker_image_locally,
-    build_ecr_docker_image_on_code_build,
-)
 
 
 @dataclass
@@ -78,7 +75,7 @@ class ECSFargateService(AWSService[ECSFargateServiceReleaseInputs]):
         desired_count: int = 1,
         build_directory: str = ".",
         build_ignore: List[str] = [],
-        dockerfile: str = "Dockerfile",
+        dockerfile: Optional[str] = None,
         domain: Optional[str] = None,
         cluster: Optional[ECSCluster] = None,
     ) -> None:
@@ -155,7 +152,9 @@ class ECSFargateService(AWSService[ECSFargateServiceReleaseInputs]):
             self._ecs_cluster.resource_id = resource_id_with_launchflow_prefix
 
         self._alb = ApplicationLoadBalancer(
-            f"{name}-lb", container_port=port, certificate=None  # TODO: Support HTTPS
+            f"{name}-lb",
+            container_port=port,
+            certificate=None,  # TODO: Support HTTPS
         )
 
         self._ecs_fargate_service_container = ECSFargateServiceContainer(
@@ -221,34 +220,33 @@ class ECSFargateService(AWSService[ECSFargateServiceReleaseInputs]):
     ) -> ECSFargateServiceReleaseInputs:
         ecr_outputs = self._ecr.outputs()
 
+        builder = ECRDockerBuilder(
+            build_directory=self.build_directory,
+            build_ignore=self.build_ignore,
+            build_log_file=build_log_file,
+            ecr_repository=ecr_outputs.repository_url,
+            launchflow_project_name=launchflow_uri.project_name,
+            launchflow_environment_name=launchflow_uri.environment_name,
+            launchflow_service_name=self.name,
+            launchflow_deployment_id=deployment_id,
+            aws_environment_config=aws_environment_config,
+        )
+
         if build_local:
-            docker_image = await build_ecr_docker_image_locally(
-                dockerfile_path=self.dockerfile,
-                build_directory=self.build_directory,
-                build_ignore=self.build_ignore,
-                build_log_file=build_log_file,
-                ecr_repository=ecr_outputs.repository_url,
-                launchflow_service_name=self.name,
-                launchflow_deployment_id=deployment_id,
-                aws_environment_config=aws_environment_config,
-            )
+            if self.dockerfile is None:
+                docker_image = await builder.build_with_nixpacks_local()
+            else:
+                docker_image = await builder.build_with_docker_local(self.dockerfile)
         else:
             code_build_outputs = self._code_build_project.outputs()
-
-            docker_image = await build_ecr_docker_image_on_code_build(
-                dockerfile_path=self.dockerfile,
-                build_directory=self.build_directory,
-                build_ignore=self.build_ignore,
-                build_log_file=build_log_file,
-                ecr_repository=ecr_outputs.repository_url,
-                code_build_project_name=code_build_outputs.project_name,
-                launchflow_project_name=launchflow_uri.project_name,
-                launchflow_environment_name=launchflow_uri.environment_name,
-                launchflow_service_name=self.name,
-                launchflow_deployment_id=deployment_id,
-                aws_environment_config=aws_environment_config,
-            )
-
+            if self.dockerfile is None:
+                docker_image = await builder.build_with_nixpacks_remote(
+                    code_build_outputs.project_name
+                )
+            else:
+                docker_image = await builder.build_with_docker_remote(
+                    self.dockerfile, code_build_outputs.project_name
+                )
         return ECSFargateServiceReleaseInputs(docker_image=docker_image)
 
     async def _promote(
@@ -293,9 +291,9 @@ class ECSFargateService(AWSService[ECSFargateServiceReleaseInputs]):
             )
             new_task_definition = existing_task_def_response["taskDefinition"]
             # Update the Docker image reference in the task definition
-            new_task_definition["containerDefinitions"][0][
-                "image"
-            ] = release_inputs.docker_image
+            new_task_definition["containerDefinitions"][0]["image"] = (
+                release_inputs.docker_image
+            )
             # Remove the hello world command and entrypoint
             if "command" in new_task_definition["containerDefinitions"][0]:
                 del new_task_definition["containerDefinitions"][0]["command"]

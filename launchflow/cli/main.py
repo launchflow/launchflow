@@ -120,6 +120,12 @@ _LAUNCHFLOW_TEXT = r""" _                                 _      _____  _
 """
 
 
+# Flow should be
+# Detect all frameworks
+# Prompt user to select their cloud provider
+# Prompt user to select a frameworks to deploy
+# Prompt user to select runtime
+# Prompt user to select build
 @app.command()
 async def init(
     default_backend: Optional[project_gen.BackendType] = typer.Option(

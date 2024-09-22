@@ -10,7 +10,6 @@ phases:
     on-failure: ABORT
     commands:
       - |
-        echo $BUILD_MODE
         if [ "$BUILD_MODE" = "promotion" ]; then
           echo "Promoting image"
           echo $SOURCE_ECR_PASSWORD | docker login --username AWS --password-stdin $SOURCE_ENV_IMAGE_REPO_NAME
@@ -21,7 +20,12 @@ phases:
         else
           echo "Building image"
           tar -xvf $SOURCE_TAR_NAME
-          docker build -t $IMAGE_REPO_NAME -f $DOCKERFILE_PATH .
+          if [ "$BUILD_TYPE" = "nixpacks" ]; then
+            curl -sSL https://nixpacks.com/install.sh | bash
+            nixpacks build . --name $IMAGE_REPO_NAME
+          else
+            docker build -t $IMAGE_REPO_NAME -f $DOCKERFILE_PATH .
+          fi
           docker tag $IMAGE_REPO_NAME $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:latest
           docker tag $IMAGE_REPO_NAME $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
         fi
