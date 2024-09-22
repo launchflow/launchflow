@@ -781,7 +781,7 @@ async def deploy(
 
     if build_local and not docker_service_available():
         console.print(
-            "Docker must be installed to use the --build-local flag. Exiting."
+            "Docker must be installed and running to use the --build-local flag. Exiting."
         )
         return FlowResult(success=False, plan_results=[], failed_plans=[])
 

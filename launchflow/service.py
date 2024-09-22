@@ -46,24 +46,21 @@ class Service(Node[ServiceOutputs], Generic[R]):
     ) -> None:
         super().__init__(name, NodeType.SERVICE)
 
-        # Get the absolute path of the directory containing the launchflow.yaml file
-        try:
-            launchflow_yaml_abspath = os.path.dirname(
-                os.path.abspath(config.launchflow_yaml.config_path)
-            )
-        except exceptions.LaunchFlowYamlNotFound:
-            # TODO: Determine a better way to handle the case where deployments dont have
-            # a local launchflow.yaml file
-            launchflow_yaml_abspath = os.getcwd()
-
-        self.build_directory = os.path.abspath(
-            os.path.join(launchflow_yaml_abspath, build_directory)
-        )
+        self._build_directory = build_directory
 
         self.build_ignore = list(set(build_ignore + DEFAULT_IGNORE_PATTERNS))
         self.build_diff_args = build_diff_args
 
         self.name = name
+
+    @property
+    def build_directory(self) -> str:
+        launchflow_yaml_abspath = os.path.dirname(
+            os.path.abspath(config.launchflow_yaml.config_path)
+        )
+        return os.path.abspath(
+            os.path.join(launchflow_yaml_abspath, self._build_directory)
+        )
 
     def resources(self) -> List[Resource]:
         raise NotImplementedError

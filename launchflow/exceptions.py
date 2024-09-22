@@ -528,3 +528,8 @@ class GCEServiceNotHealthyTimeout(Exception):
         super().__init__(
             f"Service was not healthy after {timeout.total_seconds() / 60} minutes."
         )
+
+
+class NixPacksBuildFailed(Exception):
+    def __init__(self, service_name: str) -> None:
+        super().__init__(f"NixPacks build failed for service '{service_name}'")
