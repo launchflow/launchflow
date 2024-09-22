@@ -697,7 +697,6 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
 
         deployment_id = "1640995200000"
 
-        from_service_state = await dev_service_manager.load_service()
         promote_mock.assert_called_once_with(
             from_environment_state=self.dev_environment,
             to_environment_state=self.prod_environment,
@@ -868,7 +867,6 @@ class DeployFlowsTest(unittest.IsolatedAsyncioTestCase):
 
         deployment_id = "1640995200000"
 
-        from_service_state = await dev_service_manager.load_service()
         promote_mock.assert_called_once_with(
             from_environment_state=self.dev_environment,
             to_environment_state=self.prod_environment,
