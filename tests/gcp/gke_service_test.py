@@ -134,10 +134,10 @@ class GKEServiceTest(unittest.IsolatedAsyncioTestCase):
     @mock.patch("launchflow.gcp.gke_service._get_gke_config")
     @mock.patch("launchflow.gcp.gke_service.update_k8s_service")
     @mock.patch("launchflow.gcp.gke_service.k8_config.load_kube_config_from_dict")
-    @mock.patch("google.cloud.container_v1.ClusterManagerAsyncClient.get_cluster")
+    @mock.patch("google.cloud.container_v1.ClusterManagerAsyncClient")
     async def test_release_gke_service_successful(
         self,
-        get_cluster_mock: mock.MagicMock,
+        cluster_client: mock.MagicMock,
         load_kube_mock: mock.MagicMock,
         update_k8s_service_mock: mock.MagicMock,
         get_gke_config_mock: mock.MagicMock,
@@ -145,7 +145,7 @@ class GKEServiceTest(unittest.IsolatedAsyncioTestCase):
         gke_service = GKEService("service_name", cluster=self.cluster)
 
         # Setup the resource output mocks
-        get_cluster_mock.return_value = mock.MagicMock()
+        cluster_client.return_value = mock.AsyncMock()
         update_k8s_service_mock.return_value = mock.MagicMock()
         get_gke_config_mock.return_value = mock.MagicMock()
 
