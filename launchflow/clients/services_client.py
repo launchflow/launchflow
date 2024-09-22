@@ -34,7 +34,6 @@ class ServicesAsyncClient:
         lock_id: str,
         flow_state: ServiceState,
     ):
-        print(f"saving {flow_state.to_dict()}")
         response = await self.http_client.post(
             f"{self.base_url(project_name, environment_name)}/{service_name}?lock_id={lock_id}&account_id={self._launchflow_account_id}",
             json=flow_state.to_dict(),
@@ -70,7 +69,6 @@ class ServicesAsyncClient:
         )
         if response.status_code != 200:
             raise LaunchFlowRequestFailure(response)
-        print(response.json())
         return {
             name: ServiceState.model_validate(service)
             for name, service in response.json()["services"].items()

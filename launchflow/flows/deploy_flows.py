@@ -189,7 +189,6 @@ class ReleaseServicePlan(ServicePlan):
     service_manager: ServiceManager
     environment_state: EnvironmentState
     deployment_id: str
-    build_step_type: Optional[Literal["build", "promote"]]  # TODO: Remove this
 
     def __post_init__(self):
         if (
@@ -216,43 +215,34 @@ class ReleaseServicePlan(ServicePlan):
         result.error_message = f"Release abandoned: {reason}"
         return result
 
-    def _get_release_inputs_from_dependency(
-        self, dependency_results: List[Result]
-    ) -> Union[ReleaseServiceResult, Any]:
-        if self.build_step_type == "build":
-            build_result_type = BuildServiceResult
-        elif self.build_step_type == "promote":
-            build_result_type = PromoteServiceResult  # type: ignore
-        else:
-            raise ValueError("Cannot get build outputs from a promote step")
+    def _get_release_inputs_from_dependency(self, dependency_results: List[Result]):
         release_inputs_result = next(
             (
                 result
                 for result in dependency_results
-                if isinstance(result, build_result_type)
+                if isinstance(result, (BuildServiceResult, PromoteServiceResult))
             ),
             None,
         )
-        if release_inputs_result is None:
-            result = ReleaseServiceResult(self, False)
-            result.error_message = "Could not find a build outputs result to release"
-            return result
-        if release_inputs_result.release_inputs is None:
-            result = ReleaseServiceResult(self, False)
-            result.error_message = "Build step did not produce build outputs"
-            return result
-        return release_inputs_result.release_inputs
+
+        return release_inputs_result
 
     async def execute_plan(
         self,
         tree: Tree,
         dependency_results: List[Result],
     ) -> ReleaseServiceResult:
-        # TODO: Remove this hacky check and just pass the Any through to release()
-        # Need to combine Build and Promote results first to have same field types
-        release_inputs = self._get_release_inputs_from_dependency(dependency_results)
-        if isinstance(release_inputs, ReleaseServiceResult):
-            return release_inputs
+        release_inputs_result = self._get_release_inputs_from_dependency(
+            dependency_results
+        )
+        if release_inputs_result is None:
+            result = ReleaseServiceResult(self, False)
+            result.error_message = (
+                "Could not find a build or promote result to use as release inputs."
+            )
+            return result
+
+        release_inputs = release_inputs_result.release_inputs
 
         base_logging_dir = "/tmp/lf"
         os.makedirs(base_logging_dir, exist_ok=True)
@@ -640,10 +630,8 @@ async def plan_deploy_service(
 
     # Plan the release for the service
     depends_on: List[Plan] = []
-    build_step: Optional[Literal["build"]] = None
     if build_plan is not None:
         depends_on = [build_plan]
-        build_step = "build"
     release_plan = ReleaseServicePlan(
         resource_or_service=service,
         depends_on=depends_on,
@@ -652,7 +640,6 @@ async def plan_deploy_service(
         service_manager=service_manager,
         environment_state=environment_state,
         deployment_id=deployment_id,
-        build_step_type=build_step,
     )
 
     return DeployServicePlan(
@@ -745,7 +732,7 @@ def _find_services_without_dockerfiles(
 ):
     services_without_dockerfile = []
     for node in nodes:
-        if hasattr(node, "dockerfile"):
+        if hasattr(node, "dockerfile") and node.dockerfile is not None:  # type: ignore
             if not os.path.exists(node.dockerfile):  # type: ignore
                 services_without_dockerfile.append(node)
     return services_without_dockerfile
@@ -1760,7 +1747,6 @@ async def plan_promote_service(
         service_manager=to_service_manager,
         environment_state=to_environment_state,
         deployment_id=deployment_id,
-        build_step_type="promote",
     )
 
     return PromoteFlowServicePlan(

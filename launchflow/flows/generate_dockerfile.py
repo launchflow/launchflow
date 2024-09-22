@@ -88,7 +88,7 @@ def generate_dockerfile(
         base_image = "public.ecr.aws/docker/library/python:3.11-slim"
         port = 80
 
-    if not hasattr(service, "dockerfile"):
+    if not hasattr(service, "dockerfile") or service.dockerfile is None:  # type: ignore
         console.print(
             f"Skipping Dockerfile generation for {ServiceRef(service)} as it does not have a Dockerfile attribute."
         )
