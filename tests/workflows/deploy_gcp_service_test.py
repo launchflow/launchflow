@@ -9,7 +9,7 @@ from launchflow.gcp.gke import GKECluster
 from launchflow.gcp.gke_service import GKEService
 from launchflow.managers.service_manager import ServiceManager
 from launchflow.models.flow_state import GCPEnvironmentConfig
-from launchflow.service import DockerServiceOutputs
+from launchflow.service import ServiceOutputs
 from launchflow.workflows.deploy_gcp_service import (
     release_docker_image_to_compute_engine,
     release_docker_image_to_gke,
@@ -156,10 +156,9 @@ class DeployGcpServiceTest(unittest.IsolatedAsyncioTestCase):
             self.service_manager.service_name, cluster, environment_variables={"A": "B"}
         )
 
-        service_outputs = DockerServiceOutputs(
+        service_outputs = ServiceOutputs(
             service_url="https://service.staging.launchflow-caleb.com",
             dns_outputs=None,
-            docker_repository="repo",
         )
         service.outputs = mock.MagicMock(return_value=service_outputs)
 

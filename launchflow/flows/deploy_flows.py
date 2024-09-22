@@ -47,44 +47,24 @@ from launchflow.flows.plan import (
     execute_plans,
 )
 from launchflow.flows.plan_utils import lock_plans, print_plans, select_plans
-from launchflow.gcp.cloud_run import CloudRunService
-from launchflow.gcp.compute_engine_service import ComputeEngineService
-from launchflow.gcp.firebase_site import FirebaseStaticSite
-from launchflow.gcp.gke_service import GKEService
-from launchflow.gcp.service import GCPDockerService, GCPService
-from launchflow.gcp.static_site import GCSWebsite
+from launchflow.gcp.service import GCPService
 from launchflow.locks import Lock, LockOperation, OperationType, ReleaseReason
 from launchflow.managers.environment_manager import EnvironmentManager
 from launchflow.managers.service_manager import ServiceManager
 from launchflow.models.enums import CloudProvider, EnvironmentStatus, ServiceStatus
-from launchflow.models.flow_state import (
-    AWSEnvironmentConfig,
-    EnvironmentState,
-    GCPEnvironmentConfig,
-    ServiceState,
-)
+from launchflow.models.flow_state import EnvironmentState, ServiceState
 from launchflow.models.launchflow_uri import LaunchFlowURI
 from launchflow.node import Node
 from launchflow.resource import Resource
-from launchflow.service import DockerService, Service
+from launchflow.service import Service
 from launchflow.utils import dump_exception_with_stacktrace, generate_deployment_id
 from launchflow.validation import validate_service_name
-from launchflow.workflows.deploy_gcp_service import (
-    build_and_push_gcp_service,
-    deploy_local_files_to_firebase_static_site,
-    promote_gcp_service_image,
-    release_docker_image_to_cloud_run,
-    release_docker_image_to_compute_engine,
-    release_docker_image_to_gke,
-    upload_local_files_to_static_site,
-)
 
 
 @dataclasses.dataclass
 class BuildServiceResult(Result["BuildServicePlan"]):
-    docker_image: Optional[str] = None
-    logs_file_or_link: Optional[str] = None
-    build_outputs: Optional[Any] = None
+    build_logs_file: Optional[str] = None
+    release_inputs: Optional[Any] = None
 
 
 @dataclasses.dataclass
@@ -124,67 +104,36 @@ class BuildServicePlan(ServicePlan):
         tree: Tree,
         dependency_results: List[Result],
     ) -> BuildServiceResult:
-        try:
-            logs_file_or_link = None
-            if isinstance(self.service, GCPDockerService):
-                docker_image, logs_file_or_link = await build_and_push_gcp_service(
-                    self.service,
-                    self.service_manager,
-                    self.environment_state.gcp_config,  # type: ignore
-                    self.deployment_id,
-                    self.build_local,
+        # TODO: Determine if we should add a top-level try/catch to handle exceptions
+        # related to the tmp directory (i.e. disk full or permission errors)
+        base_logging_dir = "/tmp/lf"
+        os.makedirs(base_logging_dir, exist_ok=True)
+        build_logs_file = (
+            f"{base_logging_dir}/{self.service.name}-{int(time.time())}.log"
+        )
+        with open(build_logs_file, "w") as build_log_file:
+            try:
+                release_inputs = await self.service.build(
+                    environment_state=self.environment_state,
+                    launchflow_uri=LaunchFlowURI(
+                        project_name=self.service_manager.project_name,
+                        environment_name=self.service_manager.environment_name,
+                        service_name=self.service_manager.service_name,
+                    ),
+                    deployment_id=self.deployment_id,
+                    build_log_file=build_log_file,
+                    build_local=self.build_local,
                 )
-                return BuildServiceResult(self, True, docker_image, logs_file_or_link)
-
-            # TODO: Remove the isintance checks once GCP services are refactored to implement the build method
-            elif isinstance(self.service, AWSService):
-                # TODO: Move this to the top of the flow once GCP services are refactored to implement the build method
-                base_logging_dir = "/tmp/launchflow"
-                os.makedirs(base_logging_dir, exist_ok=True)
-                build_logs_file = (
-                    f"{base_logging_dir}/{self.service.name}-{int(time.time())}.log"
+            except Exception as e:
+                dump_exception_with_stacktrace(e, build_log_file)
+                result = BuildServiceResult(
+                    self, False, build_logs_file=build_logs_file
                 )
-                with open(build_logs_file, "w") as build_log_file:
-                    try:
-                        build_outputs = await self.service.build(
-                            environment_state=self.environment_state,
-                            launchflow_uri=LaunchFlowURI(
-                                project_name=self.service_manager.project_name,
-                                environment_name=self.service_manager.environment_name,
-                                service_name=self.service_manager.service_name,
-                            ),
-                            deployment_id=self.deployment_id,
-                            build_log_file=build_log_file,
-                            build_local=self.build_local,
-                        )
-                    except Exception as e:
-                        dump_exception_with_stacktrace(e, build_log_file)
-                        # TODO: Move the try catch up to the top of the flow once the GCPServices are refactored to implement the build method
-                        raise exceptions.ServiceBuildFailed(
-                            error_message=str(e),
-                            build_logs_or_link=build_logs_file,
-                        ) from e
-                return BuildServiceResult(self, True, build_outputs=build_outputs)
-            elif isinstance(self.service, GCPService):
-                # TODO: Add a hook to allow for custom build steps for static sites
-                return BuildServiceResult(self, True)
-            else:
-                result = BuildServiceResult(self, False)
-                result.error_message = f"Unsupported service type: {self.service}"
+                result.error_message = str(e)
                 return result
-        except exceptions.ServiceBuildFailed as e:
-            # TODO: Use dump_exception_with_stacktrace to dump the stack trace to the log file
-            result = BuildServiceResult(
-                self, False, logs_file_or_link=e.build_logs_or_link
-            )
-            result.error_message = str(e)
-            return result
-        except Exception as e:
-            # TODO: Improve this error handling
-            logging.error("Exception occurred: %s", e, exc_info=True)
-            result = BuildServiceResult(self, False)
-            result.error_message = str(e)
-            return result
+        return BuildServiceResult(
+            self, True, build_logs_file=build_logs_file, release_inputs=release_inputs
+        )
 
     def print_plan(
         self,
@@ -231,6 +180,7 @@ class BuildServicePlan(ServicePlan):
 @dataclasses.dataclass
 class ReleaseServiceResult(Result["ReleaseServicePlan"]):
     service_url: Optional[str] = None
+    release_logs_file: Optional[str] = None
 
 
 @dataclasses.dataclass
@@ -239,7 +189,7 @@ class ReleaseServicePlan(ServicePlan):
     service_manager: ServiceManager
     environment_state: EnvironmentState
     deployment_id: str
-    build_step_type: Optional[Literal["build", "promote"]]
+    build_step_type: Optional[Literal["build", "promote"]]  # TODO: Remove this
 
     def __post_init__(self):
         if (
@@ -266,40 +216,16 @@ class ReleaseServicePlan(ServicePlan):
         result.error_message = f"Release abandoned: {reason}"
         return result
 
-    def _get_docker_image_from_dependency(
-        self, dependency_results: List[Result]
-    ) -> Union[ReleaseServiceResult, str]:
-        # TODO: if docker step is None then get the docker image from the service
-        if self.build_step_type == "build":
-            docker_result_type = BuildServiceResult
-        else:
-            docker_result_type = PromoteDockerImageResult  # type: ignore
-        docker_image_result = next(
-            (
-                result
-                for result in dependency_results
-                if isinstance(result, docker_result_type)
-            ),
-            None,
-        )
-        if docker_image_result is None:
-            result = ReleaseServiceResult(self, False)
-            result.error_message = "Could not find a docker image result to release"
-            return result
-        if docker_image_result.docker_image is None:
-            result = ReleaseServiceResult(self, False)
-            result.error_message = "Docker image step did not produce a docker image"
-            return result
-        return docker_image_result.docker_image
-
-    def _get_build_outputs_from_dependency(
+    def _get_release_inputs_from_dependency(
         self, dependency_results: List[Result]
     ) -> Union[ReleaseServiceResult, Any]:
         if self.build_step_type == "build":
             build_result_type = BuildServiceResult
+        elif self.build_step_type == "promote":
+            build_result_type = PromoteServiceResult
         else:
             raise ValueError("Cannot get build outputs from a promote step")
-        build_outputs_result = next(
+        release_inputs_result = next(
             (
                 result
                 for result in dependency_results
@@ -307,135 +233,56 @@ class ReleaseServicePlan(ServicePlan):
             ),
             None,
         )
-        if build_outputs_result is None:
+        if release_inputs_result is None:
             result = ReleaseServiceResult(self, False)
             result.error_message = "Could not find a build outputs result to release"
             return result
-        if build_outputs_result.build_outputs is None:
+        if release_inputs_result.release_inputs is None:
             result = ReleaseServiceResult(self, False)
             result.error_message = "Build step did not produce build outputs"
             return result
-        return build_outputs_result.build_outputs
+        return release_inputs_result.release_inputs
 
     async def execute_plan(
         self,
         tree: Tree,
         dependency_results: List[Result],
     ) -> ReleaseServiceResult:
-        try:
-            # TODO: Consider refactoring this to separate static & docker release steps
-            if isinstance(self.service, GCSWebsite):
-                service_url = await upload_local_files_to_static_site(
-                    gcp_environment_config=self.environment_state.gcp_config,  # type: ignore
-                    static_site=self.service,
-                )
-                return ReleaseServiceResult(self, True, service_url)
+        # TODO: Remove this hacky check and just pass the Any through to release()
+        # Need to combine Build and Promote results first to have same field types
+        release_inputs = self._get_release_inputs_from_dependency(dependency_results)
+        if isinstance(release_inputs, ReleaseServiceResult):
+            return release_inputs
 
-            if isinstance(self.service, FirebaseStaticSite):
-                service_url = await deploy_local_files_to_firebase_static_site(
-                    gcp_environment_config=self.environment_state.gcp_config,  # type: ignore
-                    firebase_static_site=self.service,
-                )
-                return ReleaseServiceResult(self, True, service_url)
-
-            # TODO: Remove the isintance checks once GCP services are refactored to implement the release method
-            if isinstance(self.service, AWSService):
-                # TODO: Remove this hacky check once we remove DockerService and can just pass the Any through to release()
-                build_outputs = self._get_build_outputs_from_dependency(
-                    dependency_results
-                )
-                if isinstance(build_outputs, ReleaseServiceResult):
-                    result = ReleaseServiceResult(self, False)
-                    result.error_message = (
-                        f"Failed to find build outputs for {self.service}"
-                    )
-                    return result
-
-                # TODO: Move this to the top of the flow once GCP services are refactored to implement the release method
-                base_logging_dir = "/tmp/launchflow"
-                os.makedirs(base_logging_dir, exist_ok=True)
-                release_logs_file = (
-                    f"{base_logging_dir}/{self.service.name}-{int(time.time())}.log"
-                )
-                with open(release_logs_file, "w") as release_log_file:
-                    try:
-                        await self.service.release(
-                            release_inputs=build_outputs,
-                            environment_state=self.environment_state,
-                            launchflow_uri=LaunchFlowURI(
-                                project_name=self.service_manager.project_name,
-                                environment_name=self.service_manager.environment_name,
-                                service_name=self.service_manager.service_name,
-                            ),
-                            deployment_id=self.deployment_id,
-                            release_log_file=release_log_file,
-                        )
-                    except Exception as e:
-                        dump_exception_with_stacktrace(e, release_log_file)
-                        # TODO: Move the try catch up to the top of the flow once the GCPServices are refactored to implement the release method
-                        raise exceptions.ServiceReleaseFailed(
-                            error_message=f"Failed to release {self.service}",
-                            release_logs_or_link=release_logs_file,
-                        ) from e
-
-                return ReleaseServiceResult(
-                    self, True, self.service.outputs().service_url
-                )
-
-            if self.build_step_type is not None:
-                maybe_docker_image = self._get_docker_image_from_dependency(
-                    dependency_results
-                )
-                if isinstance(maybe_docker_image, ReleaseServiceResult):
-                    return maybe_docker_image
-                docker_image = maybe_docker_image
-            else:
-                service_state = await self.service_manager.load_service()
-                docker_image = service_state.docker_image  # type: ignore
-                if docker_image is None:
-                    result = ReleaseServiceResult(self, False)
-                    result.error_message = "Service does not yet have a docker image. Ensure you have run `lf deploy` first."
-                    return result
-            # TODO: refactor this so that the service "owns" the release step so its not hardcoded to individual service types
-            if isinstance(self.service, CloudRunService):
-                service_url = await release_docker_image_to_cloud_run(
-                    docker_image=docker_image,
-                    service_manager=self.service_manager,
-                    gcp_environment_config=self.environment_state.gcp_config,  # type: ignore
-                    cloud_run_service=self.service,
+        base_logging_dir = "/tmp/lf"
+        os.makedirs(base_logging_dir, exist_ok=True)
+        release_logs_file = (
+            f"{base_logging_dir}/{self.service.name}-{int(time.time())}.log"
+        )
+        with open(release_logs_file, "w") as release_log_file:
+            try:
+                await self.service.release(
+                    release_inputs=release_inputs,
+                    environment_state=self.environment_state,
+                    launchflow_uri=LaunchFlowURI(
+                        project_name=self.service_manager.project_name,
+                        environment_name=self.service_manager.environment_name,
+                        service_name=self.service_manager.service_name,
+                    ),
                     deployment_id=self.deployment_id,
+                    release_log_file=release_log_file,
                 )
-            elif isinstance(self.service, ComputeEngineService):
-                service_url = await release_docker_image_to_compute_engine(
-                    docker_image=docker_image,
-                    service_manager=self.service_manager,
-                    gcp_environment_config=self.environment_state.gcp_config,  # type: ignore
-                    compute_engine_service=self.service,
-                    deployment_id=self.deployment_id,
+            except Exception as e:
+                dump_exception_with_stacktrace(e, release_log_file)
+                result = ReleaseServiceResult(
+                    self, False, release_logs_file=release_logs_file
                 )
-            elif isinstance(self.service, GKEService):
-                service_url = await release_docker_image_to_gke(
-                    docker_image=docker_image,
-                    service_manager=self.service_manager,
-                    gcp_environment_config=self.environment_state.gcp_config,  # type: ignore
-                    gke_service=self.service,
-                    deployment_id=self.deployment_id,
-                )
-            else:
-                result = ReleaseServiceResult(self, False)
-                result.error_message = f"Unsupported service type: {self.service}"
+                result.error_message = str(e)
                 return result
-            return ReleaseServiceResult(self, True, service_url)
-        except exceptions.ServiceReleaseFailed as e:
-            result = ReleaseServiceResult(self, False)
-            result.error_message = str(e)
-            return result
-        except Exception as e:
-            # TODO: Improve this error handling
-            logging.error("Exception occurred: %s", e, exc_info=True)
-            result = ReleaseServiceResult(self, False)
-            result.error_message = str(e)
-            return result
+
+        # TODO: Determine if we should include the release logs for the success case.
+        # ATM we only log things on failure, but that could be changed by the child class
+        return ReleaseServiceResult(self, True, self.service.outputs().service_url)
 
     def print_plan(
         self,
@@ -541,7 +388,7 @@ class DeployServicePlan(ServicePlan):
                 gcp_id = self.existing_service_state.gcp_id
                 aws_arn = self.existing_service_state.aws_arn
                 service_url = self.existing_service_state.service_url
-                docker_image = self.existing_service_state.docker_image
+                deployment_id = self.existing_service_state.deployment_id
             else:
                 created_time = updated_time
                 # NOTE: We dont save the inputs until the deploy is successful
@@ -549,7 +396,7 @@ class DeployServicePlan(ServicePlan):
                 gcp_id = None
                 aws_arn = None
                 service_url = None
-                docker_image = None
+                deployment_id = None
 
             new_service_state = ServiceState(
                 name=self.service.name,
@@ -562,7 +409,7 @@ class DeployServicePlan(ServicePlan):
                 gcp_id=gcp_id,
                 aws_arn=aws_arn,
                 service_url=service_url,
-                docker_image=docker_image,
+                deployment_id=deployment_id,
             )
 
             # Handle all exceptions to ensure we commit the service state properly
@@ -587,11 +434,12 @@ class DeployServicePlan(ServicePlan):
                     release_service_result: ReleaseServiceResult = results[0]  # type: ignore
                 deploy_successful = all(result.success for result in results)
 
-                if build_service_result is not None:
-                    new_service_state.docker_image = build_service_result.docker_image
                 new_service_state.service_url = release_service_result.service_url
                 if deploy_successful:
                     new_service_state.status = ServiceStatus.READY
+                    new_service_state.deployment_id = (
+                        self.release_service_plan.deployment_id
+                    )
                     # NOTE: We dont save the inputs until the deploy is successful
                     new_service_state.inputs = self.service.inputs().to_dict()
                 else:
@@ -700,7 +548,7 @@ class DeployServicePlan(ServicePlan):
             return (
                 a.product != b.product
                 # or a.service_url != b.service_url
-                or a.docker_image != b.docker_image
+                or a.deployment_id != b.deployment_id
             )
 
         if _service_state_differs(self.existing_service_state, refreshed_service_state):
@@ -784,18 +632,18 @@ async def plan_deploy_service(
                 service=service,
                 error_message="Cannot deploy a service with the `--skip-build` flag if the service does not exist. Ensure you have run `lf deploy` without the --skip-build flag first.",
             )
-        if existing_service.docker_image is None:
+        if existing_service.deployment_id is None:
             return FailedToPlan(
                 service=service,
-                error_message="Cannot deploy a service without a docker image. Ensure you have run `lf deploy` without the --skip-build flag first.",
+                error_message="Cannot deploy a service with the `--skip-build` flag if the service does not have a deployment_id. Ensure you have run `lf deploy` without the --skip-build flag first.",
             )
 
     # Plan the release for the service
     depends_on: List[Plan] = []
-    docker_step: Optional[Literal["build"]] = None
+    build_step: Optional[Literal["build"]] = None
     if build_plan is not None:
         depends_on = [build_plan]
-        docker_step = "build"
+        build_step = "build"
     release_plan = ReleaseServicePlan(
         resource_or_service=service,
         depends_on=depends_on,
@@ -804,7 +652,7 @@ async def plan_deploy_service(
         service_manager=service_manager,
         environment_state=environment_state,
         deployment_id=deployment_id,
-        build_step_type=docker_step,
+        build_step_type=build_step,
     )
 
     return DeployServicePlan(
@@ -897,8 +745,8 @@ def _find_services_without_dockerfiles(
 ):
     services_without_dockerfile = []
     for node in nodes:
-        if isinstance(node, DockerService):
-            if not os.path.exists(node.dockerfile):
+        if hasattr(node, "dockerfile"):
+            if not os.path.exists(node.dockerfile):  # type: ignore
                 services_without_dockerfile.append(node)
     return services_without_dockerfile
 
@@ -1205,18 +1053,18 @@ async def deploy(
         for result in deploy_results:  # type: ignore
             # Logs for service build step
             if result.build_result is not None:  # type: ignore
-                if result.build_result.logs_file_or_link is None:  # type: ignore
+                if result.build_result.build_logs_file is None:  # type: ignore
                     continue
 
                 if result.success:
                     table.add_row(
                         f"[green]✓[/green] {result.plan.build_service_plan.operation_type.title()} {result.plan.build_service_plan.reference()}",  # type: ignore
-                        result.build_result.logs_file_or_link,  # type: ignore
+                        result.build_result.build_logs_file,  # type: ignore
                     )
                 else:
                     table.add_row(
                         f"[red]✗[/red] {result.plan.build_service_plan.operation_type.title()} {result.plan.build_service_plan.reference()}",  # type: ignore
-                        result.build_result.logs_file_or_link,  # type: ignore
+                        result.build_result.build_logs_file,  # type: ignore
                     )
 
     # We only print the logs table if there are logs to show
@@ -1438,47 +1286,37 @@ async def deploy(
 
 
 @dataclasses.dataclass
-class PromoteDockerImageResult(Result["PromoteDockerImagePlan"]):
-    docker_image: Optional[str] = None
-    logs_file_or_link: Optional[str] = None
+class PromoteServiceResult(Result["PromoteServicePlan"]):
+    promote_logs_file: Optional[str] = None
+    release_inputs: Optional[Any] = None
 
 
-# TODO: Make the Promote plan more generic so its not specific to Docker
 @dataclasses.dataclass
-class PromoteDockerImagePlan(ServicePlan):
-    from_service_state: ServiceState
-    from_gcp_environment_config: Optional[GCPEnvironmentConfig]
-    to_gcp_environment_config: Optional[GCPEnvironmentConfig]
-    from_aws_environment_config: Optional[AWSEnvironmentConfig]
-    to_aws_environment_config: Optional[AWSEnvironmentConfig]
+class PromoteServicePlan(ServicePlan):
+    from_environment_ref: EnvironmentRef
     to_environment_ref: EnvironmentRef
-    deployment_id: str
+    from_service_manager: ServiceManager
+    to_service_manager: ServiceManager
+    from_environment_state: EnvironmentState
+    to_environment_state: EnvironmentState
+    from_deployment_id: str
+    to_deployment_id: str
     promote_local: bool
 
-    # TODO: add a local promotion option
-    # promote_local: bool = False
-
     def __post_init__(self):
-        if (
-            self.from_gcp_environment_config is None
-            and self.from_aws_environment_config is None
-        ):
-            raise ValueError(
-                "GCP or AWS environment config must be provided to build a service."
-            )
         if isinstance(self.service, GCPService) and (
-            self.from_gcp_environment_config is None
-            or self.to_gcp_environment_config is None
+            self.from_environment_state.gcp_config is None
+            or self.to_environment_state.gcp_config is None
         ):
             raise ValueError(
-                "GCP environment config must be provided to build a GCP service."
+                "GCP environment config must set on the EnvironmentState to promote a GCP service."
             )
         if isinstance(self.service, AWSService) and (
-            self.from_aws_environment_config is None
-            or self.to_aws_environment_config is None
+            self.from_environment_state.aws_config is None
+            or self.to_environment_state.aws_config is None
         ):
             raise ValueError(
-                "AWS environment config must be provided to build an AWS service."
+                "AWS environment config must set on the EnvironmentState to promote an AWS service."
             )
 
     @property
@@ -1486,47 +1324,55 @@ class PromoteDockerImagePlan(ServicePlan):
         return "promote"
 
     async def abandon_plan(self, reason: str):
-        result = PromoteDockerImageResult(plan=self, success=False)
-        result.error_message = f"Promote Docker image abandoned: {reason}"
+        result = PromoteServiceResult(plan=self, success=False)
+        result.error_message = f"Promote service abandoned: {reason}"
         return result
 
     async def execute_plan(
         self,
         tree: Tree,
         dependency_results: List[Result],
-    ) -> PromoteDockerImageResult:
-        try:
-            logs_file_or_link = None
-            if isinstance(self.service, GCPDockerService):
-                docker_image, logs_file_or_link = await promote_gcp_service_image(
-                    self.service,
-                    from_service_state=self.from_service_state,
-                    from_gcp_environment_config=self.from_gcp_environment_config,  # type: ignore
-                    to_gcp_environment_config=self.to_gcp_environment_config,  # type: ignore
-                    deployment_id=self.deployment_id,
+    ) -> PromoteServiceResult:
+        # TODO: Determine if we should add a top-level try/catch to handle exceptions
+        # related to the tmp directory (i.e. disk full or permission errors)
+        base_logging_dir = "/tmp/lf"
+        os.makedirs(base_logging_dir, exist_ok=True)
+        promote_logs_file = (
+            f"{base_logging_dir}/{self.service.name}-{int(time.time())}.log"
+        )
+        with open(promote_logs_file, "w") as promote_log_file:
+            try:
+                release_inputs = await self.service.promote(
+                    from_environment_state=self.from_environment_state,
+                    to_environment_state=self.to_environment_state,
+                    from_launchflow_uri=LaunchFlowURI(
+                        project_name=self.from_service_manager.project_name,
+                        environment_name=self.from_service_manager.environment_name,
+                        service_name=self.from_service_manager.service_name,
+                    ),
+                    to_launchflow_uri=LaunchFlowURI(
+                        project_name=self.to_service_manager.project_name,
+                        environment_name=self.to_service_manager.environment_name,
+                        service_name=self.to_service_manager.service_name,
+                    ),
+                    from_deployment_id=self.from_deployment_id,
+                    to_deployment_id=self.to_deployment_id,
+                    promote_log_file=promote_log_file,
                     promote_local=self.promote_local,
                 )
-                return PromoteDockerImageResult(
-                    self, True, docker_image, logs_file_or_link
+            except Exception as e:
+                dump_exception_with_stacktrace(e, promote_log_file)
+                result = PromoteServiceResult(
+                    self, False, promote_logs_file=promote_logs_file
                 )
-            elif isinstance(self.service, AWSService):
-                raise NotImplementedError("AWS service promotion is not yet supported.")
-            else:
-                result = PromoteDockerImageResult(self, False)
-                result.error_message = f"Unsupported service type: {self.service}"
+                result.error_message = str(e)
                 return result
-        except exceptions.ServicePromoteFailed as e:
-            result = PromoteDockerImageResult(
-                self, False, logs_file_or_link=e.promote_logs_or_link
-            )
-            result.error_message = str(e)
-            return result
-        except Exception as e:
-            # TODO: Improve this error handling
-            logging.error("Exception occurred: %s", e, exc_info=True)
-            result = PromoteDockerImageResult(self, False)
-            result.error_message = str(e)
-            return result
+        return PromoteServiceResult(
+            self,
+            True,
+            promote_logs_file=promote_logs_file,
+            release_inputs=release_inputs,
+        )
 
     def print_plan(
         self,
@@ -1536,7 +1382,7 @@ class PromoteDockerImagePlan(ServicePlan):
         left_padding_str = " " * left_padding
         console.print()
         console.print(
-            f"{left_padding_str}1. {ServiceRef(self.service)} will be [{OP_COLOR}]promoted[/{OP_COLOR}] to {self.to_environment_ref}"
+            f"{left_padding_str}1. {ServiceRef(self.service)} will be [{OP_COLOR}]promoted[/{OP_COLOR}] from {self.from_environment_ref} to {self.to_environment_ref}"
         )
         # TODO: Add a way to fetch the promote diff args based on the deployment id
         # if self.service.promote_diff_args:
@@ -1557,37 +1403,39 @@ class PromoteDockerImagePlan(ServicePlan):
         return None
 
     def pending_message(self):
-        return f"Promote Docker image for {ServiceRef(self.service)} waiting for dependencies..."
+        return f"Promote {ServiceRef(self.service)} waiting for dependencies..."
 
     def task_description(self):
-        return f"Promoting Docker image for {ServiceRef(self.service)}..."
+        return f"Promoting {ServiceRef(self.service)}..."
 
     def success_message(self):
-        return f"Successfully promoted Docker image for {ServiceRef(self.service)}"
+        return f"Successfully promoted {ServiceRef(self.service)}"
 
     def failure_message(self):
-        return f"Failed to promote Docker image for {ServiceRef(self.service)}"
+        return f"Failed to promote {ServiceRef(self.service)}"
 
 
 @dataclasses.dataclass
-class PromoteServiceResult(Result["PromoteServicePlan"]):
+class PromoteFlowServiceResult(Result["PromoteFlowServicePlan"]):
     service_state: Optional[ServiceState]
-    promote_image_result: PromoteDockerImageResult
+    promote_image_result: PromoteServiceResult
     release_result: ReleaseServiceResult
 
 
+# TODO: Find a better way to name the promote plans to better line up with deploy.
+# The main issue is we have a "promote" method but not a "deploy" method, so its a bit overloaded.
 @dataclasses.dataclass
-class PromoteServicePlan(ServicePlan):
+class PromoteFlowServicePlan(ServicePlan):
     from_service_manager: ServiceManager
     to_service_manager: ServiceManager
     existing_from_service_state: ServiceState
     existing_to_service_state: Optional[ServiceState]
-    promote_docker_image_plan: PromoteDockerImagePlan
+    promote_service_plan: PromoteServicePlan
     release_service_plan: ReleaseServicePlan
     _lock: Optional[Lock] = None
 
     def child_plans(self) -> List[Plan]:
-        return [self.promote_docker_image_plan, self.release_service_plan]
+        return [self.promote_service_plan, self.release_service_plan]
 
     @property
     def operation_type(self) -> Literal["promote"]:
@@ -1597,11 +1445,11 @@ class PromoteServicePlan(ServicePlan):
         if self._lock is not None:
             await self._lock.release(ReleaseReason.ABANDONED)
 
-        docker_coro = self.promote_docker_image_plan.abandon_plan(reason)
+        promote_coro = self.promote_service_plan.abandon_plan(reason)
         abandon_coro = self.release_service_plan.abandon_plan(reason)
-        results = await asyncio.gather(docker_coro, abandon_coro)
+        results = await asyncio.gather(promote_coro, abandon_coro)
 
-        result = PromoteServiceResult(self, False, None, results[0], results[1])
+        result = PromoteFlowServiceResult(self, False, None, results[0], results[1])
         result.error_message = f"Promote abandoned: {reason}"
         return result
 
@@ -1609,7 +1457,7 @@ class PromoteServicePlan(ServicePlan):
         self,
         tree: Tree,
         dependency_results: List[Result],
-    ) -> PromoteServiceResult:
+    ) -> PromoteFlowServiceResult:
         if self._lock is None:
             return await self.abandon_plan("Plan was not locked before execution.")
         try:
@@ -1627,7 +1475,7 @@ class PromoteServicePlan(ServicePlan):
                 gcp_id = self.existing_to_service_state.gcp_id
                 aws_arn = self.existing_to_service_state.aws_arn
                 service_url = self.existing_to_service_state.service_url
-                docker_image = self.existing_to_service_state.docker_image
+                deployment_id = self.existing_to_service_state.deployment_id
 
             else:
                 created_time = updated_time
@@ -1636,7 +1484,7 @@ class PromoteServicePlan(ServicePlan):
                 gcp_id = None
                 aws_arn = None
                 service_url = None
-                docker_image = None
+                deployment_id = None
 
             new_to_service_state = ServiceState(
                 name=self.service.name,
@@ -1648,7 +1496,7 @@ class PromoteServicePlan(ServicePlan):
                 inputs=inputs,
                 gcp_id=gcp_id,
                 aws_arn=aws_arn,
-                docker_image=docker_image,
+                deployment_id=deployment_id,
                 service_url=service_url,
             )
 
@@ -1662,23 +1510,23 @@ class PromoteServicePlan(ServicePlan):
                 # NOTE: Plans are returned in the same order as they are passed in
                 results = await execute_plans(
                     [
-                        self.promote_docker_image_plan,
+                        self.promote_service_plan,
                         self.release_service_plan,
                     ],
                     tree,
                 )
 
-                promote_docker_image_result, release_service_result = results  # type: ignore
+                promote_service_result, release_service_result = results  # type: ignore
 
                 # We do this for type hinting purposes
-                promote_docker_image_result: PromoteDockerImageResult = (  # type: ignore
-                    promote_docker_image_result
+                promote_service_result: PromoteServiceResult = (  # type: ignore
+                    promote_service_result
                 )
                 release_service_result: ReleaseServiceResult = release_service_result  # type: ignore
                 deploy_successful = all(result.success for result in results)
 
-                new_to_service_state.docker_image = (
-                    promote_docker_image_result.docker_image  # type: ignore
+                new_to_service_state.deployment_id = (
+                    self.release_service_plan.deployment_id
                 )
                 new_to_service_state.service_url = release_service_result.service_url  # type: ignore
                 if deploy_successful:
@@ -1692,11 +1540,11 @@ class PromoteServicePlan(ServicePlan):
                     new_to_service_state, lock_info.lock_id
                 )
 
-                return PromoteServiceResult(
+                return PromoteFlowServiceResult(
                     self,
                     deploy_successful,
                     new_to_service_state,
-                    promote_docker_image_result,  # type: ignore
+                    promote_service_result,  # type: ignore
                     release_service_result,  # type: ignore
                 )
             except Exception as e:
@@ -1711,19 +1559,17 @@ class PromoteServicePlan(ServicePlan):
                 await self.to_service_manager.save_service(
                     new_to_service_state, lock_info.lock_id
                 )
-                promote_docker_image_result = (
-                    await self.promote_docker_image_plan.abandon_plan(
-                        "Unknown error occurred while promoting service"
-                    )
+                promote_service_result = await self.promote_service_plan.abandon_plan(
+                    "Unknown error occurred while promoting service"
                 )
                 release_service_result = await self.release_service_plan.abandon_plan(
                     "Unknown error occurred while promoting service"
                 )
-                result = PromoteServiceResult(
+                result = PromoteFlowServiceResult(
                     self,
                     False,
                     new_to_service_state,
-                    promote_docker_image_result,  # type: ignore
+                    promote_service_result,  # type: ignore
                     release_service_result,  # type: ignore
                 )
                 result.error_message = str(e)
@@ -1742,9 +1588,7 @@ class PromoteServicePlan(ServicePlan):
             pretty_inputs = f"\n{left_padding_str}    ".join(pretty_inputs.split("\n"))
             base_msg += f" With the following configuration:\n{left_padding_str}    {pretty_inputs}"
         console.print(base_msg)
-        self.promote_docker_image_plan.print_plan(
-            console, left_padding=left_padding + 4
-        )
+        self.promote_service_plan.print_plan(console, left_padding=left_padding + 4)
         self.release_service_plan.print_plan(console, left_padding=left_padding + 4)
 
     def task_description(self):
@@ -1792,7 +1636,7 @@ class PromoteServicePlan(ServicePlan):
             return (
                 a.product != b.product
                 or a.service_url != b.service_url
-                or a.docker_image != b.docker_image
+                or a.deployment_id != b.deployment_id
             )
 
         if _service_state_differs(
@@ -1815,7 +1659,7 @@ async def plan_promote_service(
     to_environment_manager: EnvironmentManager,
     verbose: bool,
     promote_local: bool,
-) -> Union[PromoteServicePlan, FailedToPlan]:
+) -> Union[PromoteFlowServicePlan, FailedToPlan]:
     try:
         validate_service_name(service.name)
     except ValueError as e:
@@ -1877,28 +1721,40 @@ async def plan_promote_service(
             error_message=str(exception),
         )
 
+    if existing_from_service.deployment_id is None:
+        exception = exceptions.ServiceMissingDeploymentId(
+            service_name=service.name,
+        )
+        return FailedToPlan(
+            service=service,
+            error_message=str(exception),
+        )
+
     # TODO: Rethink how we generate deployment ids
     deployment_id = generate_deployment_id()
 
     # Plan the build for the service
-    promote_docker_image_plan = PromoteDockerImagePlan(
+    promote_service_plan = PromoteServicePlan(
         resource_or_service=service,
         depends_on=[],
         verbose=verbose,
-        from_service_state=existing_from_service,
-        from_gcp_environment_config=from_environment_state.gcp_config,
-        to_gcp_environment_config=to_environment_state.gcp_config,
-        from_aws_environment_config=from_environment_state.aws_config,
-        to_aws_environment_config=to_environment_state.aws_config,
-        deployment_id=deployment_id,
-        promote_local=promote_local,
+        from_environment_ref=EnvironmentRef(
+            from_environment_manager, show_backend=False
+        ),
         to_environment_ref=EnvironmentRef(to_environment_manager, show_backend=False),
+        from_service_manager=from_service_manager,
+        to_service_manager=to_service_manager,
+        from_environment_state=from_environment_state,
+        to_environment_state=to_environment_state,
+        from_deployment_id=existing_from_service.deployment_id,
+        to_deployment_id=deployment_id,
+        promote_local=promote_local,
     )
 
     # Plan the release for the service
     release_plan = ReleaseServicePlan(
         resource_or_service=service,
-        depends_on=[promote_docker_image_plan],
+        depends_on=[promote_service_plan],
         verbose=verbose,
         environment_ref=EnvironmentRef(to_environment_manager, show_backend=False),
         service_manager=to_service_manager,
@@ -1907,7 +1763,7 @@ async def plan_promote_service(
         build_step_type="promote",
     )
 
-    return PromoteServicePlan(
+    return PromoteFlowServicePlan(
         resource_or_service=service,
         depends_on=[],
         verbose=verbose,
@@ -1915,7 +1771,7 @@ async def plan_promote_service(
         to_service_manager=to_service_manager,
         existing_from_service_state=existing_from_service,
         existing_to_service_state=existing_to_service,
-        promote_docker_image_plan=promote_docker_image_plan,
+        promote_service_plan=promote_service_plan,
         release_service_plan=release_plan,
     )
 
@@ -1928,7 +1784,7 @@ async def plan_promote(
     to_environment_manager: EnvironmentManager,
     verbose: bool,
     promote_local: bool,
-) -> List[Union[PromoteServicePlan, FailedToPlan]]:
+) -> List[Union[PromoteFlowServicePlan, FailedToPlan]]:
     resource_nodes: List[Resource] = []
     service_nodes: List[Service] = []
     for node in nodes:
@@ -2010,7 +1866,7 @@ async def promote(
     - `to_environment`: The name of the environment to promote services to.
     - `prompt`: Whether to prompt the user before creating resources.
     - `verbose`: If true all logs will be written to stdout.
-    - `promote_local`: If true the docker image will be moved to the new environment locally instead of on Cloud Build or Code Build.
+    - `promote_local`: If true the service artifacts will be moved to the new environment locally instead of on Cloud Build or Code Build.
     - `console`: The console to write output to.
     """
     if not nodes:
@@ -2061,10 +1917,10 @@ async def promote(
 
         progress.remove_task(task)
 
-    promote_service_plans: List[PromoteServicePlan] = []
+    promote_service_plans: List[PromoteFlowServicePlan] = []
     failed_plans: List[FailedToPlan] = []
     for plan in plans:
-        if isinstance(plan, PromoteServicePlan):
+        if isinstance(plan, PromoteFlowServicePlan):
             promote_service_plans.append(plan)
         elif isinstance(plan, FailedToPlan):
             failed_plans.append(plan)
@@ -2076,7 +1932,7 @@ async def promote(
         console=console,
     )
 
-    selected_promote_plans: Union[None, List[PromoteServicePlan]] = await select_plans(  # type: ignore
+    selected_promote_plans: Union[None, List[PromoteFlowServicePlan]] = await select_plans(  # type: ignore
         *promote_service_plans,
         operation_type="promote",
         environment_manager=to_environment_manager,
@@ -2107,7 +1963,7 @@ async def promote(
             hide_root=True,
         )
         with Live(Padding(tree, (1, 0, 1, 0)), console=console, refresh_per_second=8):
-            promote_results: List[PromoteServiceResult] = await execute_plans(  # type: ignore
+            promote_results: List[PromoteFlowServiceResult] = await execute_plans(  # type: ignore
                 selected_promote_plans,  # type: ignore
                 tree,  # type: ignore
             )
@@ -2133,21 +1989,21 @@ async def promote(
     # Add the logs for the promote service results
     for result in promote_results:
         # Logs for service image promote step
-        if result.promote_image_result.logs_file_or_link is None:
+        if result.promote_image_result.promote_logs_file is None:
             continue
 
-        log_link_line = result.promote_image_result.logs_file_or_link
+        log_link_line = result.promote_image_result.promote_logs_file
         if log_link_line.startswith("http"):
             log_link_line = f"[link={log_link_line}]{log_link_line}[/link]"
 
         if result.success:
             table.add_row(
-                f"[green]✓[/green] {result.plan.promote_docker_image_plan.operation_type.title()} {result.plan.promote_docker_image_plan.reference()}",
+                f"[green]✓[/green] {result.plan.promote_service_plan.operation_type.title()} {result.plan.promote_service_plan.reference()}",
                 log_link_line,
             )
         else:
             table.add_row(
-                f"[red]✗[/red] {result.plan.promote_docker_image_plan.operation_type.title()} {result.plan.promote_docker_image_plan.reference()}",
+                f"[red]✗[/red] {result.plan.promote_service_plan.operation_type.title()} {result.plan.promote_service_plan.reference()}",
                 log_link_line,
             )
 

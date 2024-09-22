@@ -280,97 +280,88 @@ class ECSFargateService(AWSService[ECSFargateServiceReleaseInputs]):
         except ImportError:
             raise exceptions.MissingAWSDependency()
 
+        ecs_cluster_outputs = self._ecs_cluster.outputs()
+
+        ecs_client = boto3.client("ecs", region_name=aws_environment_config.region)
+
+        ecs_service_name = self._ecs_fargate_service_container.resource_id
+        task_definition_name = f"{ecs_service_name}-task"
+
+        existing_task_def_response = ecs_client.describe_task_definition(
+            taskDefinition=task_definition_name
+        )
+        new_task_definition = existing_task_def_response["taskDefinition"]
+        # Update the Docker image reference in the task definition
+        new_task_definition["containerDefinitions"][0][
+            "image"
+        ] = release_inputs.docker_image
+        # Remove the hello world command and entrypoint
+        if "command" in new_task_definition["containerDefinitions"][0]:
+            del new_task_definition["containerDefinitions"][0]["command"]
+        if "entryPoint" in new_task_definition["containerDefinitions"][0]:
+            del new_task_definition["containerDefinitions"][0]["entryPoint"]
+        # Update the port mappings
+        new_task_definition["containerDefinitions"][0]["portMappings"] = [
+            {
+                "containerPort": self.port,
+                "hostPort": self.port,
+            }
+        ]
+        # Update the cpu and memory
+        service_inputs = self.inputs()
+        new_task_definition["cpu"] = str(service_inputs.cpu)
+        new_task_definition["memory"] = str(service_inputs.memory)
+
+        # Add the environment variables
+        new_task_definition["containerDefinitions"][0]["environment"] = [
+            {
+                "name": "LAUNCHFLOW_ARTIFACT_BUCKET",
+                "value": f"s3://{aws_environment_config.artifact_bucket}",
+            },
+            {"name": "LAUNCHFLOW_PROJECT", "value": launchflow_uri.project_name},
+            {
+                "name": "LAUNCHFLOW_ENVIRONMENT",
+                "value": launchflow_uri.environment_name,
+            },
+            {"name": "LAUNCHFLOW_CLOUD_PROVIDER", "value": "aws"},
+            {"name": "LAUNCHFLOW_DEPLOYMENT_ID", "value": deployment_id},
+        ]
+
+        # Pulled from: https://stackoverflow.com/questions/69830579/aws-ecs-using-boto3-to-update-a-task-definition
+        remove_args = [
+            "compatibilities",
+            "registeredAt",
+            "registeredBy",
+            "status",
+            "revision",
+            "taskDefinitionArn",
+            "requiresAttributes",
+        ]
+        for arg in remove_args:
+            new_task_definition.pop(arg, None)
+
+        new_task_definition["tags"] = [
+            {"key": "Project", "value": launchflow_uri.project_name},
+            {"key": "Environment", "value": launchflow_uri.environment_name},
+        ]
+        reg_task_def_response = ecs_client.register_task_definition(
+            **new_task_definition
+        )
+
+        ecs_client.update_service(
+            cluster=ecs_cluster_outputs.cluster_name,
+            service=ecs_service_name,
+            taskDefinition=reg_task_def_response["taskDefinition"]["taskDefinitionArn"],
+        )
+        # This waiter will wait for the service to reach a steady state. It raises an error after 60 attempts.
+        waiter = ecs_client.get_waiter("services_stable")
         try:
-            ecs_cluster_outputs = self._ecs_cluster.outputs()
-
-            ecs_client = boto3.client("ecs", region_name=aws_environment_config.region)
-
-            ecs_service_name = self._ecs_fargate_service_container.resource_id
-            task_definition_name = f"{ecs_service_name}-task"
-
-            existing_task_def_response = ecs_client.describe_task_definition(
-                taskDefinition=task_definition_name
-            )
-            new_task_definition = existing_task_def_response["taskDefinition"]
-            # Update the Docker image reference in the task definition
-            new_task_definition["containerDefinitions"][0][
-                "image"
-            ] = release_inputs.docker_image
-            # Remove the hello world command and entrypoint
-            if "command" in new_task_definition["containerDefinitions"][0]:
-                del new_task_definition["containerDefinitions"][0]["command"]
-            if "entryPoint" in new_task_definition["containerDefinitions"][0]:
-                del new_task_definition["containerDefinitions"][0]["entryPoint"]
-            # Update the port mappings
-            new_task_definition["containerDefinitions"][0]["portMappings"] = [
-                {
-                    "containerPort": self.port,
-                    "hostPort": self.port,
-                }
-            ]
-            # Update the cpu and memory
-            service_inputs = self.inputs()
-            new_task_definition["cpu"] = str(service_inputs.cpu)
-            new_task_definition["memory"] = str(service_inputs.memory)
-
-            # Add the environment variables
-            new_task_definition["containerDefinitions"][0]["environment"] = [
-                {
-                    "name": "LAUNCHFLOW_ARTIFACT_BUCKET",
-                    "value": f"s3://{aws_environment_config.artifact_bucket}",
-                },
-                {"name": "LAUNCHFLOW_PROJECT", "value": launchflow_uri.project_name},
-                {
-                    "name": "LAUNCHFLOW_ENVIRONMENT",
-                    "value": launchflow_uri.environment_name,
-                },
-                {"name": "LAUNCHFLOW_CLOUD_PROVIDER", "value": "aws"},
-                {"name": "LAUNCHFLOW_DEPLOYMENT_ID", "value": deployment_id},
-            ]
-
-            # Pulled from: https://stackoverflow.com/questions/69830579/aws-ecs-using-boto3-to-update-a-task-definition
-            remove_args = [
-                "compatibilities",
-                "registeredAt",
-                "registeredBy",
-                "status",
-                "revision",
-                "taskDefinitionArn",
-                "requiresAttributes",
-            ]
-            for arg in remove_args:
-                new_task_definition.pop(arg, None)
-
-            new_task_definition["tags"] = [
-                {"key": "Project", "value": launchflow_uri.project_name},
-                {"key": "Environment", "value": launchflow_uri.environment_name},
-            ]
-            reg_task_def_response = ecs_client.register_task_definition(
-                **new_task_definition
-            )
-
-            ecs_client.update_service(
+            waiter.wait(
                 cluster=ecs_cluster_outputs.cluster_name,
-                service=ecs_service_name,
-                taskDefinition=reg_task_def_response["taskDefinition"][
-                    "taskDefinitionArn"
-                ],
+                services=[ecs_service_name],
+                WaiterConfig={"Delay": 15, "MaxAttempts": 60},
             )
-            # This waiter will wait for the service to reach a steady state. It raises an error after 60 attempts.
-            waiter = ecs_client.get_waiter("services_stable")
-            try:
-                waiter.wait(
-                    cluster=ecs_cluster_outputs.cluster_name,
-                    services=[ecs_service_name],
-                    WaiterConfig={"Delay": 15, "MaxAttempts": 60},
-                )
-            except WaiterError as e:
-                # TODO: Raise a custom exception here
-                # TODO: Add a check to see if the task is crash looping, and maybe rollback the task definition
-                raise e
-
-        except Exception as e:
-            raise exceptions.ServiceReleaseFailed(
-                error_message=f"Error releaseing ECS Fargate Service: {str(e)}",
-                release_logs_or_link="TODO",
-            )
+        except WaiterError as e:
+            # TODO: Raise a custom exception here
+            # TODO: Add a check to see if the task is crash looping, and maybe rollback the task definition
+            raise e

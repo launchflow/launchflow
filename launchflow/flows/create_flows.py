@@ -154,7 +154,7 @@ class CreateResourcePlan(ResourcePlan):
             return await self.abandon_plan("Plan was not locked before execution.")
 
         # SETUP
-        base_logging_dir = "/tmp/launchflow"
+        base_logging_dir = "/tmp/lf"
         os.makedirs(base_logging_dir, exist_ok=True)
         logs_file = f"{base_logging_dir}/{self.resource.name}-{int(time.time())}.log"
 
@@ -503,7 +503,7 @@ class CreateServicePlan(ServicePlan):
                 gcp_id = self.existing_service_state.gcp_id
                 aws_arn = self.existing_service_state.aws_arn
                 service_url = self.existing_service_state.service_url
-                docker_image = self.existing_service_state.docker_image
+                deployment_id = self.existing_service_state.deployment_id
             else:
                 created_time = updated_time
                 # NOTE: We dont save the inputs until the create is successful
@@ -511,7 +511,7 @@ class CreateServicePlan(ServicePlan):
                 gcp_id = None
                 aws_arn = None
                 service_url = None
-                docker_image = None
+                deployment_id = None
 
             if self.operation_type == "update":
                 status = ServiceStatus.UPDATING
@@ -529,7 +529,7 @@ class CreateServicePlan(ServicePlan):
                 gcp_id=gcp_id,
                 aws_arn=aws_arn,
                 service_url=service_url,
-                docker_image=docker_image,
+                deployment_id=deployment_id,
             )
 
             non_noop_plans = [
@@ -912,9 +912,9 @@ async def plan_create_resources(
                     dependency_plan
                 )
                 if isinstance(resolved_dependency_plan, FailedToPlan):
-                    resource_name_to_plan[resource_dependency.name] = (
-                        resolved_dependency_plan
-                    )
+                    resource_name_to_plan[
+                        resource_dependency.name
+                    ] = resolved_dependency_plan
                     return FailedToPlan(
                         resource=plan.resource,
                         error_message=f"DependencyFailedToPlan: {ResourceRef(plan.resource)} depends on {ResourceRef(resource_dependency)} which failed to plan.",

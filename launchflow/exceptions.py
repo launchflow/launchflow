@@ -148,6 +148,13 @@ class ServiceProductMismatch(Exception):
         )
 
 
+class ServiceMissingDeploymentId(Exception):
+    def __init__(self, service_name: str) -> None:
+        super().__init__(
+            f"Service '{service_name}' is missing a deployment id. Please run `lf deploy {service_name}` to deploy it before promoting."
+        )
+
+
 class GCPConfigNotFound(Exception):
     def __init__(self, environment_name: str) -> None:
         super().__init__(
@@ -454,30 +461,6 @@ class ProjectNotEmpty(Exception):
             f"    $ lf environments delete <environment_name> --project {project_name}"
             "\n\n"
         )
-
-
-class ServiceBuildFailed(Exception):
-    def __init__(self, error_message: str, build_logs_or_link: str) -> None:
-        super().__init__(
-            f"Service build failed with error: {error_message}. For more details see: {build_logs_or_link}"
-        )
-        self.build_logs_or_link = build_logs_or_link
-
-
-class ServiceReleaseFailed(Exception):
-    def __init__(self, error_message: str, release_logs_or_link: str) -> None:
-        super().__init__(
-            f"Service release failed with error: {error_message}. For more details see: {release_logs_or_link}"
-        )
-        self.release_logs_or_link = release_logs_or_link
-
-
-class ServicePromoteFailed(Exception):
-    def __init__(self, error_message: str, promote_logs_or_link: str) -> None:
-        super().__init__(
-            f"Service promote failed with error: {error_message}. For more details see: {promote_logs_or_link}"
-        )
-        self.promote_logs_or_link = promote_logs_or_link
 
 
 class PlanAlreadyLocked(Exception):

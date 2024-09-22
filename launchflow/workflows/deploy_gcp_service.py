@@ -2,34 +2,22 @@ import asyncio
 import gzip
 import hashlib
 import io
-import json
 import os
 import time
 import uuid
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Tuple
+from typing import IO, Any, Callable, List
 
 import requests
 from docker.errors import APIError, BuildError
-from kubernetes import config as k8_config
 from pathspec import PathSpec
 
 from launchflow import exceptions
 from launchflow.config import config
-from launchflow.gcp.cloud_run import CloudRunService
-from launchflow.gcp.compute_engine_service import ComputeEngineService
 from launchflow.gcp.firebase_site import FirebaseStaticSite
-from launchflow.gcp.gke_service import GKEService
-from launchflow.gcp.service import GCPDockerService
 from launchflow.gcp.static_site import GCSWebsite
-from launchflow.managers.service_manager import ServiceManager
-from launchflow.models.flow_state import GCPEnvironmentConfig, ServiceState
-from launchflow.workflows.k8s_service import update_k8s_service
+from launchflow.models.flow_state import GCPEnvironmentConfig
 from launchflow.workflows.utils import tar_source_in_memory
-
-4
-if TYPE_CHECKING:
-    from google.cloud.container import Cluster
 
 
 async def _upload_source_tarball_to_gcs(
@@ -66,6 +54,7 @@ async def _run_docker_gcp_cloud_build(
     dockerfile_path: str,
     artifact_bucket: str,
     service_account_email: str,
+    build_log_file: IO,
 ):
     try:
         from google.cloud.devtools import cloudbuild_v1
@@ -121,27 +110,170 @@ async def _run_docker_gcp_cloud_build(
         build=build,
         timeout=3600,  # 1 hour timeout
     )
-    build_url = f"https://console.cloud.google.com/cloud-build/builds/{operation.metadata.build.id}?project={gcp_project_id}"
+    build_url = f"https://console.cloud.google.com/cloud-build/builds/{operation.metadata.build.id}?project={gcp_project_id}"  # type: ignore
     # Add logs to the table to the table
     try:
         # For some reason timeout=None is not working, so we set it to 1 hour
-        await operation.result(timeout=3600)
-    except Exception as e:
-        raise exceptions.ServiceBuildFailed(
-            error_message=str(e), build_logs_or_link=build_url
+        build_log_file.write(
+            f"Building image {tagged_image_name}\nSee remote build logs at: {build_url}\n"
         )
+        await operation.result(timeout=3600)
+        build_log_file.write(f"Successfully built image {tagged_image_name}\n")
+    except Exception as e:
+        build_log_file.write(
+            f"Error running GCP Cloud Build: {e}\nSee remote build logs at: {build_url}\n"
+        )
+        raise e
 
     # Return the docker image name
-    return tagged_image_name, build_url
+    return tagged_image_name
 
 
-def _write_build_logs(file_path: str, log_stream):
-    with open(file_path, "a") as f:
-        for chunk in log_stream:
-            if "stream" in chunk:
-                f.write(chunk["stream"])
-            if "status" in chunk:
-                f.write(chunk["status"] + "\n")
+def _write_build_logs(f: IO, log_stream):
+    for chunk in log_stream:
+        if "stream" in chunk:
+            f.write(chunk["stream"])
+        if "status" in chunk:
+            f.write(chunk["status"] + "\n")
+
+
+async def _promote_docker_image(
+    source_env_region: str,
+    source_docker_image: str,
+    target_docker_repository: str,
+    docker_image_name: str,
+    docker_image_tag: str,
+    target_gcp_project_id: str,
+    target_artifact_bucket: str,
+    target_service_account_email: str,
+    build_log_file: IO,
+):
+    try:
+        import google.auth
+        import google.auth.transport.requests
+        from google.cloud.devtools import cloudbuild_v1
+    except ImportError:
+        raise exceptions.MissingGCPDependency()
+
+    target_image = f"{target_docker_repository}/{docker_image_name}"
+    tagged_target_image = f"{target_image}:{docker_image_tag}"
+    latest_target_image = f"{target_image}:latest"
+
+    # Fetch creds to use for pulling the source image in the target's project
+    creds, _ = google.auth.default(
+        scopes=["https://www.googleapis.com/auth/cloud-platform"]
+    )
+    creds.refresh(google.auth.transport.requests.Request())  # type: ignore
+
+    build = cloudbuild_v1.Build(
+        service_account=f"projects/{target_gcp_project_id}/serviceAccounts/{target_service_account_email}",
+        logs_bucket=f"gs://{target_artifact_bucket}/logs/cloud-builds",
+        steps=[
+            # Pull the latest image from the registry to use as a cache
+            cloudbuild_v1.BuildStep(
+                name="gcr.io/cloud-builders/docker",
+                entrypoint="bash",
+                args=[
+                    "-c",
+                    (
+                        f"echo {creds.token} | docker login --username=oauth2accesstoken --password-stdin https://{source_env_region}-docker.pkg.dev "  # type: ignore
+                        f"&& docker pull {source_docker_image} "
+                        f"&& docker tag {source_docker_image} {target_image}:{docker_image_tag} "
+                        f"&& docker tag {source_docker_image} {target_image}:latest"
+                    ),
+                ],
+            ),
+        ],
+        # NOTE: This is what pushes the image to the registry
+        images=[target_image, tagged_target_image, latest_target_image],
+    )
+    # Submit the build to Cloud Build
+    cloud_build_client = cloudbuild_v1.CloudBuildAsyncClient()
+    operation = await cloud_build_client.create_build(
+        project_id=target_gcp_project_id,
+        build=build,
+        timeout=3600,  # 1 hour timeout
+    )
+    build_url = f"https://console.cloud.google.com/cloud-build/builds/{operation.metadata.build.id}?project={target_gcp_project_id}"  # type: ignore
+    try:
+        # For some reason timeout=None is not working, so we set it to 1 hour
+        build_log_file.write(
+            f"Promoting image to {tagged_target_image}\nSee remote build logs at: {build_url}\n"
+        )
+        await operation.result(timeout=3600)
+        build_log_file.write(f"Successfully promoted image to {tagged_target_image}\n")
+    except Exception as e:
+        build_log_file.write(
+            f"Error running GCP Cloud Build: {e}\nSee remote build logs at: {build_url}\n"
+        )
+        raise e
+
+    # Return the docker image name
+    return tagged_target_image
+
+
+async def _promote_docker_image_local(
+    source_artifact_registry_repository: str,
+    target_artifact_registry_repository: str,
+    source_docker_image: str,
+    docker_image_name: str,
+    docker_image_tag: str,
+    build_log_file: IO,
+):
+    target_image = f"{target_artifact_registry_repository}/{docker_image_name}"
+    tagged_target_image = f"{target_image}:{docker_image_tag}"
+
+    try:
+        import google.auth
+        import google.auth.transport.requests
+    except ImportError:
+        raise exceptions.MissingGCPDependency()
+    try:
+        from docker import from_env  # type: ignore
+    except ImportError:
+        raise exceptions.MissingDockerDependency()
+
+    # Fetch creds to use for pulling the source image in the target's project
+    source_token = os.environ.get("SOURCE_ENV_DOCKER_TOKEN")
+    creds, _ = google.auth.default(
+        scopes=["https://www.googleapis.com/auth/cloud-platform"]
+    )
+    creds.refresh(google.auth.transport.requests.Request())  # type: ignore
+    if source_token is None:
+        source_token = creds.token  # type: ignore
+
+    def promote_image():
+        source_registry_name = source_artifact_registry_repository.split("/")[0]
+        docker_client = from_env()
+        docker_client.login(
+            username="oauth2accesstoken",
+            password=source_token,
+            registry=f"https://{source_registry_name}",
+        )
+        try:
+            image = docker_client.images.pull(source_docker_image)
+        except APIError:
+            sa_email = None
+            if hasattr(creds, "service_account_email"):
+                sa_email = creds.service_account_email  # type: ignore
+            raise exceptions.GCPDockerPullFailed(
+                service_account_email=sa_email, docker_image=source_docker_image
+            )
+        image.tag(target_image, docker_image_tag)
+        image.tag(target_image, "latest")
+        output = docker_client.images.push(
+            target_image, docker_image_tag, stream=True, decode=True
+        )
+        _write_build_logs(build_log_file, output)
+        output = docker_client.images.push(
+            target_image, "latest", stream=True, decode=True
+        )
+        _write_build_logs(build_log_file, output)
+
+    loop = asyncio.get_running_loop()
+    await loop.run_in_executor(None, promote_image)
+    # Return the docker image name
+    return tagged_target_image
 
 
 # TODO: Look into cleaning up old images. I noticed my docker images were taking up a lot of space
@@ -152,7 +284,7 @@ async def _build_docker_image_local(
     docker_image_tag: str,
     local_source_dir: str,
     dockerfile_path: str,
-    build_logs_file: str,
+    build_log_file: IO,
 ):
     try:
         from docker import errors, from_env  # type: ignore
@@ -172,10 +304,10 @@ async def _build_docker_image_local(
     creds, _ = google.auth.default(
         scopes=["https://www.googleapis.com/auth/cloud-platform"],
     )
-    creds.refresh(google.auth.transport.requests.Request())
+    creds.refresh(google.auth.transport.requests.Request())  # type: ignore
     docker_client.login(
         username="oauth2accesstoken",
-        password=creds.token,
+        password=creds.token,  # type: ignore
         registry=f"https://{docker_repository.split('/')[0]}",
     )
 
@@ -202,12 +334,10 @@ async def _build_docker_image_local(
                 platform="linux/amd64",
             ),
         )
-        _write_build_logs(build_logs_file, log_stream)
+        _write_build_logs(build_log_file, log_stream)
     except BuildError as e:
-        _write_build_logs(build_logs_file, e.build_log)
-        raise exceptions.ServiceBuildFailed(
-            error_message=str(e), build_logs_or_link=build_logs_file
-        )
+        _write_build_logs(build_log_file, e.build_log)
+        raise e
 
     # Tag as latest
     docker_client.images.get(tagged_image_name).tag(latest_image_name)
@@ -220,229 +350,66 @@ async def _build_docker_image_local(
     return tagged_image_name
 
 
-async def _promote_docker_image(
-    source_env_region: str,
-    source_docker_image: str,
-    target_docker_repository: str,
-    docker_image_name: str,
-    docker_image_tag: str,
-    target_gcp_project_id: str,
-    target_artifact_bucket: str,
-    target_service_account_email: str,
-):
-    try:
-        import google.auth
-        import google.auth.transport.requests
-        from google.cloud.devtools import cloudbuild_v1
-    except ImportError:
-        raise exceptions.MissingGCPDependency()
-
-    target_image = f"{target_docker_repository}/{docker_image_name}"
-    tagged_target_image = f"{target_image}:{docker_image_tag}"
-    latest_target_image = f"{target_image}:latest"
-
-    # Fetch creds to use for pulling the source image in the target's project
-    creds, _ = google.auth.default(
-        scopes=["https://www.googleapis.com/auth/cloud-platform"]
-    )
-    creds.refresh(google.auth.transport.requests.Request())
-
-    build = cloudbuild_v1.Build(
-        service_account=f"projects/{target_gcp_project_id}/serviceAccounts/{target_service_account_email}",
-        logs_bucket=f"gs://{target_artifact_bucket}/logs/cloud-builds",
-        steps=[
-            # Pull the latest image from the registry to use as a cache
-            cloudbuild_v1.BuildStep(
-                name="gcr.io/cloud-builders/docker",
-                entrypoint="bash",
-                args=[
-                    "-c",
-                    (
-                        f"echo {creds.token} | docker login --username=oauth2accesstoken --password-stdin https://{source_env_region}-docker.pkg.dev "
-                        f"&& docker pull {source_docker_image} "
-                        f"&& docker tag {source_docker_image} {target_image}:{docker_image_tag} "
-                        f"&& docker tag {source_docker_image} {target_image}:latest"
-                    ),
-                ],
-            ),
-        ],
-        # NOTE: This is what pushes the image to the registry
-        images=[target_image, tagged_target_image, latest_target_image],
-    )
-    # Submit the build to Cloud Build
-    cloud_build_client = cloudbuild_v1.CloudBuildAsyncClient()
-    operation = await cloud_build_client.create_build(
-        project_id=target_gcp_project_id,
-        build=build,
-        timeout=3600,  # 1 hour timeout
-    )
-    build_url = f"https://console.cloud.google.com/cloud-build/builds/{operation.metadata.build.id}?project={target_gcp_project_id}"
-    try:
-        # For some reason timeout=None is not working, so we set it to 1 hour
-        await operation.result(timeout=3600)
-    except Exception as e:
-        raise exceptions.ServicePromoteFailed(
-            error_message=str(e), promote_logs_or_link=build_url
-        )
-
-    # Return the docker image name
-    return tagged_target_image, build_url
-
-
-async def _promote_docker_image_local(
-    source_service_region: str,
-    source_docker_image: str,
-    target_docker_repository: str,
-    target_service_region: str,
-    docker_image_name: str,
-    docker_image_tag: str,
-):
-    target_image = f"{target_docker_repository}/{docker_image_name}"
-    tagged_target_image = f"{target_image}:{docker_image_tag}"
-
-    try:
-        import google.auth
-        import google.auth.transport.requests
-    except ImportError:
-        raise exceptions.MissingGCPDependency()
-    try:
-        from docker import from_env  # type: ignore
-    except ImportError:
-        raise exceptions.MissingDockerDependency()
-
-    # Fetch creds to use for pulling the source image in the target's project
-    source_token = os.environ.get("SOURCE_ENV_DOCKER_TOKEN")
-    creds, _ = google.auth.default(
-        scopes=["https://www.googleapis.com/auth/cloud-platform"]
-    )
-    creds.refresh(google.auth.transport.requests.Request())
-    if source_token is None:
-        source_token = creds.token
-
-    base_logging_dir = "/tmp/launchflow"
-    os.makedirs(base_logging_dir, exist_ok=True)
-    full_log_file = os.path.join(base_logging_dir, f"promote_{docker_image_tag}.log")
-
-    def promote_image():
-        docker_client = from_env()
-        docker_client.login(
-            username="oauth2accesstoken",
-            password=source_token,
-            registry=f"https://{source_service_region}-docker.pkg.dev",
-        )
-        try:
-            image = docker_client.images.pull(source_docker_image)
-        except APIError:
-            sa_email = None
-            if hasattr(creds, "service_account_email"):
-                sa_email = creds.service_account_email
-            raise exceptions.GCPDockerPullFailed(
-                service_account_email=sa_email, docker_image=source_docker_image
-            )
-        image.tag(target_image, docker_image_tag)
-        image.tag(target_image, "latest")
-        output = docker_client.images.push(
-            target_image, docker_image_tag, stream=True, decode=True
-        )
-        _write_build_logs(full_log_file, output)
-        output = docker_client.images.push(
-            target_image, "latest", stream=True, decode=True
-        )
-        _write_build_logs(full_log_file, output)
-
-    loop = asyncio.get_running_loop()
-    await loop.run_in_executor(None, promote_image)
-    # Return the docker image name
-    return tagged_target_image, full_log_file
-
-
-async def build_and_push_gcp_service(
-    gcp_service: GCPDockerService,
-    service_manager: ServiceManager,
+async def build_artifact_registry_docker_image_on_cloud_build(
+    dockerfile_path: str,
+    build_directory: str,
+    build_ignore: List[str],
+    build_log_file: IO,
+    artifact_registry_repository: str,
+    launchflow_project_name: str,
+    launchflow_environment_name: str,
+    launchflow_service_name: str,
+    launchflow_deployment_id: str,
     gcp_environment_config: GCPEnvironmentConfig,
-    deployment_id: str,
-    build_local: bool,
-) -> Tuple[str, str]:
-    if build_local:
-        return await build_gcp_service_locally(
-            gcp_service=gcp_service,
-            service_manager=service_manager,
-            deployment_id=deployment_id,
-        )
-    return await build_docker_image_on_cloud_build(
-        gcp_service=gcp_service,
-        service_manager=service_manager,
-        gcp_environment_config=gcp_environment_config,
-        deployment_id=deployment_id,
-    )
-
-
-async def build_docker_image_on_cloud_build(
-    gcp_service: GCPDockerService,
-    service_manager: ServiceManager,
-    gcp_environment_config: GCPEnvironmentConfig,
-    deployment_id: str,
-) -> Tuple[str, str]:
-    full_yaml_path = os.path.dirname(
-        os.path.abspath(config.launchflow_yaml.config_path)
-    )
-    local_source_dir = os.path.join(full_yaml_path, gcp_service.build_directory)
-    source_tarball_gcs_path = f"builds/{service_manager.project_name}/{service_manager.environment_name}/services/{service_manager.service_name}/source.tar.gz"
+) -> str:
+    source_tarball_gcs_path = f"builds/{launchflow_project_name}/{launchflow_environment_name}/services/{launchflow_service_name}/source.tar.gz"
     # Step 1 - Upload the source tarball to GCS
     await _upload_source_tarball_to_gcs(
         source_tarball_gcs_path=source_tarball_gcs_path,
         artifact_bucket=gcp_environment_config.artifact_bucket,  # type: ignore
-        local_source_dir=local_source_dir,
-        build_ignore=gcp_service.build_ignore,
+        local_source_dir=build_directory,
+        build_ignore=build_ignore,
     )
 
-    service_outputs = gcp_service.outputs()
-
     # Step 2 - Build and push the docker image
-    docker_image, build_url = await _run_docker_gcp_cloud_build(
-        docker_repository=service_outputs.docker_repository,
-        docker_image_name=service_manager.service_name,
-        docker_image_tag=deployment_id,
+    docker_image = await _run_docker_gcp_cloud_build(
+        docker_repository=artifact_registry_repository,
+        docker_image_name=launchflow_service_name,
+        docker_image_tag=launchflow_deployment_id,
         gcs_source_bucket=gcp_environment_config.artifact_bucket,  # type: ignore
         gcs_source_object=source_tarball_gcs_path,
         gcp_project_id=gcp_environment_config.project_id,  # type: ignore
-        dockerfile_path=gcp_service.dockerfile,
+        dockerfile_path=dockerfile_path,
         artifact_bucket=gcp_environment_config.artifact_bucket,  # type: ignore
         service_account_email=gcp_environment_config.service_account_email,  # type: ignore
+        build_log_file=build_log_file,
     )
 
-    return docker_image, build_url
+    return docker_image
 
 
-async def build_gcp_service_locally(
-    gcp_service: GCPDockerService,
-    service_manager: ServiceManager,
-    deployment_id: str,
-) -> Tuple[str, str]:
-    full_yaml_path = os.path.dirname(
-        os.path.abspath(config.launchflow_yaml.config_path)
-    )
-    local_source_dir = os.path.join(full_yaml_path, gcp_service.build_directory)
+async def build_artifact_registry_docker_image_locally(
+    dockerfile_path: str,
+    build_directory: str,
+    build_ignore: List[str],
+    build_log_file: IO,
+    artifact_registry_repository: str,
+    launchflow_service_name: str,
+    launchflow_deployment_id: str,
+    gcp_environment_config: GCPEnvironmentConfig,
+) -> str:
+    del build_ignore  # TODO: Use this to ignore files while building the docker image
 
-    service_outputs = gcp_service.outputs()
-
-    base_logging_dir = "/tmp/launchflow"
-    os.makedirs(base_logging_dir, exist_ok=True)
-    build_logs_file = (
-        f"{base_logging_dir}/{service_manager.service_name}-{int(time.time())}.log"
-    )
-
-    # Step 1 - Build and push the docker image
     docker_image = await _build_docker_image_local(
-        docker_repository=service_outputs.docker_repository,
-        docker_image_name=service_manager.service_name,
-        docker_image_tag=deployment_id,
-        local_source_dir=local_source_dir,
-        dockerfile_path=gcp_service.dockerfile,
-        build_logs_file=build_logs_file,
+        docker_repository=artifact_registry_repository,
+        docker_image_name=launchflow_service_name,
+        docker_image_tag=launchflow_deployment_id,
+        local_source_dir=build_directory,
+        dockerfile_path=dockerfile_path,
+        build_log_file=build_log_file,
     )
 
-    return docker_image, build_logs_file
+    return docker_image
 
 
 async def upload_local_files_to_static_site(
@@ -482,7 +449,7 @@ async def upload_local_files_to_static_site(
     creds, _ = google.auth.default(
         scopes=["https://www.googleapis.com/auth/cloud-platform"],
     )
-    creds.refresh(google.auth.transport.requests.Request())
+    creds.refresh(google.auth.transport.requests.Request())  # type: ignore
 
     # Build the Compute Engine service object
     compute_service = build("compute", "v1", credentials=creds)
@@ -551,7 +518,7 @@ async def deploy_local_files_to_firebase_static_site(
         quota_project_id=gcp_environment_config.project_id,  # type: ignore
         scopes=["https://www.googleapis.com/auth/cloud-platform"],
     )
-    creds.refresh(google.auth.transport.requests.Request())
+    creds.refresh(google.auth.transport.requests.Request())  # type: ignore
 
     # Build the Firebase Hosting service object
     firebase_service = build("firebasehosting", "v1beta1", credentials=creds)
@@ -651,7 +618,7 @@ async def deploy_local_files_to_firebase_static_site(
 
             # Upload the file
             headers = {
-                "Authorization": f"Bearer {creds.token}",
+                "Authorization": f"Bearer {creds.token}",  # type: ignore
                 "Content-Type": "application/octet-stream",
             }
             response = requests.post(
@@ -699,53 +666,7 @@ async def deploy_local_files_to_firebase_static_site(
     return service_url
 
 
-# TODO: It looks like there might be a transient error we need to handle and retry
-# Revision 'my-service-new-env-00005-zdj' is not ready and cannot serve traffic. Health check
-# failed for the deployment with the user-provided VPC network. Got permission denied error.
-async def release_docker_image_to_cloud_run(
-    docker_image: str,
-    service_manager: ServiceManager,
-    gcp_environment_config: GCPEnvironmentConfig,
-    cloud_run_service: CloudRunService,
-    deployment_id: str,
-) -> str:
-    try:
-        from google.cloud import run_v2
-    except ImportError:
-        raise exceptions.MissingGCPDependency()
-
-    cloud_run_outputs = cloud_run_service.outputs()
-    if cloud_run_outputs.gcp_id is None:
-        raise exceptions.ServiceOutputsMissingField(cloud_run_service.name, "gcp_id")
-
-    client = run_v2.ServicesAsyncClient()
-    service = await client.get_service(name=cloud_run_outputs.gcp_id)
-    # Updating the service container will trigger a new revision to be created
-    service.template.containers[0].image = docker_image
-
-    # Add or update the environment variables
-    fields_to_add = {
-        "LAUNCHFLOW_ARTIFACT_BUCKET": f"gs://{gcp_environment_config.artifact_bucket}",
-        "LAUNCHFLOW_PROJECT": service_manager.project_name,
-        "LAUNCHFLOW_ENVIRONMENT": service_manager.environment_name,
-        "LAUNCHFLOW_CLOUD_PROVIDER": "gcp",
-        "LAUNCHFLOW_DEPLOYMENT_ID": deployment_id,
-    }
-    for env_var in service.template.containers[0].env:
-        if env_var.name in fields_to_add:
-            env_var.value = fields_to_add[env_var.name]
-            del fields_to_add[env_var.name]
-    for key, value in fields_to_add.items():
-        service.template.containers[0].env.append(run_v2.EnvVar(name=key, value=value))
-
-    operation = await client.update_service(request=None, service=service)
-    response = await operation.result()
-
-    # This is the cloud run service url
-    return response.uri
-
-
-async def wait_for_op(op):
+async def _wait_for_op(op):
     while not op.done():
         await asyncio.sleep(2)
     return op.result()
@@ -768,7 +689,7 @@ async def _retry_remote_disconnected(fn: Callable, *args, **kwargs):
     raise ValueError("Failed to connect to remote service")
 
 
-async def poll_mig_updating(
+async def _poll_mig_updating(
     client: Any, mig_name: str, project: str, region: str, timeout: timedelta
 ):
     def get_mig():
@@ -786,283 +707,37 @@ async def poll_mig_updating(
         mig = await _retry_remote_disconnected(get_mig)
 
 
-async def release_docker_image_to_compute_engine(
-    docker_image: str,
-    service_manager: ServiceManager,
-    gcp_environment_config: GCPEnvironmentConfig,
-    compute_engine_service: ComputeEngineService,
-    deployment_id: str,
-) -> str:
-    region = compute_engine_service.region or gcp_environment_config.default_region
-    try:
-        from google.cloud import compute
-    except ImportError:
-        raise exceptions.MissingGCPDependency()
-
-    template_client = compute.InstanceTemplatesClient()
-    template = compute.InstanceTemplate(
-        name=f"{service_manager.service_name}-{deployment_id}",
-        properties=compute.InstanceProperties(
-            machine_type=compute_engine_service.machine_type,
-            disks=[
-                compute.AttachedDisk(
-                    boot=True,
-                    auto_delete=True,
-                    initialize_params=compute.AttachedDiskInitializeParams(
-                        disk_size_gb=compute_engine_service.disk_size_gb,
-                        source_image="https://www.googleapis.com/compute/v1/projects/cos-cloud/global/images/cos-stable-109-17800-147-54",
-                    ),
-                ),
-            ],
-            tags=compute.Tags(items=[compute_engine_service._mig.resource_id]),
-            labels={"container-vm": "cos-stable-109-17800-147-54"},
-            metadata=compute.Metadata(
-                items=[
-                    compute.Items(
-                        key="google-logging-enabled",
-                        value="true",
-                    ),
-                    compute.Items(
-                        key="google-monitoring-enabled",
-                        value="true",
-                    ),
-                    compute.Items(
-                        key="gce-container-declaration",
-                        value=json.dumps(
-                            {
-                                "spec": {
-                                    "containers": [
-                                        {
-                                            "image": docker_image,
-                                            "env": [
-                                                {
-                                                    "name": "LAUNCHFLOW_ARTIFACT_BUCKET",
-                                                    "value": f"gs://{gcp_environment_config.artifact_bucket}",
-                                                },
-                                                {
-                                                    "name": "LAUNCHFLOW_PROJECT",
-                                                    "value": service_manager.project_name,
-                                                },
-                                                {
-                                                    "name": "LAUNCHFLOW_ENVIRONMENT",
-                                                    "value": service_manager.environment_name,
-                                                },
-                                                {
-                                                    "name": "LAUNCHFLOW_CLOUD_PROVIDER",
-                                                    "value": "gcp",
-                                                },
-                                                {
-                                                    "name": "LAUNCHFLOW_DEPLOYMENT_ID",
-                                                    "value": deployment_id,
-                                                },
-                                            ],
-                                        },
-                                    ]
-                                },
-                                "volumes": [],
-                                "restartPolicy": "Always",
-                            }
-                        ),
-                    ),
-                ]
-            ),
-            network_interfaces=[
-                compute.NetworkInterface(
-                    network=f"https://www.googleapis.com/compute/beta/projects/{gcp_environment_config.project_id}/global/networks/default",
-                    access_configs=[
-                        compute.AccessConfig(
-                            name="External NAT",
-                            type="ONE_TO_ONE_NAT",
-                        ),
-                    ],
-                )
-            ],
-            service_accounts=[
-                compute.ServiceAccount(
-                    email=gcp_environment_config.service_account_email,
-                    scopes=["https://www.googleapis.com/auth/cloud-platform"],
-                )
-            ],
-        ),
-    )
-
-    def insert_template():
-        return template_client.insert(
-            project=gcp_environment_config.project_id,
-            instance_template_resource=template,
-        )
-
-    template_op = await _retry_remote_disconnected(insert_template)
-
-    await wait_for_op(template_op)
-
-    group_client = compute.RegionInstanceGroupManagersClient()
-
-    def update_instances():
-        return group_client.patch(
-            instance_group_manager=compute_engine_service._mig.resource_id,
-            project=gcp_environment_config.project_id,
-            region=region,
-            instance_group_manager_resource=compute.InstanceGroupManager(
-                versions=[
-                    compute.InstanceGroupManagerVersion(
-                        instance_template=f"projects/{gcp_environment_config.project_id}/global/instanceTemplates/{template.name}",
-                        name=template.name,
-                    )
-                ],
-                update_policy=compute.InstanceGroupManagerUpdatePolicy(
-                    type_="PROACTIVE"
-                ),
-            ),
-        )
-
-    update_op = await _retry_remote_disconnected(update_instances)
-    await wait_for_op(update_op)
-    await poll_mig_updating(
-        group_client,
-        compute_engine_service._mig.resource_id,
-        gcp_environment_config.project_id,  # type: ignore
-        region,
-        compute_engine_service.deploy_timeout,
-    )
-
-    service_url = ""
-    if compute_engine_service.domain:
-        service_url = f"https://{compute_engine_service.domain}"
-
-    return service_url
-
-
-def _get_gke_config(cluster_id: str, cluster: "Cluster") -> Dict[str, Any]:
-    try:
-        from google.auth import default
-        from google.auth.credentials import Credentials
-        from google.auth.transport.requests import Request
-    except ImportError:
-        raise exceptions.MissingGCPDependency()
-
-    results: Tuple[Credentials, Any] = default()  # type: ignore
-    credentials = results[0]
-    if not credentials.valid:
-        credentials.refresh(Request())
-    return {
-        "apiVersion": "v1",
-        "clusters": [
-            {
-                "cluster": {
-                    "certificate-authority-data": cluster.master_auth.cluster_ca_certificate,
-                    "server": f"https://{cluster.endpoint}",
-                },
-                "name": cluster_id,
-            }
-        ],
-        "contexts": [
-            {
-                "context": {
-                    "cluster": cluster_id,
-                    "user": "gke-user",
-                },
-                "name": f"{cluster_id}-context",
-            }
-        ],
-        "current-context": f"{cluster_id}-context",
-        "kind": "Config",
-        "preferences": {},
-        "users": [
-            {
-                "name": "gke-user",
-                "user": {
-                    "auth-provider": {
-                        "name": "gcp",
-                        "config": {
-                            "access-token": credentials.token,
-                            "cmd-path": "gcloud",
-                            "cmd-args": "config config-helper --format=json",
-                            "expiry-key": "{.credential.token_expiry}",
-                            "token-key": "{.credential.access_token}",
-                        },
-                    }
-                },
-            }
-        ],
-    }
-
-
-async def release_docker_image_to_gke(
-    docker_image: str,
-    service_manager: ServiceManager,
-    gcp_environment_config: GCPEnvironmentConfig,
-    gke_service: GKEService,
-    deployment_id: str,
-):
-    try:
-        from google.cloud import container_v1
-    except ImportError:
-        raise exceptions.MissingGCPDependency()
-    cluster = gke_service.cluster
-    location = None
-    if cluster.regional:
-        location = cluster.region or gcp_environment_config.default_region
-    else:
-        location = (
-            cluster.zones[0] if cluster.zones else gcp_environment_config.default_zone
-        )
-    cluster_name = f"projects/{gcp_environment_config.project_id}/locations/{location}/clusters/{gke_service.cluster.resource_id}"
-    gcp_client = container_v1.ClusterManagerAsyncClient()
-    cluster = await gcp_client.get_cluster(name=cluster_name)
-    k8_config.load_kube_config_from_dict(_get_gke_config(cluster_name, cluster))
-
-    await update_k8s_service(
-        docker_image=docker_image,
-        namespace=gke_service.namespace,
-        service_name=gke_service.name,
-        deployment_id=deployment_id,
-        launchflow_environment=service_manager.environment_name,
-        launchflow_project=service_manager.project_name,
-        artifact_bucket=f"gs://{gcp_environment_config.artifact_bucket}",  # type: ignore
-        cloud_provider="gcp",
-        k8_service_account=gcp_environment_config.service_account_email.split("@")[0],  # type: ignore
-        environment_vars=gke_service.environment_variables,
-    )
-    # The service url doesn't change between deployment
-    return gke_service.outputs().service_url
-
-
-async def promote_gcp_service_image(
-    gcp_service: GCPDockerService,
-    from_service_state: ServiceState,
+async def promote_artifact_registry_docker_image(
+    build_log_file: IO,
+    from_artifact_registry_repository: str,
+    to_artifact_registry_repository: str,
+    launchflow_service_name: str,
+    from_launchflow_deployment_id: str,
+    to_launchflow_deployment_id: str,
     from_gcp_environment_config: GCPEnvironmentConfig,
     to_gcp_environment_config: GCPEnvironmentConfig,
-    deployment_id: str,
     promote_local: bool,
-) -> Tuple[str, str]:
-    service_outputs = gcp_service.outputs()
-
+) -> str:
     # Step 1 - Promote the existing docker image
     if not promote_local:
         return await _promote_docker_image(
             source_env_region=from_gcp_environment_config.default_region,
             # TODO: add validation around the docker image being set
-            source_docker_image=from_service_state.docker_image,  # type: ignore
-            target_docker_repository=service_outputs.docker_repository,
-            docker_image_name=from_service_state.name,
-            docker_image_tag=deployment_id,
+            source_docker_image=f"{from_artifact_registry_repository}/{launchflow_service_name}:{from_launchflow_deployment_id}",
+            target_docker_repository=to_artifact_registry_repository,
+            docker_image_name=launchflow_service_name,
+            docker_image_tag=to_launchflow_deployment_id,
             target_gcp_project_id=to_gcp_environment_config.project_id,  # type: ignore
             target_artifact_bucket=to_gcp_environment_config.artifact_bucket,  # type: ignore
             target_service_account_email=to_gcp_environment_config.service_account_email,  # type: ignore
+            build_log_file=build_log_file,
         )
     else:
-        source_region = from_service_state.inputs.get("region")  # type: ignore
-        if source_region is None:
-            source_region = from_gcp_environment_config.default_region
-        target_region = gcp_service.inputs().to_dict().get("region")
-        if target_region is None:
-            target_region = to_gcp_environment_config.default_region
         return await _promote_docker_image_local(
-            source_service_region=source_region,
-            target_service_region=target_region,
-            source_docker_image=from_service_state.docker_image,  # type: ignore
-            target_docker_repository=service_outputs.docker_repository,
-            docker_image_name=from_service_state.name,
-            docker_image_tag=deployment_id,
+            source_artifact_registry_repository=from_artifact_registry_repository,
+            target_artifact_registry_repository=to_artifact_registry_repository,
+            source_docker_image=f"{from_artifact_registry_repository}/{launchflow_service_name}:{from_launchflow_deployment_id}",
+            docker_image_name=launchflow_service_name,
+            docker_image_tag=to_launchflow_deployment_id,
+            build_log_file=build_log_file,
         )

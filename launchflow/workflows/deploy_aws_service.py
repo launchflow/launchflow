@@ -115,7 +115,7 @@ async def _run_docker_aws_code_build(
         await _poll_build_completion(client, build_id)
     except Exception as e:
         build_log_file.write(
-            f"Error running AWS CodeBuild: {e}\nSee remote build logs at: {build_url}"
+            f"Error running AWS CodeBuild: {e}\nSee remote build logs at: {build_url}\n"
         )
         raise e
 
@@ -332,7 +332,6 @@ async def build_ecr_docker_image_locally(
 ) -> str:
     del build_ignore  # TODO: Use this to ignore files while building the docker image
 
-    # Step 1 - Build and push the docker image
     docker_image = await _build_docker_image_local(
         aws_region=aws_environment_config.region,
         docker_repository=ecr_repository,
