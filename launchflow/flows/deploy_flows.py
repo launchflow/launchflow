@@ -222,7 +222,7 @@ class ReleaseServicePlan(ServicePlan):
         if self.build_step_type == "build":
             build_result_type = BuildServiceResult
         elif self.build_step_type == "promote":
-            build_result_type = PromoteServiceResult
+            build_result_type = PromoteServiceResult  # type: ignore
         else:
             raise ValueError("Cannot get build outputs from a promote step")
         release_inputs_result = next(
@@ -1722,7 +1722,7 @@ async def plan_promote_service(
         )
 
     if existing_from_service.deployment_id is None:
-        exception = exceptions.ServiceMissingDeploymentId(
+        exception = exceptions.ServiceMissingDeploymentId(  # type: ignore
             service_name=service.name,
         )
         return FailedToPlan(
