@@ -28,8 +28,7 @@ from launchflow.node import Inputs
 from launchflow.resource import Resource
 from launchflow.service import ServiceOutputs
 from launchflow.workflows.deploy_gcp_service import (
-    build_artifact_registry_docker_image_locally,
-    build_artifact_registry_docker_image_on_cloud_build,
+    build_artifact_registry_docker_image,
     promote_artifact_registry_docker_image,
 )
 from launchflow.workflows.k8s_service import update_k8s_service
@@ -355,30 +354,19 @@ class GKEService(GCPService[GKEServiceReleaseInputs]):
         if artifact_registry_outputs.docker_repository is None:
             raise RuntimeError("Docker repository not found")
 
-        if build_local:
-            docker_image = await build_artifact_registry_docker_image_locally(
-                dockerfile_path=self.dockerfile,
-                build_directory=self.build_directory,
-                build_ignore=self.build_ignore,
-                build_log_file=build_log_file,
-                artifact_registry_repository=artifact_registry_outputs.docker_repository,
-                launchflow_service_name=self.name,
-                launchflow_deployment_id=deployment_id,
-                gcp_environment_config=gcp_environment_config,
-            )
-        else:
-            docker_image = await build_artifact_registry_docker_image_on_cloud_build(
-                dockerfile_path=self.dockerfile,
-                build_directory=self.build_directory,
-                build_ignore=self.build_ignore,
-                build_log_file=build_log_file,
-                artifact_registry_repository=artifact_registry_outputs.docker_repository,
-                launchflow_project_name=launchflow_uri.project_name,
-                launchflow_environment_name=launchflow_uri.environment_name,
-                launchflow_service_name=self.name,
-                launchflow_deployment_id=deployment_id,
-                gcp_environment_config=gcp_environment_config,
-            )
+        docker_image = await build_artifact_registry_docker_image(
+            dockerfile_path=self.dockerfile,
+            build_directory=self.build_directory,
+            build_ignore=self.build_ignore,
+            build_log_file=build_log_file,
+            artifact_registry_repository=artifact_registry_outputs.docker_repository,
+            launchflow_project_name=launchflow_uri.project_name,
+            launchflow_environment_name=launchflow_uri.environment_name,
+            launchflow_service_name=self.name,
+            launchflow_deployment_id=deployment_id,
+            gcp_environment_config=gcp_environment_config,
+            build_local=build_local,
+        )
 
         return GKEServiceReleaseInputs(docker_image=docker_image)
 

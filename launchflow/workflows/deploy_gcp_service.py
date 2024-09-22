@@ -3,10 +3,8 @@ import gzip
 import hashlib
 import io
 import os
-import time
 import uuid
-from datetime import timedelta
-from typing import IO, Any, Callable, List
+from typing import IO, List
 
 import requests
 from docker.errors import APIError, BuildError
@@ -350,68 +348,6 @@ async def _build_docker_image_local(
     return tagged_image_name
 
 
-async def build_artifact_registry_docker_image_on_cloud_build(
-    dockerfile_path: str,
-    build_directory: str,
-    build_ignore: List[str],
-    build_log_file: IO,
-    artifact_registry_repository: str,
-    launchflow_project_name: str,
-    launchflow_environment_name: str,
-    launchflow_service_name: str,
-    launchflow_deployment_id: str,
-    gcp_environment_config: GCPEnvironmentConfig,
-) -> str:
-    source_tarball_gcs_path = f"builds/{launchflow_project_name}/{launchflow_environment_name}/services/{launchflow_service_name}/source.tar.gz"
-    # Step 1 - Upload the source tarball to GCS
-    await _upload_source_tarball_to_gcs(
-        source_tarball_gcs_path=source_tarball_gcs_path,
-        artifact_bucket=gcp_environment_config.artifact_bucket,  # type: ignore
-        local_source_dir=build_directory,
-        build_ignore=build_ignore,
-    )
-
-    # Step 2 - Build and push the docker image
-    docker_image = await _run_docker_gcp_cloud_build(
-        docker_repository=artifact_registry_repository,
-        docker_image_name=launchflow_service_name,
-        docker_image_tag=launchflow_deployment_id,
-        gcs_source_bucket=gcp_environment_config.artifact_bucket,  # type: ignore
-        gcs_source_object=source_tarball_gcs_path,
-        gcp_project_id=gcp_environment_config.project_id,  # type: ignore
-        dockerfile_path=dockerfile_path,
-        artifact_bucket=gcp_environment_config.artifact_bucket,  # type: ignore
-        service_account_email=gcp_environment_config.service_account_email,  # type: ignore
-        build_log_file=build_log_file,
-    )
-
-    return docker_image
-
-
-async def build_artifact_registry_docker_image_locally(
-    dockerfile_path: str,
-    build_directory: str,
-    build_ignore: List[str],
-    build_log_file: IO,
-    artifact_registry_repository: str,
-    launchflow_service_name: str,
-    launchflow_deployment_id: str,
-    gcp_environment_config: GCPEnvironmentConfig,
-) -> str:
-    del build_ignore  # TODO: Use this to ignore files while building the docker image
-
-    docker_image = await _build_docker_image_local(
-        docker_repository=artifact_registry_repository,
-        docker_image_name=launchflow_service_name,
-        docker_image_tag=launchflow_deployment_id,
-        local_source_dir=build_directory,
-        dockerfile_path=dockerfile_path,
-        build_log_file=build_log_file,
-    )
-
-    return docker_image
-
-
 async def upload_local_files_to_static_site(
     gcp_environment_config: GCPEnvironmentConfig,
     static_site: GCSWebsite,
@@ -666,45 +602,55 @@ async def deploy_local_files_to_firebase_static_site(
     return service_url
 
 
-async def _wait_for_op(op):
-    while not op.done():
-        await asyncio.sleep(2)
-    return op.result()
+async def build_artifact_registry_docker_image(
+    dockerfile_path: str,
+    build_directory: str,
+    build_ignore: List[str],
+    build_log_file: IO,
+    artifact_registry_repository: str,
+    launchflow_project_name: str,
+    launchflow_environment_name: str,
+    launchflow_service_name: str,
+    launchflow_deployment_id: str,
+    gcp_environment_config: GCPEnvironmentConfig,
+    build_local: bool,
+) -> str:
+    if build_local:
+        del build_ignore  # TODO: Use this to ignore files while building the docker image
 
-
-_DISCONNECTED_RETRIES = 5
-
-
-async def _retry_remote_disconnected(fn: Callable, *args, **kwargs):
-    loop = asyncio.get_event_loop()
-    tries = _DISCONNECTED_RETRIES
-    while tries > 0:
-        try:
-            return await loop.run_in_executor(None, fn, *args, **kwargs)
-        except ConnectionError:
-            tries -= 1
-            if tries == 0:
-                raise
-            await asyncio.sleep(2)
-    raise ValueError("Failed to connect to remote service")
-
-
-async def _poll_mig_updating(
-    client: Any, mig_name: str, project: str, region: str, timeout: timedelta
-):
-    def get_mig():
-        return client.get(
-            project=project, region=region, instance_group_manager=mig_name
+        docker_image = await _build_docker_image_local(
+            docker_repository=artifact_registry_repository,
+            docker_image_name=launchflow_service_name,
+            docker_image_tag=launchflow_deployment_id,
+            local_source_dir=build_directory,
+            dockerfile_path=dockerfile_path,
+            build_log_file=build_log_file,
+        )
+    else:
+        source_tarball_gcs_path = f"builds/{launchflow_project_name}/{launchflow_environment_name}/services/{launchflow_service_name}/source.tar.gz"
+        # Step 1 - Upload the source tarball to GCS
+        await _upload_source_tarball_to_gcs(
+            source_tarball_gcs_path=source_tarball_gcs_path,
+            artifact_bucket=gcp_environment_config.artifact_bucket,  # type: ignore
+            local_source_dir=build_directory,
+            build_ignore=build_ignore,
         )
 
-    mig = await _retry_remote_disconnected(get_mig)
-    start_time = time.time()
-    while not mig.status.is_stable:
-        now = time.time()
-        if now - start_time > timeout.total_seconds():
-            raise exceptions.GCEServiceNotHealthyTimeout(timeout)
-        await asyncio.sleep(2)
-        mig = await _retry_remote_disconnected(get_mig)
+        # Step 2 - Build and push the docker image
+        return await _run_docker_gcp_cloud_build(
+            docker_repository=artifact_registry_repository,
+            docker_image_name=launchflow_service_name,
+            docker_image_tag=launchflow_deployment_id,
+            gcs_source_bucket=gcp_environment_config.artifact_bucket,  # type: ignore
+            gcs_source_object=source_tarball_gcs_path,
+            gcp_project_id=gcp_environment_config.project_id,  # type: ignore
+            dockerfile_path=dockerfile_path,
+            artifact_bucket=gcp_environment_config.artifact_bucket,  # type: ignore
+            service_account_email=gcp_environment_config.service_account_email,  # type: ignore
+            build_log_file=build_log_file,
+        )
+
+    return docker_image
 
 
 async def promote_artifact_registry_docker_image(
@@ -718,8 +664,16 @@ async def promote_artifact_registry_docker_image(
     to_gcp_environment_config: GCPEnvironmentConfig,
     promote_local: bool,
 ) -> str:
-    # Step 1 - Promote the existing docker image
-    if not promote_local:
+    if promote_local:
+        return await _promote_docker_image_local(
+            source_artifact_registry_repository=from_artifact_registry_repository,
+            target_artifact_registry_repository=to_artifact_registry_repository,
+            source_docker_image=f"{from_artifact_registry_repository}/{launchflow_service_name}:{from_launchflow_deployment_id}",
+            docker_image_name=launchflow_service_name,
+            docker_image_tag=to_launchflow_deployment_id,
+            build_log_file=build_log_file,
+        )
+    else:
         return await _promote_docker_image(
             source_env_region=from_gcp_environment_config.default_region,
             # TODO: add validation around the docker image being set
@@ -730,14 +684,5 @@ async def promote_artifact_registry_docker_image(
             target_gcp_project_id=to_gcp_environment_config.project_id,  # type: ignore
             target_artifact_bucket=to_gcp_environment_config.artifact_bucket,  # type: ignore
             target_service_account_email=to_gcp_environment_config.service_account_email,  # type: ignore
-            build_log_file=build_log_file,
-        )
-    else:
-        return await _promote_docker_image_local(
-            source_artifact_registry_repository=from_artifact_registry_repository,
-            target_artifact_registry_repository=to_artifact_registry_repository,
-            source_docker_image=f"{from_artifact_registry_repository}/{launchflow_service_name}:{from_launchflow_deployment_id}",
-            docker_image_name=launchflow_service_name,
-            docker_image_tag=to_launchflow_deployment_id,
             build_log_file=build_log_file,
         )

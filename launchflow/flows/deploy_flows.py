@@ -1525,14 +1525,14 @@ class PromoteFlowServicePlan(ServicePlan):
                 release_service_result: ReleaseServiceResult = release_service_result  # type: ignore
                 deploy_successful = all(result.success for result in results)
 
-                new_to_service_state.deployment_id = (
-                    self.release_service_plan.deployment_id
-                )
                 new_to_service_state.service_url = release_service_result.service_url  # type: ignore
                 if deploy_successful:
                     new_to_service_state.status = ServiceStatus.READY
                     # NOTE: We dont save the inputs until the deploy is successful
                     new_to_service_state.inputs = self.service.inputs().to_dict()
+                    new_to_service_state.deployment_id = (
+                        self.release_service_plan.deployment_id
+                    )
                 else:
                     new_to_service_state.status = ServiceStatus.PROMOTE_FAILED
 

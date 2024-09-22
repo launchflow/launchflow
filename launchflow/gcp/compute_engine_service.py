@@ -34,8 +34,7 @@ from launchflow.node import Inputs
 from launchflow.resource import Resource
 from launchflow.service import ServiceOutputs
 from launchflow.workflows.deploy_gcp_service import (
-    build_artifact_registry_docker_image_locally,
-    build_artifact_registry_docker_image_on_cloud_build,
+    build_artifact_registry_docker_image,
     promote_artifact_registry_docker_image,
 )
 
@@ -79,6 +78,152 @@ async def _poll_mig_updating(
             raise exceptions.GCEServiceNotHealthyTimeout(timeout)
         await asyncio.sleep(2)
         mig = await _retry_remote_disconnected(get_mig)
+
+
+async def _release_compute_engine_service(
+    *,
+    docker_image: str,
+    machine_type: str,
+    disk_size_gb: int,
+    deploy_timeout: timedelta,
+    gcp_environment_config: GCPEnvironmentConfig,
+    launchflow_uri: LaunchFlowURI,
+    deployment_id: str,
+    service_name: str,
+    mig_resource_id: str,
+    region: str,
+):
+    try:
+        from google.cloud import compute
+    except ImportError:
+        raise exceptions.MissingGCPDependency()
+
+    template_client = compute.InstanceTemplatesClient()
+    template = compute.InstanceTemplate(
+        name=f"{service_name}-{deployment_id}",
+        properties=compute.InstanceProperties(
+            machine_type=machine_type,
+            disks=[
+                compute.AttachedDisk(
+                    boot=True,
+                    auto_delete=True,
+                    initialize_params=compute.AttachedDiskInitializeParams(
+                        disk_size_gb=disk_size_gb,
+                        source_image="https://www.googleapis.com/compute/v1/projects/cos-cloud/global/images/cos-stable-109-17800-147-54",
+                    ),
+                ),
+            ],
+            tags=compute.Tags(items=[mig_resource_id]),
+            labels={"container-vm": "cos-stable-109-17800-147-54"},
+            metadata=compute.Metadata(
+                items=[
+                    compute.Items(
+                        key="google-logging-enabled",
+                        value="true",
+                    ),
+                    compute.Items(
+                        key="google-monitoring-enabled",
+                        value="true",
+                    ),
+                    compute.Items(
+                        key="gce-container-declaration",
+                        value=json.dumps(
+                            {
+                                "spec": {
+                                    "containers": [
+                                        {
+                                            "image": docker_image,
+                                            "env": [
+                                                {
+                                                    "name": "LAUNCHFLOW_ARTIFACT_BUCKET",
+                                                    "value": f"gs://{gcp_environment_config.artifact_bucket}",
+                                                },
+                                                {
+                                                    "name": "LAUNCHFLOW_PROJECT",
+                                                    "value": launchflow_uri.project_name,
+                                                },
+                                                {
+                                                    "name": "LAUNCHFLOW_ENVIRONMENT",
+                                                    "value": launchflow_uri.environment_name,
+                                                },
+                                                {
+                                                    "name": "LAUNCHFLOW_CLOUD_PROVIDER",
+                                                    "value": "gcp",
+                                                },
+                                                {
+                                                    "name": "LAUNCHFLOW_DEPLOYMENT_ID",
+                                                    "value": deployment_id,
+                                                },
+                                            ],
+                                        },
+                                    ]
+                                },
+                                "volumes": [],
+                                "restartPolicy": "Always",
+                            }
+                        ),
+                    ),
+                ]
+            ),
+            network_interfaces=[
+                compute.NetworkInterface(
+                    network=f"https://www.googleapis.com/compute/beta/projects/{gcp_environment_config.project_id}/global/networks/default",
+                    access_configs=[
+                        compute.AccessConfig(
+                            name="External NAT",
+                            type="ONE_TO_ONE_NAT",
+                        ),
+                    ],
+                )
+            ],
+            service_accounts=[
+                compute.ServiceAccount(
+                    email=gcp_environment_config.service_account_email,
+                    scopes=["https://www.googleapis.com/auth/cloud-platform"],
+                )
+            ],
+        ),
+    )
+
+    def insert_template():
+        return template_client.insert(
+            project=gcp_environment_config.project_id,
+            instance_template_resource=template,
+        )
+
+    template_op = await _retry_remote_disconnected(insert_template)
+
+    await _wait_for_op(template_op)
+
+    group_client = compute.RegionInstanceGroupManagersClient()
+
+    def update_instances():
+        return group_client.patch(
+            instance_group_manager=mig_resource_id,
+            project=gcp_environment_config.project_id,
+            region=region,
+            instance_group_manager_resource=compute.InstanceGroupManager(
+                versions=[
+                    compute.InstanceGroupManagerVersion(
+                        instance_template=f"projects/{gcp_environment_config.project_id}/global/instanceTemplates/{template.name}",
+                        name=template.name,
+                    )
+                ],
+                update_policy=compute.InstanceGroupManagerUpdatePolicy(
+                    type_="PROACTIVE"
+                ),
+            ),
+        )
+
+    update_op = await _retry_remote_disconnected(update_instances)
+    await _wait_for_op(update_op)
+    await _poll_mig_updating(
+        group_client,
+        mig_resource_id,
+        gcp_environment_config.project_id,  # type: ignore
+        region,
+        deploy_timeout,
+    )
 
 
 @dataclasses.dataclass
@@ -293,7 +438,7 @@ class ComputeEngineService(GCPService[ComputeEngineServiceReleaseInputs]):
         )
 
     def outputs(self) -> ServiceOutputs:
-        service_url = None
+        service_url = "Unsuppported - custom domain required"
         dns_outputs = None
         if self._custom_domain is not None:
             dns_outputs = self._custom_domain.dns_outputs()
@@ -318,30 +463,19 @@ class ComputeEngineService(GCPService[ComputeEngineServiceReleaseInputs]):
         if artifact_registry_outputs.docker_repository is None:
             raise RuntimeError("Docker repository not found")
 
-        if build_local:
-            docker_image = await build_artifact_registry_docker_image_locally(
-                dockerfile_path=self.dockerfile,
-                build_directory=self.build_directory,
-                build_ignore=self.build_ignore,
-                build_log_file=build_log_file,
-                artifact_registry_repository=artifact_registry_outputs.docker_repository,
-                launchflow_service_name=self.name,
-                launchflow_deployment_id=deployment_id,
-                gcp_environment_config=gcp_environment_config,
-            )
-        else:
-            docker_image = await build_artifact_registry_docker_image_on_cloud_build(
-                dockerfile_path=self.dockerfile,
-                build_directory=self.build_directory,
-                build_ignore=self.build_ignore,
-                build_log_file=build_log_file,
-                artifact_registry_repository=artifact_registry_outputs.docker_repository,
-                launchflow_project_name=launchflow_uri.project_name,
-                launchflow_environment_name=launchflow_uri.environment_name,
-                launchflow_service_name=self.name,
-                launchflow_deployment_id=deployment_id,
-                gcp_environment_config=gcp_environment_config,
-            )
+        docker_image = await build_artifact_registry_docker_image(
+            dockerfile_path=self.dockerfile,
+            build_directory=self.build_directory,
+            build_ignore=self.build_ignore,
+            build_log_file=build_log_file,
+            artifact_registry_repository=artifact_registry_outputs.docker_repository,
+            launchflow_project_name=launchflow_uri.project_name,
+            launchflow_environment_name=launchflow_uri.environment_name,
+            launchflow_service_name=self.name,
+            launchflow_deployment_id=deployment_id,
+            gcp_environment_config=gcp_environment_config,
+            build_local=build_local,
+        )
 
         return ComputeEngineServiceReleaseInputs(docker_image=docker_image)
 
@@ -395,134 +529,16 @@ class ComputeEngineService(GCPService[ComputeEngineServiceReleaseInputs]):
         release_log_file: IO,
     ):
         region = self.region or gcp_environment_config.default_region
-        try:
-            from google.cloud import compute
-        except ImportError:
-            raise exceptions.MissingGCPDependency()
 
-        template_client = compute.InstanceTemplatesClient()
-        template = compute.InstanceTemplate(
-            name=f"{self.name}-{deployment_id}",
-            properties=compute.InstanceProperties(
-                machine_type=self.machine_type,
-                disks=[
-                    compute.AttachedDisk(
-                        boot=True,
-                        auto_delete=True,
-                        initialize_params=compute.AttachedDiskInitializeParams(
-                            disk_size_gb=self.disk_size_gb,
-                            source_image="https://www.googleapis.com/compute/v1/projects/cos-cloud/global/images/cos-stable-109-17800-147-54",
-                        ),
-                    ),
-                ],
-                tags=compute.Tags(items=[self._mig.resource_id]),
-                labels={"container-vm": "cos-stable-109-17800-147-54"},
-                metadata=compute.Metadata(
-                    items=[
-                        compute.Items(
-                            key="google-logging-enabled",
-                            value="true",
-                        ),
-                        compute.Items(
-                            key="google-monitoring-enabled",
-                            value="true",
-                        ),
-                        compute.Items(
-                            key="gce-container-declaration",
-                            value=json.dumps(
-                                {
-                                    "spec": {
-                                        "containers": [
-                                            {
-                                                "image": release_inputs.docker_image,
-                                                "env": [
-                                                    {
-                                                        "name": "LAUNCHFLOW_ARTIFACT_BUCKET",
-                                                        "value": f"gs://{gcp_environment_config.artifact_bucket}",
-                                                    },
-                                                    {
-                                                        "name": "LAUNCHFLOW_PROJECT",
-                                                        "value": launchflow_uri.project_name,
-                                                    },
-                                                    {
-                                                        "name": "LAUNCHFLOW_ENVIRONMENT",
-                                                        "value": launchflow_uri.environment_name,
-                                                    },
-                                                    {
-                                                        "name": "LAUNCHFLOW_CLOUD_PROVIDER",
-                                                        "value": "gcp",
-                                                    },
-                                                    {
-                                                        "name": "LAUNCHFLOW_DEPLOYMENT_ID",
-                                                        "value": deployment_id,
-                                                    },
-                                                ],
-                                            },
-                                        ]
-                                    },
-                                    "volumes": [],
-                                    "restartPolicy": "Always",
-                                }
-                            ),
-                        ),
-                    ]
-                ),
-                network_interfaces=[
-                    compute.NetworkInterface(
-                        network=f"https://www.googleapis.com/compute/beta/projects/{gcp_environment_config.project_id}/global/networks/default",
-                        access_configs=[
-                            compute.AccessConfig(
-                                name="External NAT",
-                                type="ONE_TO_ONE_NAT",
-                            ),
-                        ],
-                    )
-                ],
-                service_accounts=[
-                    compute.ServiceAccount(
-                        email=gcp_environment_config.service_account_email,
-                        scopes=["https://www.googleapis.com/auth/cloud-platform"],
-                    )
-                ],
-            ),
-        )
-
-        def insert_template():
-            return template_client.insert(
-                project=gcp_environment_config.project_id,
-                instance_template_resource=template,
-            )
-
-        template_op = await _retry_remote_disconnected(insert_template)
-
-        await _wait_for_op(template_op)
-
-        group_client = compute.RegionInstanceGroupManagersClient()
-
-        def update_instances():
-            return group_client.patch(
-                instance_group_manager=self._mig.resource_id,
-                project=gcp_environment_config.project_id,
-                region=region,
-                instance_group_manager_resource=compute.InstanceGroupManager(
-                    versions=[
-                        compute.InstanceGroupManagerVersion(
-                            instance_template=f"projects/{gcp_environment_config.project_id}/global/instanceTemplates/{template.name}",
-                            name=template.name,
-                        )
-                    ],
-                    update_policy=compute.InstanceGroupManagerUpdatePolicy(
-                        type_="PROACTIVE"
-                    ),
-                ),
-            )
-
-        update_op = await _retry_remote_disconnected(update_instances)
-        await _wait_for_op(update_op)
-        await _poll_mig_updating(
-            group_client,
-            self._mig.resource_id,
-            gcp_environment_config.project_id,  # type: ignore
-            region,
-            self.deploy_timeout,
+        await _release_compute_engine_service(
+            docker_image=release_inputs.docker_image,
+            machine_type=self.machine_type,
+            disk_size_gb=self.disk_size_gb,
+            deploy_timeout=self.deploy_timeout,
+            gcp_environment_config=gcp_environment_config,
+            launchflow_uri=launchflow_uri,
+            deployment_id=deployment_id,
+            service_name=self.name,
+            mig_resource_id=self._mig.resource_id,
+            region=region,
         )

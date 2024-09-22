@@ -18,10 +18,45 @@ from launchflow.node import Inputs
 from launchflow.resource import Resource
 from launchflow.service import ServiceOutputs
 from launchflow.workflows.deploy_gcp_service import (
-    build_artifact_registry_docker_image_locally,
-    build_artifact_registry_docker_image_on_cloud_build,
+    build_artifact_registry_docker_image,
     promote_artifact_registry_docker_image,
 )
+
+
+async def _release_cloud_run(
+    cloud_run_id: str,
+    docker_image: str,
+    gcp_environment_config: GCPEnvironmentConfig,
+    launchflow_uri: LaunchFlowURI,
+    deployment_id: str,
+):
+    try:
+        from google.cloud import run_v2
+    except ImportError:
+        raise exceptions.MissingGCPDependency()
+
+    client = run_v2.ServicesAsyncClient()
+    service = await client.get_service(name=cloud_run_id)
+    # Updating the service container will trigger a new revision to be created
+    service.template.containers[0].image = docker_image
+
+    # Add or update the environment variables
+    fields_to_add = {
+        "LAUNCHFLOW_ARTIFACT_BUCKET": f"gs://{gcp_environment_config.artifact_bucket}",
+        "LAUNCHFLOW_PROJECT": launchflow_uri.project_name,
+        "LAUNCHFLOW_ENVIRONMENT": launchflow_uri.environment_name,
+        "LAUNCHFLOW_CLOUD_PROVIDER": "gcp",
+        "LAUNCHFLOW_DEPLOYMENT_ID": deployment_id,
+    }
+    for env_var in service.template.containers[0].env:
+        if env_var.name in fields_to_add:
+            env_var.value = fields_to_add[env_var.name]
+            del fields_to_add[env_var.name]
+    for key, value in fields_to_add.items():
+        service.template.containers[0].env.append(run_v2.EnvVar(name=key, value=value))
+
+    operation = await client.update_service(request=None, service=service)
+    await operation.result()
 
 
 @dataclass
@@ -193,14 +228,13 @@ class CloudRunService(GCPService[CloudRunServiceReleaseInputs]):
         return to_return
 
     def outputs(self) -> ServiceOutputs:
+        dns_outputs = None
         try:
             service_container_outputs = self._cloud_run_service_container.outputs()
+            if self._custom_domain_mapping:
+                dns_outputs = self._custom_domain_mapping.dns_outputs()
         except exceptions.ResourceOutputsNotFound:
             raise exceptions.ServiceOutputsNotFound(service_name=self.name)
-
-        dns_outputs = None
-        if self._custom_domain_mapping:
-            dns_outputs = self._custom_domain_mapping.dns_outputs()
 
         service_outputs = ServiceOutputs(
             service_url=service_container_outputs.service_url,
@@ -225,30 +259,19 @@ class CloudRunService(GCPService[CloudRunServiceReleaseInputs]):
         if artifact_registry_outputs.docker_repository is None:
             raise RuntimeError("Docker repository not found")
 
-        if build_local:
-            docker_image = await build_artifact_registry_docker_image_locally(
-                dockerfile_path=self.dockerfile,
-                build_directory=self.build_directory,
-                build_ignore=self.build_ignore,
-                build_log_file=build_log_file,
-                artifact_registry_repository=artifact_registry_outputs.docker_repository,
-                launchflow_service_name=self.name,
-                launchflow_deployment_id=deployment_id,
-                gcp_environment_config=gcp_environment_config,
-            )
-        else:
-            docker_image = await build_artifact_registry_docker_image_on_cloud_build(
-                dockerfile_path=self.dockerfile,
-                build_directory=self.build_directory,
-                build_ignore=self.build_ignore,
-                build_log_file=build_log_file,
-                artifact_registry_repository=artifact_registry_outputs.docker_repository,
-                launchflow_project_name=launchflow_uri.project_name,
-                launchflow_environment_name=launchflow_uri.environment_name,
-                launchflow_service_name=self.name,
-                launchflow_deployment_id=deployment_id,
-                gcp_environment_config=gcp_environment_config,
-            )
+        docker_image = await build_artifact_registry_docker_image(
+            dockerfile_path=self.dockerfile,
+            build_directory=self.build_directory,
+            build_ignore=self.build_ignore,
+            build_log_file=build_log_file,
+            artifact_registry_repository=artifact_registry_outputs.docker_repository,
+            launchflow_project_name=launchflow_uri.project_name,
+            launchflow_environment_name=launchflow_uri.environment_name,
+            launchflow_service_name=self.name,
+            launchflow_deployment_id=deployment_id,
+            gcp_environment_config=gcp_environment_config,
+            build_local=build_local,
+        )
 
         return CloudRunServiceReleaseInputs(docker_image=docker_image)
 
@@ -301,36 +324,14 @@ class CloudRunService(GCPService[CloudRunServiceReleaseInputs]):
         deployment_id: str,
         release_log_file: IO,
     ):
-        try:
-            from google.cloud import run_v2
-        except ImportError:
-            raise exceptions.MissingGCPDependency()
-
         cloud_run_outputs = self._cloud_run_service_container.outputs()
         if cloud_run_outputs.gcp_id is None:
             raise exceptions.ServiceOutputsMissingField(self.name, "gcp_id")
 
-        client = run_v2.ServicesAsyncClient()
-        service = await client.get_service(name=cloud_run_outputs.gcp_id)
-        # Updating the service container will trigger a new revision to be created
-        service.template.containers[0].image = release_inputs.docker_image
-
-        # Add or update the environment variables
-        fields_to_add = {
-            "LAUNCHFLOW_ARTIFACT_BUCKET": f"gs://{gcp_environment_config.artifact_bucket}",
-            "LAUNCHFLOW_PROJECT": launchflow_uri.project_name,
-            "LAUNCHFLOW_ENVIRONMENT": launchflow_uri.environment_name,
-            "LAUNCHFLOW_CLOUD_PROVIDER": "gcp",
-            "LAUNCHFLOW_DEPLOYMENT_ID": deployment_id,
-        }
-        for env_var in service.template.containers[0].env:
-            if env_var.name in fields_to_add:
-                env_var.value = fields_to_add[env_var.name]
-                del fields_to_add[env_var.name]
-        for key, value in fields_to_add.items():
-            service.template.containers[0].env.append(
-                run_v2.EnvVar(name=key, value=value)
-            )
-
-        operation = await client.update_service(request=None, service=service)
-        await operation.result()
+        await _release_cloud_run(
+            cloud_run_id=cloud_run_outputs.gcp_id,
+            docker_image=release_inputs.docker_image,
+            gcp_environment_config=gcp_environment_config,
+            launchflow_uri=launchflow_uri,
+            deployment_id=deployment_id,
+        )
