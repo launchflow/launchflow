@@ -86,9 +86,8 @@ class ECRDockerBuilder:
         await proc.communicate()
 
         if proc.returncode != 0:
-            raise exceptions.ServiceBuildFailed(
-                error_message="nixpacks build failed",
-                build_logs_or_link=self.build_log_file.name,
+            raise exceptions.NixPacksBuildFailed(
+                service_name=self.launchflow_service_name,
             )
 
         self._tag_and_push()
@@ -175,7 +174,9 @@ class ECRDockerBuilder:
             try:
                 bucket = boto3.resource(
                     "s3",
-                ).Bucket(self.aws_environment_config.artifact_bucket)  # type: ignore
+                ).Bucket(
+                    self.aws_environment_config.artifact_bucket
+                )  # type: ignore
                 bucket.upload_fileobj(source_tarball, source_tarball_s3_path)
 
             except Exception as e:

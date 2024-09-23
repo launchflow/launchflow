@@ -155,7 +155,7 @@ class EnvironmentFlowTest(unittest.IsolatedAsyncioTestCase):
                 environment_service_account_email=None,
                 artifact_bucket=None,
                 org_name="org",
-                logs_file=f"/tmp/launchflow/create-environment-dev-{int(time.time())}.log",
+                logs_file=f"/tmp/lf/create-environment-dev-{int(time.time())}.log",
             ),
             prompt=False,
         )
@@ -239,7 +239,7 @@ class EnvironmentFlowTest(unittest.IsolatedAsyncioTestCase):
                 artifact_bucket="test-bucket",
                 lock_id="lock",
                 vpc_connection_managed=True,
-                logs_file=f"/tmp/launchflow/create-environment-dev-{int(time.time())}.log",
+                logs_file=f"/tmp/lf/create-environment-dev-{int(time.time())}.log",
             ),
             prompt=False,
         )
@@ -284,7 +284,7 @@ class EnvironmentFlowTest(unittest.IsolatedAsyncioTestCase):
                 artifact_bucket=None,
                 lock_id="lock",
                 org_name="org",
-                logs_file=f"/tmp/launchflow/create-environment-dev-{int(time.time())}.log",
+                logs_file=f"/tmp/lf/create-environment-dev-{int(time.time())}.log",
             ),
             prompt=False,
         )
@@ -393,7 +393,7 @@ class EnvironmentFlowTest(unittest.IsolatedAsyncioTestCase):
                 environment_type=enums.EnvironmentType.DEVELOPMENT,
                 region="us-west-2",
                 lock_id="lock",
-                logs_file=f"/tmp/launchflow/create-environment-dev-{int(time.time())}.log",
+                logs_file=f"/tmp/lf/create-environment-dev-{int(time.time())}.log",
             )
         )
         want_env = flow_state.EnvironmentState(
@@ -467,7 +467,7 @@ class EnvironmentFlowTest(unittest.IsolatedAsyncioTestCase):
                 environment_type=enums.EnvironmentType.DEVELOPMENT,
                 region="us-east-1",
                 lock_id="lock",
-                logs_file=f"/tmp/launchflow/create-environment-dev-{int(time.time())}.log",
+                logs_file=f"/tmp/lf/create-environment-dev-{int(time.time())}.log",
             )
         )
 
@@ -529,7 +529,7 @@ class EnvironmentFlowTest(unittest.IsolatedAsyncioTestCase):
                 environment_type=enums.EnvironmentType.DEVELOPMENT,
                 region="us-west-2",
                 lock_id="lock",
-                logs_file=f"/tmp/launchflow/create-environment-dev-{int(time.time())}.log",
+                logs_file=f"/tmp/lf/create-environment-dev-{int(time.time())}.log",
             )
         )
         want_env = flow_state.EnvironmentState(
@@ -792,7 +792,7 @@ class EnvironmentFlowTest(unittest.IsolatedAsyncioTestCase):
                 aws_region="us-east-1",
                 artifact_bucket="test-bucket",
                 lock_id="lock",
-                logs_file=f"/tmp/launchflow/delete-aws-environment-dev-{int(time.time())}.log",
+                logs_file=f"/tmp/lf/delete-aws-environment-dev-{int(time.time())}.log",
             )
         )
 

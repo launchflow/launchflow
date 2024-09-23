@@ -1,7 +1,11 @@
+import asyncio
 import dataclasses
+import json
+import time
 from datetime import timedelta
-from typing import Any, List, Literal, Optional, Union
+from typing import IO, Any, Callable, List, Literal, Optional, Union
 
+from launchflow import exceptions
 from launchflow.gcp.artifact_registry_repository import (
     ArtifactRegistryRepository,
     RegistryFormat,
@@ -21,12 +25,205 @@ from launchflow.gcp.regional_managed_instance_group import (
     RegionalManagedInstanceGroup,
     UpdatePolicy,
 )
-from launchflow.gcp.service import GCPDockerService
+from launchflow.gcp.service import GCPService
 from launchflow.gcp.ssl import ManagedSSLCertificate
 from launchflow.models.enums import ServiceProduct
+from launchflow.models.flow_state import GCPEnvironmentConfig
+from launchflow.models.launchflow_uri import LaunchFlowURI
 from launchflow.node import Inputs
 from launchflow.resource import Resource
-from launchflow.service import DockerServiceOutputs
+from launchflow.service import ServiceOutputs
+from launchflow.workflows.deploy_gcp_service import (
+    build_artifact_registry_docker_image,
+    promote_artifact_registry_docker_image,
+)
+
+
+async def _wait_for_op(op):
+    while not op.done():
+        await asyncio.sleep(2)
+    return op.result()
+
+
+_DISCONNECTED_RETRIES = 5
+
+
+async def _retry_remote_disconnected(fn: Callable, *args, **kwargs):
+    loop = asyncio.get_event_loop()
+    tries = _DISCONNECTED_RETRIES
+    while tries > 0:
+        try:
+            return await loop.run_in_executor(None, fn, *args, **kwargs)
+        except ConnectionError:
+            tries -= 1
+            if tries == 0:
+                raise
+            await asyncio.sleep(2)
+    raise ValueError("Failed to connect to remote service")
+
+
+async def _poll_mig_updating(
+    client: Any, mig_name: str, project: str, region: str, timeout: timedelta
+):
+    def get_mig():
+        return client.get(
+            project=project, region=region, instance_group_manager=mig_name
+        )
+
+    mig = await _retry_remote_disconnected(get_mig)
+    start_time = time.time()
+    while not mig.status.is_stable:
+        now = time.time()
+        if now - start_time > timeout.total_seconds():
+            raise exceptions.GCEServiceNotHealthyTimeout(timeout)
+        await asyncio.sleep(2)
+        mig = await _retry_remote_disconnected(get_mig)
+
+
+async def _release_compute_engine_service(
+    *,
+    docker_image: str,
+    machine_type: str,
+    disk_size_gb: int,
+    deploy_timeout: timedelta,
+    gcp_environment_config: GCPEnvironmentConfig,
+    launchflow_uri: LaunchFlowURI,
+    deployment_id: str,
+    service_name: str,
+    mig_resource_id: str,
+    region: str,
+):
+    try:
+        from google.cloud import compute
+    except ImportError:
+        raise exceptions.MissingGCPDependency()
+
+    template_client = compute.InstanceTemplatesClient()
+    template = compute.InstanceTemplate(
+        name=f"{service_name}-{deployment_id}",
+        properties=compute.InstanceProperties(
+            machine_type=machine_type,
+            disks=[
+                compute.AttachedDisk(
+                    boot=True,
+                    auto_delete=True,
+                    initialize_params=compute.AttachedDiskInitializeParams(
+                        disk_size_gb=disk_size_gb,
+                        source_image="https://www.googleapis.com/compute/v1/projects/cos-cloud/global/images/cos-stable-109-17800-147-54",
+                    ),
+                ),
+            ],
+            tags=compute.Tags(items=[mig_resource_id]),
+            labels={"container-vm": "cos-stable-109-17800-147-54"},
+            metadata=compute.Metadata(
+                items=[
+                    compute.Items(
+                        key="google-logging-enabled",
+                        value="true",
+                    ),
+                    compute.Items(
+                        key="google-monitoring-enabled",
+                        value="true",
+                    ),
+                    compute.Items(
+                        key="gce-container-declaration",
+                        value=json.dumps(
+                            {
+                                "spec": {
+                                    "containers": [
+                                        {
+                                            "image": docker_image,
+                                            "env": [
+                                                {
+                                                    "name": "LAUNCHFLOW_ARTIFACT_BUCKET",
+                                                    "value": f"gs://{gcp_environment_config.artifact_bucket}",
+                                                },
+                                                {
+                                                    "name": "LAUNCHFLOW_PROJECT",
+                                                    "value": launchflow_uri.project_name,
+                                                },
+                                                {
+                                                    "name": "LAUNCHFLOW_ENVIRONMENT",
+                                                    "value": launchflow_uri.environment_name,
+                                                },
+                                                {
+                                                    "name": "LAUNCHFLOW_CLOUD_PROVIDER",
+                                                    "value": "gcp",
+                                                },
+                                                {
+                                                    "name": "LAUNCHFLOW_DEPLOYMENT_ID",
+                                                    "value": deployment_id,
+                                                },
+                                            ],
+                                        },
+                                    ]
+                                },
+                                "volumes": [],
+                                "restartPolicy": "Always",
+                            }
+                        ),
+                    ),
+                ]
+            ),
+            network_interfaces=[
+                compute.NetworkInterface(
+                    network=f"https://www.googleapis.com/compute/beta/projects/{gcp_environment_config.project_id}/global/networks/default",
+                    access_configs=[
+                        compute.AccessConfig(
+                            name="External NAT",
+                            type="ONE_TO_ONE_NAT",
+                        ),
+                    ],
+                )
+            ],
+            service_accounts=[
+                compute.ServiceAccount(
+                    email=gcp_environment_config.service_account_email,
+                    scopes=["https://www.googleapis.com/auth/cloud-platform"],
+                )
+            ],
+        ),
+    )
+
+    def insert_template():
+        return template_client.insert(
+            project=gcp_environment_config.project_id,
+            instance_template_resource=template,
+        )
+
+    template_op = await _retry_remote_disconnected(insert_template)
+
+    await _wait_for_op(template_op)
+
+    group_client = compute.RegionInstanceGroupManagersClient()
+
+    def update_instances():
+        return group_client.patch(
+            instance_group_manager=mig_resource_id,
+            project=gcp_environment_config.project_id,
+            region=region,
+            instance_group_manager_resource=compute.InstanceGroupManager(
+                versions=[
+                    compute.InstanceGroupManagerVersion(
+                        instance_template=f"projects/{gcp_environment_config.project_id}/global/instanceTemplates/{template.name}",
+                        name=template.name,
+                    )
+                ],
+                update_policy=compute.InstanceGroupManagerUpdatePolicy(
+                    type_="PROACTIVE"
+                ),
+            ),
+        )
+
+    update_op = await _retry_remote_disconnected(update_instances)
+    await _wait_for_op(update_op)
+    await _poll_mig_updating(
+        group_client,
+        mig_resource_id,
+        gcp_environment_config.project_id,  # type: ignore
+        region,
+        deploy_timeout,
+    )
 
 
 @dataclasses.dataclass
@@ -36,7 +233,12 @@ class ComputeEngineServiceInputs(Inputs):
     deploy_timeout_sec: float
 
 
-class ComputeEngineService(GCPDockerService):
+@dataclasses.dataclass
+class ComputeEngineServiceReleaseInputs:
+    docker_image: str
+
+
+class ComputeEngineService(GCPService[ComputeEngineServiceReleaseInputs]):
     """A service hosted on a managed instance group on GCP Compute Engine.
 
     Like all [Services](/docs/concepts/services), this class configures itself across multiple [Environments](/docs/concepts/environments).
@@ -129,14 +331,17 @@ class ComputeEngineService(GCPDockerService):
         """
         super().__init__(
             name=name,
-            dockerfile=dockerfile,
             build_directory=build_directory,
             build_ignore=build_ignore,
+            build_diff_args={
+                "dockerfile": dockerfile,
+            },
         )
         self.machine_type = machine_type
         self.port = port
         self.region = region
         self.disk_size_gb = disk_size_gb
+        self.dockerfile = dockerfile
 
         auto_healing_policy = None
         if health_check is False:
@@ -232,17 +437,108 @@ class ComputeEngineService(GCPDockerService):
             disk_size_gb=self.disk_size_gb,
         )
 
-    def outputs(self) -> DockerServiceOutputs:
-        repo_outputs = self._artifact_registry.outputs()
-        if repo_outputs.docker_repository is None:
-            raise ValueError("Docker repository not found in artifact registry outputs")
-        service_url = None
+    def outputs(self) -> ServiceOutputs:
+        service_url = "Unsuppported - custom domain required"
         dns_outputs = None
         if self._custom_domain is not None:
             dns_outputs = self._custom_domain.dns_outputs()
             service_url = f"https://{self.domain}"
-        return DockerServiceOutputs(
+        return ServiceOutputs(
             service_url=service_url,  # type: ignore
-            docker_repository=repo_outputs.docker_repository,
             dns_outputs=dns_outputs,
+        )
+
+    async def _build(
+        self,
+        *,
+        gcp_environment_config: GCPEnvironmentConfig,
+        launchflow_uri: LaunchFlowURI,
+        deployment_id: str,
+        build_log_file: IO,
+        build_local: bool,
+    ) -> ComputeEngineServiceReleaseInputs:
+        artifact_registry_outputs = self._artifact_registry.outputs()
+
+        # TODO: Make this field non-optional on the resource outputs
+        if artifact_registry_outputs.docker_repository is None:
+            raise RuntimeError("Docker repository not found")
+
+        docker_image = await build_artifact_registry_docker_image(
+            dockerfile_path=self.dockerfile,
+            build_directory=self.build_directory,
+            build_ignore=self.build_ignore,
+            build_log_file=build_log_file,
+            artifact_registry_repository=artifact_registry_outputs.docker_repository,
+            launchflow_project_name=launchflow_uri.project_name,
+            launchflow_environment_name=launchflow_uri.environment_name,
+            launchflow_service_name=self.name,
+            launchflow_deployment_id=deployment_id,
+            gcp_environment_config=gcp_environment_config,
+            build_local=build_local,
+        )
+
+        return ComputeEngineServiceReleaseInputs(docker_image=docker_image)
+
+    async def _promote(
+        self,
+        *,
+        from_gcp_environment_config: GCPEnvironmentConfig,
+        to_gcp_environment_config: GCPEnvironmentConfig,
+        from_launchflow_uri: LaunchFlowURI,
+        to_launchflow_uri: LaunchFlowURI,
+        from_deployment_id: str,
+        to_deployment_id: str,
+        promote_log_file: IO,
+        promote_local: bool,
+    ) -> ComputeEngineServiceReleaseInputs:
+        from_artifact_registry_outputs = self._artifact_registry.outputs(
+            project=from_launchflow_uri.project_name,
+            environment=from_launchflow_uri.environment_name,
+        )
+        to_artifact_registry_outputs = self._artifact_registry.outputs(
+            project=to_launchflow_uri.project_name,
+            environment=to_launchflow_uri.environment_name,
+        )
+        if (
+            from_artifact_registry_outputs.docker_repository is None
+            or to_artifact_registry_outputs.docker_repository is None
+        ):
+            raise exceptions.ServiceOutputsMissingField(self.name, "docker_repository")
+
+        docker_image = await promote_artifact_registry_docker_image(
+            build_log_file=promote_log_file,
+            from_artifact_registry_repository=from_artifact_registry_outputs.docker_repository,
+            to_artifact_registry_repository=to_artifact_registry_outputs.docker_repository,
+            launchflow_service_name=self.name,
+            from_launchflow_deployment_id=from_deployment_id,
+            to_launchflow_deployment_id=to_deployment_id,
+            from_gcp_environment_config=from_gcp_environment_config,
+            to_gcp_environment_config=to_gcp_environment_config,
+            promote_local=promote_local,
+        )
+
+        return ComputeEngineServiceReleaseInputs(docker_image=docker_image)
+
+    async def _release(
+        self,
+        *,
+        release_inputs: ComputeEngineServiceReleaseInputs,
+        gcp_environment_config: GCPEnvironmentConfig,
+        launchflow_uri: LaunchFlowURI,
+        deployment_id: str,
+        release_log_file: IO,
+    ):
+        region = self.region or gcp_environment_config.default_region
+
+        await _release_compute_engine_service(
+            docker_image=release_inputs.docker_image,
+            machine_type=self.machine_type,
+            disk_size_gb=self.disk_size_gb,
+            deploy_timeout=self.deploy_timeout,
+            gcp_environment_config=gcp_environment_config,
+            launchflow_uri=launchflow_uri,
+            deployment_id=deployment_id,
+            service_name=self.name,
+            mig_resource_id=self._mig.resource_id,
+            region=region,
         )

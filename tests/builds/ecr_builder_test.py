@@ -6,7 +6,7 @@ from unittest.mock import patch
 from docker.errors import BuildError
 
 from launchflow.builds.ecr_builder import ECRDockerBuilder
-from launchflow.exceptions import ServiceBuildFailed
+from launchflow.exceptions import NixPacksBuildFailed
 from launchflow.models.flow_state import AWSEnvironmentConfig
 
 
@@ -116,7 +116,7 @@ class ECRBuilderTest(unittest.IsolatedAsyncioTestCase):
             launchflow_deployment_id=self.launchflow_deployment_id,
             aws_environment_config=self.aws_environment_config,
         )
-        with self.assertRaises(ServiceBuildFailed):
+        with self.assertRaises(NixPacksBuildFailed):
             # Execute the build method
             await builder.build_with_nixpacks_local()
 

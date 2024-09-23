@@ -190,7 +190,7 @@ async def _destroy_resource(
     async with lock as lock_info:
         logs_file = None
         task_description = f"Destroying {plan.ref}..."
-        base_logging_dir = "/tmp/launchflow"
+        base_logging_dir = "/tmp/lf"
         os.makedirs(base_logging_dir, exist_ok=True)
         logs_file = f"{base_logging_dir}/{plan.resource.name}-{int(time.time())}.log"
         task_description += (
@@ -260,7 +260,7 @@ async def _destroy_resource(
 
 async def _destroy_service(lock: Lock, plan: DestroyServicePlan, progress: Progress):
     async with lock as lock_info:
-        base_logging_dir = "/tmp/launchflow"
+        base_logging_dir = "/tmp/lf"
         os.makedirs(base_logging_dir, exist_ok=True)
         logs_file = f"{base_logging_dir}/{plan.service_name}-{int(time.time())}.log"
         with open(logs_file, "a") as f:
@@ -700,7 +700,7 @@ async def _run_import_plans(
 ):
     if plan.import_inputs is None:
         raise ValueError("Import inputs must be provided to import a resource")
-    base_logging_dir = "/tmp/launchflow"
+    base_logging_dir = "/tmp/lf"
     os.makedirs(base_logging_dir, exist_ok=True)
     logs_file = f"{base_logging_dir}/{plan.resource.name}-{int(time.time())}.log"
     task_description = f"Importing {plan.ref}..."
