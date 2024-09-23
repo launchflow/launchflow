@@ -56,6 +56,7 @@ from launchflow.models.enums import (
 from launchflow.models.flow_state import EnvironmentState, ResourceState, ServiceState
 from launchflow.models.launchflow_uri import LaunchFlowURI
 from launchflow.node import Node
+from launchflow.opentofu import OpenTofuModule
 from launchflow.resource import Resource
 from launchflow.service import DNSOutputs, Service
 from launchflow.tofu import TofuResource
@@ -243,6 +244,15 @@ class CreateResourcePlan(ResourcePlan):
                     )
                     gcp_id = tofu_outputs.gcp_id
                     aws_arn = tofu_outputs.aws_arn
+                elif isinstance(self.resource, OpenTofuModule):
+                    tofu_outputs = await self.resource.apply(
+                        lock_id=lock_info.lock_id,
+                        logs_file=logs_file,
+                        environment=self.environment_state,
+                        launchflow_uri=launchflow_uri,
+                    )
+                    gcp_id = tofu_outputs.get("gcp_id")
+                    aws_arn = tofu_outputs.get("aws_arn")
                 else:
                     raise NotImplementedError(
                         f"Resource type {self.resource.__class__.__name__} is not supported."
@@ -312,10 +322,13 @@ class CreateResourcePlan(ResourcePlan):
     ):
         left_padding_str = " " * left_padding
         resource_inputs = self._new_resource_inputs
+
         if self.existing_resource_state is None or (
             self.existing_resource_state.inputs is None
             and self.existing_resource_state.status == ResourceStatus.CREATE_FAILED
         ):
+            if isinstance(self.resource, OpenTofuModule):
+                resource_inputs["module"] = self.resource._module
             if resource_inputs:
                 resource_inputs_str = format_configuration_dict(resource_inputs)
                 console.print(
@@ -344,6 +357,11 @@ class CreateResourcePlan(ResourcePlan):
                 console.print(
                     f"{left_padding_str}{ResourceRef(self.resource)} will be [{OP_COLOR}]{op_msg}[/{OP_COLOR}] with the following updates:"
                 )
+                if isinstance(self.resource, OpenTofuModule):
+                    console.print(
+                        left_padding_str
+                        + f"    [cyan]module[/cyan]: {self.resource._module}"
+                    )
                 console.print(
                     left_padding_str
                     + f"\n{left_padding_str}".join(args_diff.split("\n"))

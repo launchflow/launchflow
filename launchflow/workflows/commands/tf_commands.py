@@ -1,8 +1,5 @@
 import asyncio
 import dataclasses
-import importlib
-import importlib.resources
-import importlib.util
 import json
 import os
 import shutil
@@ -107,13 +104,12 @@ class TFCommand:
                 elif response.status_code != 404:
                     raise ValueError("Failed to load tofu state, please try again.")
 
-        with importlib.resources.path(
-            "launchflow.workflows.tf", "__init__.py"
-        ) as init_path:
-            module_path = init_path.parent / self.tf_module_dir
-
-            for file in module_path.iterdir():
-                shutil.copy(file, working_dir)
+        # Copy all files from the module directory to the working directory
+        for filename in os.listdir(self.tf_module_dir):
+            src_file = os.path.join(self.tf_module_dir, filename)
+            dst_file = os.path.join(working_dir, filename)
+            if os.path.isfile(src_file):
+                shutil.copy2(src_file, dst_file)
 
     def tf_init_command(self) -> str:
         if isinstance(self.backend, LocalBackend):
@@ -160,10 +156,7 @@ class TFCommand:
                             "Authorization": f"Bearer {config.get_access_token()}"
                         },
                     )
-                    if response.status_code != 200:
-                        raise ValueError(
-                            "Failed to upload tofu state, please try again."
-                        )
+                    response.raise_for_status()
 
     async def _run(self, working_dir: str):
         raise NotImplementedError("_run method not implemented")
