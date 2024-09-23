@@ -151,7 +151,7 @@ class ServiceProductMismatch(Exception):
 class ServiceMissingDeploymentId(Exception):
     def __init__(self, service_name: str) -> None:
         super().__init__(
-            f"Service '{service_name}' is missing a deployment id. Please run `lf deploy {service_name}` to deploy it before promoting."
+            f"Service '{service_name}' hasn't been deployed yet. Please run `lf deploy {service_name}` to deploy it before promoting."
         )
 
 
