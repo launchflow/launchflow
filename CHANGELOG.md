@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.12](https://github.com/launchflow/launchflow/compare/v0.4.11...v0.4.12) (2024-09-24)
+
+
+### Bug Fixes
+
+* add support for nixbuilds for ecs fargate ([#102](https://github.com/launchflow/launchflow/issues/102)) ([1ae57a7](https://github.com/launchflow/launchflow/commit/1ae57a71783593922eeddd2582b7a8b8a7d76948))
+* disable nixpacks for now ([#104](https://github.com/launchflow/launchflow/issues/104)) ([4cf0dab](https://github.com/launchflow/launchflow/commit/4cf0dabd4922efc16bfd876adca7916125ed8040))
+* ensure gce service dependencies are set correctly ([#105](https://github.com/launchflow/launchflow/issues/105)) ([a62cc52](https://github.com/launchflow/launchflow/commit/a62cc520eb82fcda1a51d66d7eeaa3435e56c460))
+* only throw a resource output not found if it's actually a not found ([#103](https://github.com/launchflow/launchflow/issues/103)) ([22532b1](https://github.com/launchflow/launchflow/commit/22532b1b09793f11d18e5dc91880ac9a5d5d966c))
+* update the force unlock command to update pending statuses ([#97](https://github.com/launchflow/launchflow/issues/97)) ([a8cbd3a](https://github.com/launchflow/launchflow/commit/a8cbd3a4989146527d13c9d11a5fab4ba85f140e))
+* use correct build dir for local builds ([#106](https://github.com/launchflow/launchflow/issues/106)) ([c281a18](https://github.com/launchflow/launchflow/commit/c281a18d1ae38c2c1e4736b7be7fb947fd40a079))
+
 ## [0.4.11](https://github.com/launchflow/launchflow/compare/v0.4.10...v0.4.11) (2024-09-17)
 
 
