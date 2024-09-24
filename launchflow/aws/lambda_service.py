@@ -86,7 +86,7 @@ def _zip_source(
 
 @dataclass
 class LambdaServiceInputs(Inputs):
-    pass
+    handler: str
 
 
 @dataclass
@@ -255,7 +255,6 @@ class LambdaService(AWSService[LambdaServiceReleaseInputs]):
             handler = _get_relative_handler_import_path(handler)  # type: ignore
 
         build_diff_args: Dict[str, Any] = {
-            "handler": handler,
             "runtime": runtime.value
             if isinstance(runtime, LambdaRuntime)
             else runtime.runtime.value,
@@ -317,7 +316,7 @@ class LambdaService(AWSService[LambdaServiceReleaseInputs]):
         self.handler = handler
 
     def inputs(self) -> LambdaServiceInputs:
-        return LambdaServiceInputs()
+        return LambdaServiceInputs(handler=self.handler)  # type: ignore
 
     def resources(self) -> List[Resource]:
         to_return: List[Resource] = [self._lambda_function]
@@ -478,6 +477,7 @@ class LambdaService(AWSService[LambdaServiceReleaseInputs]):
         # Updates the DEPLOYMENT_ID environment variable
         _ = to_lambda_client.update_function_configuration(
             FunctionName=to_lambda_outputs.function_name,
+            Handler=self.handler,  # type: ignore
             Environment={
                 "Variables": {
                     "LAUNCHFLOW_PROJECT": to_launchflow_uri.project_name,

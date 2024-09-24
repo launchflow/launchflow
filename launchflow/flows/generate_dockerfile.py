@@ -4,7 +4,7 @@ import beaupy
 from rich.console import Console
 
 from launchflow.flows.flow_utils import ServiceRef
-from launchflow.service import DockerService
+from launchflow.service import Service
 
 DOCKERFILE_TEMPLATE = """# TODO(developer): Change the base image to match your Python version
 FROM {base_image}
@@ -77,7 +77,7 @@ def vanilla_python_dockerfile_template(
 
 
 def generate_dockerfile(
-    service: DockerService,
+    service: Service,
     gcp_or_aws: Literal["gcp", "aws"],
     console: Console = Console(),
 ):
@@ -87,6 +87,12 @@ def generate_dockerfile(
     else:
         base_image = "public.ecr.aws/docker/library/python:3.11-slim"
         port = 80
+
+    if not hasattr(service, "dockerfile") or service.dockerfile is None:  # type: ignore
+        console.print(
+            f"Skipping Dockerfile generation for {ServiceRef(service)} as it does not have a Dockerfile attribute."
+        )
+        return False
 
     # prompt the user to generate a Dockerfile
     # or incremenet the missing dockerfile count
@@ -111,7 +117,7 @@ def generate_dockerfile(
             )
             if not fast_api_path:
                 return False
-            with open(service.dockerfile, "w") as f:
+            with open(service.dockerfile, "w") as f:  # type: ignore
                 f.write(
                     fastapi_dockerfile_template(
                         gcp_or_aws, base_image, port, fast_api_path
@@ -129,7 +135,7 @@ def generate_dockerfile(
             )
             if not django_path:
                 return False
-            with open(service.dockerfile, "w") as f:
+            with open(service.dockerfile, "w") as f:  # type: ignore
                 f.write(
                     django_dockerfile_template(
                         gcp_or_aws, base_image, port, django_path
@@ -147,7 +153,7 @@ def generate_dockerfile(
             )
             if not flask_path:
                 return False
-            with open(service.dockerfile, "w") as f:
+            with open(service.dockerfile, "w") as f:  # type: ignore
                 f.write(
                     flask_dockerfile_template(gcp_or_aws, base_image, port, flask_path)
                 )
@@ -156,7 +162,7 @@ def generate_dockerfile(
             )
             return True
         elif template == "Vanilla Python":
-            with open(service.dockerfile, "w") as f:
+            with open(service.dockerfile, "w") as f:  # type: ignore
                 f.write(
                     vanilla_python_dockerfile_template(gcp_or_aws, base_image, port)
                 )

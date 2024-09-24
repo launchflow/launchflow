@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, List, Literal, Optional
+from typing import IO, Dict, List, Literal, Optional
 
 from launchflow import exceptions
 from launchflow.gcp.artifact_registry_repository import (
@@ -9,12 +9,54 @@ from launchflow.gcp.artifact_registry_repository import (
 from launchflow.gcp.cloud_run_container import CloudRunServiceContainer
 from launchflow.gcp.custom_domain_mapping import CustomDomainMapping
 from launchflow.gcp.global_ip_address import GlobalIPAddress
-from launchflow.gcp.service import GCPDockerService
+from launchflow.gcp.service import GCPService
 from launchflow.gcp.ssl import ManagedSSLCertificate
 from launchflow.models.enums import ServiceProduct
+from launchflow.models.flow_state import GCPEnvironmentConfig
+from launchflow.models.launchflow_uri import LaunchFlowURI
 from launchflow.node import Inputs
 from launchflow.resource import Resource
-from launchflow.service import DockerServiceOutputs
+from launchflow.service import ServiceOutputs
+from launchflow.workflows.deploy_gcp_service import (
+    build_artifact_registry_docker_image,
+    promote_artifact_registry_docker_image,
+)
+
+
+async def _release_cloud_run(
+    cloud_run_id: str,
+    docker_image: str,
+    gcp_environment_config: GCPEnvironmentConfig,
+    launchflow_uri: LaunchFlowURI,
+    deployment_id: str,
+):
+    try:
+        from google.cloud import run_v2
+    except ImportError:
+        raise exceptions.MissingGCPDependency()
+
+    client = run_v2.ServicesAsyncClient()
+    service = await client.get_service(name=cloud_run_id)
+    # Updating the service container will trigger a new revision to be created
+    service.template.containers[0].image = docker_image
+
+    # Add or update the environment variables
+    fields_to_add = {
+        "LAUNCHFLOW_ARTIFACT_BUCKET": f"gs://{gcp_environment_config.artifact_bucket}",
+        "LAUNCHFLOW_PROJECT": launchflow_uri.project_name,
+        "LAUNCHFLOW_ENVIRONMENT": launchflow_uri.environment_name,
+        "LAUNCHFLOW_CLOUD_PROVIDER": "gcp",
+        "LAUNCHFLOW_DEPLOYMENT_ID": deployment_id,
+    }
+    for env_var in service.template.containers[0].env:
+        if env_var.name in fields_to_add:
+            env_var.value = fields_to_add[env_var.name]
+            del fields_to_add[env_var.name]
+    for key, value in fields_to_add.items():
+        service.template.containers[0].env.append(run_v2.EnvVar(name=key, value=value))
+
+    operation = await client.update_service(request=None, service=service)
+    await operation.result()
 
 
 @dataclass
@@ -22,7 +64,12 @@ class CloudRunInputs(Inputs):
     pass
 
 
-class CloudRunService(GCPDockerService):
+@dataclass
+class CloudRunServiceReleaseInputs:
+    docker_image: str
+
+
+class CloudRunService(GCPService[CloudRunServiceReleaseInputs]):
     """A service hosted on GCP Cloud Run.
 
     ### Example Usage
@@ -106,9 +153,11 @@ class CloudRunService(GCPDockerService):
         """
         super().__init__(
             name=name,
-            dockerfile=dockerfile,
             build_directory=build_directory,
             build_ignore=build_ignore,
+            build_diff_args={
+                "dockerfile": dockerfile,
+            },
         )
         self.region = region
         self.cpu = cpu
@@ -121,6 +170,7 @@ class CloudRunService(GCPDockerService):
         self.invokers = invokers
         self.custom_audiences = custom_audiences
         self.ingress = ingress
+        self.dockerfile = dockerfile
 
         # Resources - flows should not access these directly
         self._artifact_registry = ArtifactRegistryRepository(
@@ -177,25 +227,111 @@ class CloudRunService(GCPDockerService):
             to_return.append(self._custom_domain_mapping)
         return to_return
 
-    def outputs(self) -> DockerServiceOutputs:
+    def outputs(self) -> ServiceOutputs:
+        dns_outputs = None
         try:
             service_container_outputs = self._cloud_run_service_container.outputs()
-            artifact_registry_outputs = self._artifact_registry.outputs()
+            if self._custom_domain_mapping:
+                dns_outputs = self._custom_domain_mapping.dns_outputs()
         except exceptions.ResourceOutputsNotFound:
             raise exceptions.ServiceOutputsNotFound(service_name=self.name)
 
-        dns_outputs = None
-        if self._custom_domain_mapping:
-            dns_outputs = self._custom_domain_mapping.dns_outputs()
-
-        if artifact_registry_outputs.docker_repository is None:
-            raise ValueError("Docker repository not found in artifact registry outputs")
-
-        service_outputs = DockerServiceOutputs(
+        service_outputs = ServiceOutputs(
             service_url=service_container_outputs.service_url,
-            docker_repository=artifact_registry_outputs.docker_repository,
             dns_outputs=dns_outputs,
         )
         service_outputs.gcp_id = service_container_outputs.gcp_id
 
         return service_outputs
+
+    async def _build(
+        self,
+        *,
+        gcp_environment_config: GCPEnvironmentConfig,
+        launchflow_uri: LaunchFlowURI,
+        deployment_id: str,
+        build_log_file: IO,
+        build_local: bool,
+    ) -> CloudRunServiceReleaseInputs:
+        artifact_registry_outputs = self._artifact_registry.outputs()
+
+        # TODO: Make this field non-optional on the resource outputs
+        if artifact_registry_outputs.docker_repository is None:
+            raise RuntimeError("Docker repository not found")
+
+        docker_image = await build_artifact_registry_docker_image(
+            dockerfile_path=self.dockerfile,
+            build_directory=self.build_directory,
+            build_ignore=self.build_ignore,
+            build_log_file=build_log_file,
+            artifact_registry_repository=artifact_registry_outputs.docker_repository,
+            launchflow_project_name=launchflow_uri.project_name,
+            launchflow_environment_name=launchflow_uri.environment_name,
+            launchflow_service_name=self.name,
+            launchflow_deployment_id=deployment_id,
+            gcp_environment_config=gcp_environment_config,
+            build_local=build_local,
+        )
+
+        return CloudRunServiceReleaseInputs(docker_image=docker_image)
+
+    async def _promote(
+        self,
+        *,
+        from_gcp_environment_config: GCPEnvironmentConfig,
+        to_gcp_environment_config: GCPEnvironmentConfig,
+        from_launchflow_uri: LaunchFlowURI,
+        to_launchflow_uri: LaunchFlowURI,
+        from_deployment_id: str,
+        to_deployment_id: str,
+        promote_log_file: IO,
+        promote_local: bool,
+    ) -> CloudRunServiceReleaseInputs:
+        from_artifact_registry_outputs = self._artifact_registry.outputs(
+            project=from_launchflow_uri.project_name,
+            environment=from_launchflow_uri.environment_name,
+        )
+        to_artifact_registry_outputs = self._artifact_registry.outputs(
+            project=to_launchflow_uri.project_name,
+            environment=to_launchflow_uri.environment_name,
+        )
+        if (
+            from_artifact_registry_outputs.docker_repository is None
+            or to_artifact_registry_outputs.docker_repository is None
+        ):
+            raise exceptions.ServiceOutputsMissingField(self.name, "docker_repository")
+
+        docker_image = await promote_artifact_registry_docker_image(
+            build_log_file=promote_log_file,
+            from_artifact_registry_repository=from_artifact_registry_outputs.docker_repository,
+            to_artifact_registry_repository=to_artifact_registry_outputs.docker_repository,
+            launchflow_service_name=self.name,
+            from_launchflow_deployment_id=from_deployment_id,
+            to_launchflow_deployment_id=to_deployment_id,
+            from_gcp_environment_config=from_gcp_environment_config,
+            to_gcp_environment_config=to_gcp_environment_config,
+            promote_local=promote_local,
+        )
+
+        return CloudRunServiceReleaseInputs(docker_image=docker_image)
+
+    async def _release(
+        self,
+        *,
+        release_inputs: CloudRunServiceReleaseInputs,
+        gcp_environment_config: GCPEnvironmentConfig,
+        launchflow_uri: LaunchFlowURI,
+        deployment_id: str,
+        release_log_file: IO,
+    ):
+        cloud_run_outputs = self._cloud_run_service_container.outputs()
+        if cloud_run_outputs.gcp_id is None:
+            raise exceptions.ServiceOutputsMissingField(self.name, "gcp_id")
+
+        await _release_cloud_run(
+            cloud_run_id=cloud_run_outputs.gcp_id,
+            docker_image=release_inputs.docker_image,
+            gcp_environment_config=gcp_environment_config,
+            launchflow_uri=launchflow_uri,
+            deployment_id=deployment_id,
+        )

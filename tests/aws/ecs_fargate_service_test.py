@@ -36,14 +36,59 @@ class ECSFargateServiceTest(unittest.IsolatedAsyncioTestCase):
             os.path.abspath(config.launchflow_yaml.config_path)
         )
 
-    @mock.patch("launchflow.aws.ecs_fargate.build_ecr_docker_image_on_code_build")
-    async def test_build_ecs_fargate_remote(self, build_docker_mock: mock.MagicMock):
+    @mock.patch("launchflow.aws.ecs_fargate.ECRDockerBuilder")
+    async def test_build_ecs_fargate_docker_remote(
+        self, build_docker_mock: mock.MagicMock
+    ):
         service_name = "my-ecs-service"
         # Setup the build mocks
+        builder_mock = mock.AsyncMock()
+        build_docker_mock.return_value = builder_mock
         fake_docker_image = (
             f"123456789012.dkr.ecr.us-west-2.amazonaws.com/{service_name}:latest"
         )
-        build_docker_mock.return_value = fake_docker_image
+        builder_mock.build_with_docker_remote.return_value = fake_docker_image
+
+        ecs_fargate_service = ECSFargateService(service_name, dockerfile="Dockerfile")
+        # Setup the resource output mocks
+        ecr_outputs = ECRRepositoryOutputs(
+            repository_url=f"123456789012.dkr.ecr.us-west-2.amazonaws.com/{service_name}"
+        )
+        ecs_fargate_service._ecr.outputs = mock.MagicMock(return_value=ecr_outputs)
+        code_build_outputs = CodeBuildProjectOutputs(
+            project_name="test-code-build-project"
+        )
+        ecs_fargate_service._code_build_project.outputs = mock.MagicMock(
+            return_value=code_build_outputs
+        )
+
+        # Run the build and validate the result / mock calls
+        release_inputs = await ecs_fargate_service._build(
+            aws_environment_config=self.aws_environment_config,
+            launchflow_uri=self.launchflow_uri,
+            deployment_id=self.deployment_id,
+            build_log_file=mock.MagicMock(),
+            build_local=False,
+        )
+        self.assertEqual(release_inputs.docker_image, fake_docker_image)
+
+        builder_mock.build_with_docker_remote.assert_called_once_with(
+            "Dockerfile", "test-code-build-project"
+        )
+
+    @pytest.mark.skip(reason="nixpacks is disabled for now")
+    @mock.patch("launchflow.aws.ecs_fargate.ECRDockerBuilder")
+    async def test_build_ecs_fargate_nixpacks_remote(
+        self, build_docker_mock: mock.MagicMock
+    ):
+        service_name = "my-ecs-service"
+        # Setup the build mocks
+        builder_mock = mock.AsyncMock()
+        build_docker_mock.return_value = builder_mock
+        fake_docker_image = (
+            f"123456789012.dkr.ecr.us-west-2.amazonaws.com/{service_name}:latest"
+        )
+        builder_mock.build_with_nixpacks_remote.return_value = fake_docker_image
 
         ecs_fargate_service = ECSFargateService(service_name)
         # Setup the resource output mocks
@@ -68,28 +113,55 @@ class ECSFargateServiceTest(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(release_inputs.docker_image, fake_docker_image)
 
-        build_docker_mock.assert_called_once_with(
-            dockerfile_path="Dockerfile",
-            build_directory=self.launchflow_yaml_abspath,
-            build_ignore=mock.ANY,
-            build_log_file=mock.ANY,
-            ecr_repository=ecr_outputs.repository_url,
-            code_build_project_name=code_build_outputs.project_name,
-            launchflow_project_name=self.launchflow_uri.project_name,
-            launchflow_environment_name=self.launchflow_uri.environment_name,
-            launchflow_service_name=service_name,
-            launchflow_deployment_id=self.deployment_id,
-            aws_environment_config=self.aws_environment_config,
+        builder_mock.build_with_nixpacks_remote.assert_called_once_with(
+            "test-code-build-project"
         )
 
-    @mock.patch("launchflow.aws.ecs_fargate.build_ecr_docker_image_locally")
-    async def test_build_ecs_fargate_local(self, build_docker_mock: mock.MagicMock):
+    @mock.patch("launchflow.aws.ecs_fargate.ECRDockerBuilder")
+    async def test_build_ecs_fargate_docker_local(
+        self, build_docker_mock: mock.MagicMock
+    ):
         service_name = "my-ecs-service"
         # Setup the build mocks
+        builder_mock = mock.AsyncMock()
+        build_docker_mock.return_value = builder_mock
         fake_docker_image = (
             f"123456789012.dkr.ecr.us-west-2.amazonaws.com/{service_name}:latest"
         )
-        build_docker_mock.return_value = fake_docker_image
+        builder_mock.build_with_docker_local.return_value = fake_docker_image
+
+        ecs_fargate_service = ECSFargateService(service_name, dockerfile="Dockerfile")
+        # Setup the resource output mocks
+        ecr_outputs = ECRRepositoryOutputs(
+            repository_url=f"123456789012.dkr.ecr.us-west-2.amazonaws.com/{service_name}"
+        )
+        ecs_fargate_service._ecr.outputs = mock.MagicMock(return_value=ecr_outputs)
+
+        # Run the build and validate the result / mock calls
+        release_inputs = await ecs_fargate_service._build(
+            aws_environment_config=self.aws_environment_config,
+            launchflow_uri=self.launchflow_uri,
+            deployment_id=self.deployment_id,
+            build_log_file=mock.MagicMock(),
+            build_local=True,
+        )
+        self.assertEqual(release_inputs.docker_image, fake_docker_image)
+
+        builder_mock.build_with_docker_local.assert_called_once_with("Dockerfile")
+
+    @pytest.mark.skip(reason="nixpacks is disabled for now")
+    @mock.patch("launchflow.aws.ecs_fargate.ECRDockerBuilder")
+    async def test_build_ecs_fargate_nixpack_local(
+        self, build_docker_mock: mock.MagicMock
+    ):
+        service_name = "my-ecs-service"
+        # Setup the build mocks
+        builder_mock = mock.AsyncMock()
+        build_docker_mock.return_value = builder_mock
+        fake_docker_image = (
+            f"123456789012.dkr.ecr.us-west-2.amazonaws.com/{service_name}:latest"
+        )
+        builder_mock.build_with_nixpacks_local.return_value = fake_docker_image
 
         ecs_fargate_service = ECSFargateService(service_name)
         # Setup the resource output mocks
@@ -108,16 +180,7 @@ class ECSFargateServiceTest(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(release_inputs.docker_image, fake_docker_image)
 
-        build_docker_mock.assert_called_once_with(
-            dockerfile_path="Dockerfile",
-            build_directory=self.launchflow_yaml_abspath,
-            build_ignore=mock.ANY,
-            build_log_file=mock.ANY,
-            ecr_repository=ecr_outputs.repository_url,
-            launchflow_service_name=service_name,
-            launchflow_deployment_id=self.deployment_id,
-            aws_environment_config=self.aws_environment_config,
-        )
+        builder_mock.build_with_nixpacks_local.assert_called_once_with()
 
     # TODO: Test the promote flow once its implemented
     async def test_promote_ecs_fargate(self):

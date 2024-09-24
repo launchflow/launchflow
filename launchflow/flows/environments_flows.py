@@ -205,7 +205,7 @@ async def delete_environment(
                         )
                     )
                 elif existing_environment.aws_config is not None:
-                    base_logging_dir = "/tmp/launchflow"
+                    base_logging_dir = "/tmp/lf"
                     os.makedirs(base_logging_dir, exist_ok=True)
                     logs_file = f"{base_logging_dir}/delete-aws-environment-{manager.environment_name}-{int(time.time())}.log"
                     rich.print(f"Logging to [pink1]{logs_file}[/pink1]")
@@ -412,7 +412,7 @@ async def create_environment(
             project_name=manager.project_name,
         )
 
-        base_logging_dir = "/tmp/launchflow"
+        base_logging_dir = "/tmp/lf"
         os.makedirs(base_logging_dir, exist_ok=True)
         logs_file = f"{base_logging_dir}/create-environment-{manager.environment_name}-{int(time.time())}.log"
         rich.print(f"Logging to [pink1]{logs_file}[/pink1]")

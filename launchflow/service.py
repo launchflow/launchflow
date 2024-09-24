@@ -45,18 +45,21 @@ class Service(Node[ServiceOutputs], Generic[R]):
     ) -> None:
         super().__init__(name, NodeType.SERVICE)
 
-        # Get the absolute path of the directory containing the launchflow.yaml file
-        launchflow_yaml_abspath = os.path.dirname(
-            os.path.abspath(config.launchflow_yaml.config_path)
-        )
-        self.build_directory = os.path.abspath(
-            os.path.join(launchflow_yaml_abspath, build_directory)
-        )
+        self._build_directory = build_directory
 
         self.build_ignore = list(set(build_ignore + DEFAULT_IGNORE_PATTERNS))
         self.build_diff_args = build_diff_args
 
         self.name = name
+
+    @property
+    def build_directory(self) -> str:
+        launchflow_yaml_abspath = os.path.dirname(
+            os.path.abspath(config.launchflow_yaml.config_path)
+        )
+        return os.path.abspath(
+            os.path.join(launchflow_yaml_abspath, self._build_directory)
+        )
 
     def resources(self) -> List[Resource]:
         raise NotImplementedError
@@ -106,48 +109,4 @@ class Service(Node[ServiceOutputs], Generic[R]):
             and value.name == self.name
             and value.product == self.product
             and value.inputs() == self.inputs()
-        )
-
-
-# TODO(NEXT TIME): Remove the DockerService and move the docker logic into the child class
-@dataclass
-class DockerServiceOutputs(ServiceOutputs):
-    docker_repository: str
-
-
-class DockerService(Service[DockerServiceOutputs]):
-    def __init__(
-        self,
-        name: str,
-        *,
-        dockerfile: str = "Dockerfile",
-        build_directory: str = ".",
-        build_ignore: List[str] = [],  # type: ignore
-    ) -> None:
-        super().__init__(
-            name,
-            build_directory=build_directory,
-            build_ignore=build_ignore,
-            build_diff_args={
-                "dockerfile": dockerfile,
-            },
-        )
-
-        self.dockerfile = dockerfile
-
-    def outputs(self) -> DockerServiceOutputs:
-        raise NotImplementedError
-
-    async def outputs_async(self) -> DockerServiceOutputs:
-        raise NotImplementedError
-
-    def __eq__(self, value) -> bool:
-        return (
-            isinstance(value, DockerService)
-            and value.name == self.name
-            and value.product == self.product
-            and value.inputs() == self.inputs()
-            and value.dockerfile == self.dockerfile
-            and value.build_directory == self.build_directory
-            and value.build_ignore == self.build_ignore
         )
