@@ -76,6 +76,7 @@ class ECSFargateServiceTest(unittest.IsolatedAsyncioTestCase):
             "Dockerfile", "test-code-build-project"
         )
 
+    @pytest.mark.skip(reason="nixpacks is disabled for now")
     @mock.patch("launchflow.aws.ecs_fargate.ECRDockerBuilder")
     async def test_build_ecs_fargate_nixpacks_remote(
         self, build_docker_mock: mock.MagicMock
@@ -148,6 +149,7 @@ class ECSFargateServiceTest(unittest.IsolatedAsyncioTestCase):
 
         builder_mock.build_with_docker_local.assert_called_once_with("Dockerfile")
 
+    @pytest.mark.skip(reason="nixpacks is disabled for now")
     @mock.patch("launchflow.aws.ecs_fargate.ECRDockerBuilder")
     async def test_build_ecs_fargate_nixpack_local(
         self, build_docker_mock: mock.MagicMock
