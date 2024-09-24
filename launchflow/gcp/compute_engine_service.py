@@ -426,6 +426,10 @@ class ComputeEngineService(GCPService[ComputeEngineServiceReleaseInputs]):
             resources.append(self._health_check)
         if self._autoscaler is not None:
             resources.append(self._autoscaler)
+        if self._ip_address is not None:
+            resources.append(self._ip_address)
+        if self._ssl_certificate is not None:
+            resources.append(self._ssl_certificate)
         if self._custom_domain is not None:
             resources.append(self._custom_domain)
         return resources
