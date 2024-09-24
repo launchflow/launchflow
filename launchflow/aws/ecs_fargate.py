@@ -75,7 +75,7 @@ class ECSFargateService(AWSService[ECSFargateServiceReleaseInputs]):
         desired_count: int = 1,
         build_directory: str = ".",
         build_ignore: List[str] = [],
-        dockerfile: Optional[str] = None,
+        dockerfile: str = "Dockerfile",
         domain: Optional[str] = None,
         cluster: Optional[ECSCluster] = None,
     ) -> None:
@@ -233,20 +233,12 @@ class ECSFargateService(AWSService[ECSFargateServiceReleaseInputs]):
         )
 
         if build_local:
-            if self.dockerfile is None:
-                docker_image = await builder.build_with_nixpacks_local()
-            else:
-                docker_image = await builder.build_with_docker_local(self.dockerfile)
+            docker_image = await builder.build_with_docker_local(self.dockerfile)
         else:
             code_build_outputs = self._code_build_project.outputs()
-            if self.dockerfile is None:
-                docker_image = await builder.build_with_nixpacks_remote(
-                    code_build_outputs.project_name
-                )
-            else:
-                docker_image = await builder.build_with_docker_remote(
-                    self.dockerfile, code_build_outputs.project_name
-                )
+            docker_image = await builder.build_with_docker_remote(
+                self.dockerfile, code_build_outputs.project_name
+            )
         return ECSFargateServiceReleaseInputs(docker_image=docker_image)
 
     async def _promote(
@@ -290,9 +282,9 @@ class ECSFargateService(AWSService[ECSFargateServiceReleaseInputs]):
         )
         new_task_definition = existing_task_def_response["taskDefinition"]
         # Update the Docker image reference in the task definition
-        new_task_definition["containerDefinitions"][0][
-            "image"
-        ] = release_inputs.docker_image
+        new_task_definition["containerDefinitions"][0]["image"] = (
+            release_inputs.docker_image
+        )
         # Remove the hello world command and entrypoint
         if "command" in new_task_definition["containerDefinitions"][0]:
             del new_task_definition["containerDefinitions"][0]["command"]
