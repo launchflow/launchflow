@@ -324,7 +324,7 @@ async def _build_docker_image_local(
         _, log_stream = await loop.run_in_executor(
             None,
             lambda: docker_client.images.build(
-                path=os.path.dirname(local_source_dir),
+                path=local_source_dir,
                 dockerfile=dockerfile_path,
                 tag=tagged_image_name,
                 cache_from=cache_from,
@@ -616,7 +616,9 @@ async def build_artifact_registry_docker_image(
     build_local: bool,
 ) -> str:
     if build_local:
-        del build_ignore  # TODO: Use this to ignore files while building the docker image
+        del (
+            build_ignore
+        )  # TODO: Use this to ignore files while building the docker image
 
         docker_image = await _build_docker_image_local(
             docker_repository=artifact_registry_repository,
