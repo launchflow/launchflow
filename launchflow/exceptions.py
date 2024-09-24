@@ -10,7 +10,7 @@ class ComingSoon(Exception):
             f"""ComingSoon!
 
 This feature is coming soon or may have been added in a newer version of LaunchFlow.
-                
+
 See https://github.com/launchflow/launchflow/issues/{issue_number} for more information.
 """
         )
@@ -528,6 +528,16 @@ class GCEServiceNotHealthyTimeout(Exception):
         super().__init__(
             f"Service was not healthy after {timeout.total_seconds() / 60} minutes."
         )
+
+
+class FileNotFound(Exception):
+    def __init__(self, path) -> None:
+        super().__init__(f"File not found at path: {path}")
+
+
+class S3ObjectNotFound(Exception):
+    def __init__(self, bucket: str, key: str) -> None:
+        super().__init__(f"S3 object not found in bucket '{bucket}' with key '{key}'")
 
 
 class NixPacksBuildFailed(Exception):

@@ -23,7 +23,12 @@ def read_file(file_path: str) -> str:
         s3_client = _get_boto_client()
         file_path = file_path.replace("s3://", "")
         bucket, key = file_path.split("/", 1)
-        response = s3_client.get_object(Bucket=bucket, Key=key)
+
+        try:
+            response = s3_client.get_object(Bucket=bucket, Key=key)
+        except s3_client.exceptions.NoSuchKey:
+            raise exceptions.S3ObjectNotFound(bucket=bucket, key=key)
+
         return response["Body"].read().decode("utf-8")
     elif file_path.startswith("gs://"):
         # Read from GCS
@@ -31,6 +36,8 @@ def read_file(file_path: str) -> str:
         bucket, prefix = file_path.split("/", 1)
         return read_from_gcs_sync(bucket, prefix)
     else:
+        if not os.path.exists(file_path):
+            raise exceptions.FileNotFound(file_path)
         with open(file_path, "r") as f:
             return f.read()
 

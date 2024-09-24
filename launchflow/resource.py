@@ -138,7 +138,11 @@ def _load_outputs_from_remote_bucket(
 ):
     try:
         resource_outputs = yaml.safe_load(read_file(resource_outputs_bucket_path))
-    except Exception as e:
+    except (
+        exceptions.FileNotFound,
+        exceptions.GCSObjectNotFound,
+        exceptions.S3ObjectNotFound,
+    ) as e:
         raise exceptions.ResourceOutputsNotFound(resource_name) from e
 
     return resource_outputs
