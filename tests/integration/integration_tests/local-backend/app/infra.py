@@ -28,7 +28,7 @@ if environment.gcp_config is not None:
 elif environment.aws_config is not None:
     bucket = lf.aws.S3Bucket(f"{lf.project}-{lf.environment}-s3-bucket")
     ecs_service = lf.aws.ECSFargateService(
-        "fastapi-service", dockerfile="Dockerfile.aws", port=8080, desired_count=2
+        "fastapi-service", dockerfile="Dockerfile.aws", port=8080
     )
     # See run.sh to run this test
     lambda_service = lf.aws.LambdaService(
