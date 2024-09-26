@@ -56,6 +56,7 @@ def _zip_source(
     build_ignore: List[str],
     python_version: Union[str, None],
     requirements_txt_path: Optional[str],
+    build_logs: IO[Any],
 ):
     # 1. create a temp dir
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -64,11 +65,12 @@ def _zip_source(
         # 2. Install packages from requirements.txt (if specified)
         if requirements_txt_path is not None and python_version is not None:
             # TODO: Update this to use uv for faster builds
+            # TODO: update this to be async
             subprocess.check_call(
                 f"pip install --no-cache-dir --platform manylinux2014_x86_64 --target={temp_dir} --implementation cp --python-version {python_version} --only-binary=:all: -r {requirements_txt_path}".split(),
                 cwd=config.launchflow_yaml.project_directory_abs_path,
-                stdout=subprocess.DEVNULL,  # TODO: Dump to the build logs file
-                stderr=subprocess.DEVNULL,  # TODO: Dump to the build logs file
+                stdout=build_logs,
+                stderr=build_logs,
             )
             # Include __pycache__ directories and .pyc files in the build ignore to filter out artifacts that were created by the pip install
             build_ignore = list(set(build_ignore + ["__pycache__", "*.pyc"]))
@@ -393,6 +395,7 @@ class LambdaService(AWSService[LambdaServiceReleaseInputs]):
             build_ignore=self.build_ignore,
             python_version=python_version,
             requirements_txt_path=requirements_txt_path,
+            build_logs=build_log_file,
         )
 
         _ = lambda_client.update_function_configuration(

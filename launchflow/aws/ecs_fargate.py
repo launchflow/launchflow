@@ -301,6 +301,8 @@ class ECSFargateService(AWSService[ECSFargateServiceReleaseInputs]):
         service_inputs = self.inputs()
         new_task_definition["cpu"] = str(service_inputs.cpu)
         new_task_definition["memory"] = str(service_inputs.memory)
+        new_task_definition["containerDefinitions"][0]["cpu"] = service_inputs.cpu
+        new_task_definition["containerDefinitions"][0]["memory"] = service_inputs.memory
 
         # Add the environment variables
         new_task_definition["containerDefinitions"][0]["environment"] = [
