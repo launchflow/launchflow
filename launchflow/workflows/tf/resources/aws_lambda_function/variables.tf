@@ -51,11 +51,11 @@ variable "package_type" {
 }
 
 variable "runtime" {
-  type = string
+  type    = string
   default = null
 }
 
 variable "image_uri" {
-  type = string
+  type    = string
   default = null
 }

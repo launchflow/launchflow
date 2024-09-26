@@ -94,8 +94,11 @@ def zip_source(
 
     with zipfile.ZipFile(file, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
         for root, dirs, files in os.walk(directory):
-            for file in files:
-                file_path = os.path.join(root, file)
+            for maybe_inclue in files:
+                file_path = os.path.join(root, maybe_inclue)
+                if isinstance(file, str) and file_path == file:
+                    # Don't attempt to include our zip file in the zip file
+                    continue
                 if should_include_file(pathspec, file_path, directory):
                     zipf.write(file_path, os.path.relpath(file_path, directory))
 

@@ -61,8 +61,8 @@ class ApplicationLoadBalancer(AWSResource[ApplicationLoadBalancerOutputs]):
         hash_id = hashlib.sha256(f"{lf.project}-{lf.environment}".encode()).hexdigest()[
             :5
         ]
-        if len(name) > 27:
-            id_name = name[:27]
+        if len(name) > 26:
+            id_name = name[:26]
         else:
             id_name = name
         resource_id = f"{id_name}-{hash_id}"

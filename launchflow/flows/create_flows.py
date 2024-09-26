@@ -113,6 +113,7 @@ class CreateResourcePlan(ResourcePlan):
         if (
             self.existing_resource_state is None
             or self.existing_resource_state.status == ResourceStatus.CREATE_FAILED
+            or self.existing_resource_state.status == ResourceStatus.UNKNOWN
         ):
             return "create"
         existing_resource_inputs = {}
@@ -314,7 +315,10 @@ class CreateResourcePlan(ResourcePlan):
         resource_inputs = self._new_resource_inputs
         if self.existing_resource_state is None or (
             self.existing_resource_state.inputs is None
-            and self.existing_resource_state.status == ResourceStatus.CREATE_FAILED
+            and (
+                self.existing_resource_state.status == ResourceStatus.CREATE_FAILED
+                or self.existing_resource_state.status == ResourceStatus.UNKNOWN
+            )
         ):
             if resource_inputs:
                 resource_inputs_str = format_configuration_dict(resource_inputs)
@@ -912,9 +916,9 @@ async def plan_create_resources(
                     dependency_plan
                 )
                 if isinstance(resolved_dependency_plan, FailedToPlan):
-                    resource_name_to_plan[
-                        resource_dependency.name
-                    ] = resolved_dependency_plan
+                    resource_name_to_plan[resource_dependency.name] = (
+                        resolved_dependency_plan
+                    )
                     return FailedToPlan(
                         resource=plan.resource,
                         error_message=f"DependencyFailedToPlan: {ResourceRef(plan.resource)} depends on {ResourceRef(resource_dependency)} which failed to plan.",

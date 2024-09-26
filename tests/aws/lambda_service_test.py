@@ -122,6 +122,7 @@ class LambdaServiceTest(unittest.IsolatedAsyncioTestCase):
             build_ignore=mock.ANY,
             python_version="3.11",
             requirements_txt_path=None,
+            build_logs=mock.ANY,
         )
 
     @mock.patch("launchflow.aws.lambda_service.requests")
@@ -311,9 +312,7 @@ class LambdaServiceTest(unittest.IsolatedAsyncioTestCase):
             function_version_before_release = lambda_client.get_function(
                 FunctionName=lambda_function_outputs.function_name,
                 Qualifier=lambda_function_outputs.alias_name,
-            )["Configuration"][
-                "Version"
-            ]  # type: ignore
+            )["Configuration"]["Version"]  # type: ignore
             self.assertEqual(function_version_before_release, "1")
 
             # Run the release and validate the result
@@ -333,9 +332,7 @@ class LambdaServiceTest(unittest.IsolatedAsyncioTestCase):
             function_version_after_release = lambda_client.get_function(
                 FunctionName=lambda_function_outputs.function_name,
                 Qualifier=lambda_function_outputs.alias_name,
-            )["Configuration"][
-                "Version"
-            ]  # type: ignore
+            )["Configuration"]["Version"]  # type: ignore
             self.assertEqual(function_version_after_release, "2")
 
     async def test_lambda_service_outputs(self):

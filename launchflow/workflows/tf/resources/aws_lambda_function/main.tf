@@ -67,7 +67,7 @@ resource "aws_lambda_function" "default" {
   package_type  = var.package_type
   memory_size   = var.memory_size_mb
   timeout       = var.timeout_seconds
-  publish          = true
+  publish       = true
 
   # Conditionally assign filename and handler for ZIP package type
   filename         = var.package_type == "Zip" ? data.archive_file.lambda.output_path : null
@@ -76,7 +76,7 @@ resource "aws_lambda_function" "default" {
   source_code_hash = var.package_type == "Zip" ? data.archive_file.lambda.output_base64sha256 : null
 
   # Conditionally assign image_uri for Image package type
-  image_uri        = var.package_type == "Image" ? var.image_uri : null
+  image_uri = var.package_type == "Image" ? var.image_uri : null
 
   # NOTE: We set this to speed up the destroy process. Without this, lambda can hold
   # onto the security group for ~30mins and block it from being deleted.
@@ -97,7 +97,7 @@ resource "aws_lambda_function" "default" {
 
   lifecycle {
     ignore_changes = [
-      filename, image_config, image_uri
+      filename, image_config, image_uri, handler, source_code_hash
     ]
   }
 }
