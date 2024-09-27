@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.13](https://github.com/launchflow/launchflow/compare/v0.4.12...v0.4.13) (2024-09-27)
+
+
+### Bug Fixes
+
+* all depends to be passed to services ([#111](https://github.com/launchflow/launchflow/issues/111)) ([9a912b5](https://github.com/launchflow/launchflow/commit/9a912b5a252ad96991caddbf8c3ddf060c62a18d))
+* fix some small issues I ran into while dogfooding ([#108](https://github.com/launchflow/launchflow/issues/108)) ([27a1672](https://github.com/launchflow/launchflow/commit/27a167219aa04137735f20baaf8765cdc1a78c61))
+
 ## [0.4.12](https://github.com/launchflow/launchflow/compare/v0.4.11...v0.4.12) (2024-09-24)
 
 
