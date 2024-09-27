@@ -1,11 +1,11 @@
 from dataclasses import dataclass
-from typing import IO, List, Optional
+from typing import IO, List, Optional, Union
 
 import pkg_resources
 
 import launchflow as lf
 from launchflow import exceptions
-from launchflow.aws.alb import ApplicationLoadBalancer
+from launchflow.aws.alb import ExternalHTTP, InternalHTTP
 from launchflow.aws.codebuild_project import (
     Cache,
     CloudWatchLogsConfig,
@@ -78,6 +78,7 @@ class ECSFargateService(AWSService[ECSFargateServiceReleaseInputs]):
         dockerfile: str = "Dockerfile",
         domain: Optional[str] = None,
         cluster: Optional[ECSCluster] = None,
+        load_balancer: Union[None, InternalHTTP, ExternalHTTP] = ExternalHTTP(),
     ) -> None:
         """Creates a new ECS Fargate service.
 
@@ -95,6 +96,7 @@ class ECSFargateService(AWSService[ECSFargateServiceReleaseInputs]):
         - `cluster (Optional[ECSCluster])`: The ECS cluster to use for the service. If not provided, a new cluster will be created.
         """
         if domain is not None:
+            # TODO: make domain work with load balancer better.
             raise exceptions.ComingSoon(issue_number=83)
 
         super().__init__(
@@ -151,11 +153,9 @@ class ECSFargateService(AWSService[ECSFargateServiceReleaseInputs]):
             self._ecs_cluster = ECSCluster(f"{name}-cluster")
             self._ecs_cluster.resource_id = resource_id_with_launchflow_prefix
 
-        self._alb = ApplicationLoadBalancer(
-            f"{name}-lb",
-            container_port=port,
-            certificate=None,  # TODO: Support HTTPS
-        )
+        self._alb = None
+        if load_balancer is not None:
+            self._alb = load_balancer.to_alb(f"{name}-lb", port)
 
         self._ecs_fargate_service_container = ECSFargateServiceContainer(
             name,
@@ -185,20 +185,22 @@ class ECSFargateService(AWSService[ECSFargateServiceReleaseInputs]):
             self._ecr,
             self._code_build_project,
             self._ecs_fargate_service_container,
-            self._alb,
         ]
+        if self._alb is not None:
+            to_return.append(self._alb)
         if self._manage_ecs_cluster:
             to_return.append(self._ecs_cluster)
         return to_return  # type: ignore
 
     def outputs(self) -> ServiceOutputs:
+        service_url = "Unsuppported - load balancer required"
         try:
             fargate_outputs = self._ecs_fargate_service_container.outputs()
-            alb_outputs = self._alb.outputs()
+            if self._alb is not None:
+                alb_outputs = self._alb.outputs()
+                service_url = f"http://{alb_outputs.alb_dns_name}"
         except exceptions.ResourceOutputsNotFound:
             raise exceptions.ServiceOutputsNotFound(service_name=self.name)
-
-        service_url = f"http://{alb_outputs.alb_dns_name}"
 
         service_outputs = ServiceOutputs(
             service_url=service_url,
