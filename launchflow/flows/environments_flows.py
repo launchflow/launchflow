@@ -118,9 +118,11 @@ async def get_environment(
         if selected_environment is None:
             rich.print("[red]No environment selected.")
             raise typer.Exit(1)
+        rich.print(f"[pink1]>[/pink1] {selected_environment}\n")
         if prompt_for_creation and selected_environment == ready_environments[-1]:
             if environment_name is None:
                 environment_name = beaupy.prompt("Enter the environment name:")
+                print("Enter the environment name:")
                 rich.print(f"[pink1]>[/pink1] {environment_name}\n")
             validate_environment_name(environment_name)
             environment = await create_environment(
@@ -135,8 +137,6 @@ async def get_environment(
             if environment is None:
                 raise exceptions.EnvironmentCreationFailed(environment_name)
         else:
-            rich.print(f"[pink1]>[/pink1] {selected_environment}")
-            print()
             environment = environments[selected_environment]
             environment_name = selected_environment
         return environment_name, environment
