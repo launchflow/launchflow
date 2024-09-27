@@ -78,6 +78,7 @@ class ECSFargateService(AWSService[ECSFargateServiceReleaseInputs]):
         dockerfile: str = "Dockerfile",
         domain: Optional[str] = None,
         cluster: Optional[ECSCluster] = None,
+        health_check_path: Optional[str] = None,
     ) -> None:
         """Creates a new ECS Fargate service.
 
@@ -93,6 +94,7 @@ class ECSFargateService(AWSService[ECSFargateServiceReleaseInputs]):
         - `domain (Optional[str])`: The domain name to use for the service. This will create an ACM certificate and configure the ALB to use HTTPS.
         - `certificate (Optional[ACMCertificate])`: An existing ACM certificate to use for the service. This will configure the ALB to use HTTPS.
         - `cluster (Optional[ECSCluster])`: The ECS cluster to use for the service. If not provided, a new cluster will be created.
+        - `health_check_path (Optional[str])`: The path to use for the health check
         """
         if domain is not None:
             raise exceptions.ComingSoon(issue_number=83)
@@ -155,6 +157,7 @@ class ECSFargateService(AWSService[ECSFargateServiceReleaseInputs]):
             f"{name}-lb",
             container_port=port,
             certificate=None,  # TODO: Support HTTPS
+            health_check_path=health_check_path
         )
 
         self._ecs_fargate_service_container = ECSFargateServiceContainer(
