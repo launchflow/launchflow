@@ -3,7 +3,7 @@ import asyncio
 from typing import List
 
 from launchflow.config import config as lf_config
-from launchflow.node import Outputs
+from launchflow.node import Depends, Outputs
 from launchflow.resource import Resource
 from launchflow.version import __version__
 

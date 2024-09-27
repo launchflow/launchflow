@@ -82,9 +82,9 @@ class Depends:
     #       - This mode is used when we are sure that the outputs are available and we want to resolve them.
     # - never_resolve: The dependencies are not resolved and the DependsOnValue object is returned.
     #      - This mode is used when we only want to know what the dependencies are without actually resolving them.
-    _mode: Literal[
-        "maybe_resolve", "always_resolve", "never_resolve"
-    ] = "maybe_resolve"  # default mode
+    _mode: Literal["maybe_resolve", "always_resolve", "never_resolve"] = (
+        "maybe_resolve"  # default mode
+    )
 
     def __init__(self, node: "Node"):
         self.node = node
@@ -109,7 +109,10 @@ class Depends:
                     self._outputs = self.node.outputs()
                     self._outputs_cache[cache_key] = self._outputs
                 return getattr(self._outputs, name)
-            except exceptions.ResourceOutputsNotFound:
+            except (
+                exceptions.ResourceOutputsNotFound,
+                exceptions.ServiceOutputsNotFound,
+            ):
                 self._outputs_cache[cache_key] = None
                 return DependsOnValue(self.node, name, field_type)
         elif Depends._mode == "always_resolve":

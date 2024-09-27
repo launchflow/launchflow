@@ -100,6 +100,9 @@ class Service(Node[ServiceOutputs], Generic[R]):
     ) -> None:
         raise NotImplementedError
 
+    def __hash__(self) -> int:
+        return super().__hash__()
+
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.name})"
 
