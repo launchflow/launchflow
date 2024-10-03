@@ -543,3 +543,10 @@ class S3ObjectNotFound(Exception):
 class NixPacksBuildFailed(Exception):
     def __init__(self, service_name: str) -> None:
         super().__init__(f"NixPacks build failed for service '{service_name}'")
+
+
+class BuildFailed(Exception):
+    def __init__(self, service_name: str) -> None:
+        super().__init__(
+            f"Build failed for service '{service_name}'. See build logs for more information."
+        )

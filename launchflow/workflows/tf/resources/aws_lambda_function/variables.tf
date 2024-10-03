@@ -59,3 +59,8 @@ variable "image_uri" {
   type    = string
   default = null
 }
+
+variable "use_vpc" {
+  type    = bool
+  default = true
+}

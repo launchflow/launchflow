@@ -52,7 +52,7 @@ from launchflow.gcp.regional_autoscaler import RegionalAutoscaler
 from launchflow.gcp.regional_managed_instance_group import RegionalManagedInstanceGroup
 from launchflow.gcp.secret_manager import SecretManagerSecret
 from launchflow.gcp.ssl import ManagedSSLCertificate
-from launchflow.gcp.static_site import GCSWebsite
+from launchflow.gcp.static_site import GCSStaticSite
 from launchflow.gcp.workbench import WorkbenchInstance
 from launchflow.kubernetes.hpa import HorizontalPodAutoscaler
 from launchflow.kubernetes.service import ServiceContainer
@@ -134,6 +134,6 @@ SERVICE_PRODUCTS_TO_SERVICES = {
     ServiceProduct.GCP_CLOUD_RUN.value: CloudRunService,
     ServiceProduct.GCP_COMPUTE_ENGINE.value: ComputeEngineService,
     ServiceProduct.GCP_GKE.value: GKEService,
-    ServiceProduct.GCP_STATIC_SITE.value: GCSWebsite,
+    ServiceProduct.GCP_STATIC_SITE.value: GCSStaticSite,
     ServiceProduct.GCP_FIREBASE_STATIC_SITE.value: FirebaseStaticSite,
 }

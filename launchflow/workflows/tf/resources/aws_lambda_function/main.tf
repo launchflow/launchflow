@@ -82,9 +82,13 @@ resource "aws_lambda_function" "default" {
   # onto the security group for ~30mins and block it from being deleted.
   replace_security_groups_on_destroy = true
 
-  vpc_config {
-    security_group_ids = [data.aws_security_group.default_vpc_sg.id]
-    subnet_ids         = [data.aws_subnets.lf_private_vpc_subnets.ids[0]]
+  # Conditionally set up VPC configuration if var.use_vpc is true
+  dynamic "vpc_config" {
+    for_each = var.use_vpc ? [1] : []
+    content {
+      security_group_ids = [data.aws_security_group.default_vpc_sg.id]
+      subnet_ids         = [data.aws_subnets.lf_private_vpc_subnets.ids[0]]
+    }
   }
 
   environment {
@@ -94,7 +98,6 @@ resource "aws_lambda_function" "default" {
     }
   }
 
-
   lifecycle {
     ignore_changes = [
       filename, image_config, image_uri, handler, source_code_hash
@@ -102,9 +105,9 @@ resource "aws_lambda_function" "default" {
   }
 }
 
-
-# TODO: Determine if we can remove this / restrict the scope a bit more
+# Conditionally attach the AWSLambdaVPCAccessExecutionRole policy if var.use_vpc is true
 resource "aws_iam_role_policy_attachment" "iam_role_policy_attachment_lambda_vpc_access_execution" {
+  count      = var.use_vpc ? 1 : 0
   role       = data.aws_iam_role.launchflow_env_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
@@ -120,7 +123,6 @@ resource "aws_lambda_alias" "lambda_alias" {
     ]
   }
 }
-
 
 output "alias_name" {
   value = aws_lambda_alias.lambda_alias.name

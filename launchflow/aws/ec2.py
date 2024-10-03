@@ -272,7 +272,6 @@ class EC2(AWSResource[T]):
     def _get_host(outputs: EC2BaseOutputs):
         if lf.is_deployment():
             return outputs.private_ip
-        return outputs.public_ip
 
 
 class EC2Postgres(EC2[EC2PostgresOutputs]):
@@ -569,10 +568,9 @@ class EC2Redis(EC2[EC2RedisOutputs], RedisClient):
         ```
         """
         connection_info = self.outputs()
-        host = self._get_host(connection_info)
         return {
             "BACKEND": "django.core.cache.backends.redis.RedisCache",
-            "LOCATION": f"redis://default:{connection_info.additional_outputs.password}@{host}:{connection_info.additional_outputs.redis_port}",
+            "LOCATION": f"redis://default:{connection_info.additional_outputs.password}@{connection_info.public_ip}:{connection_info.additional_outputs.redis_port}",
         }
 
     def redis(self, *, decode_responses: bool = True):
@@ -597,7 +595,7 @@ class EC2Redis(EC2[EC2RedisOutputs], RedisClient):
         connection_info = self.outputs()
         if self._sync_client is None:
             self._sync_client = redis.Redis(  # type: ignore
-                host=self._get_host(connection_info),
+                host=connection_info.public_ip,
                 port=int(connection_info.additional_outputs.redis_port),
                 password=connection_info.additional_outputs.password,
                 decode_responses=decode_responses,
@@ -624,10 +622,9 @@ class EC2Redis(EC2[EC2RedisOutputs], RedisClient):
         """
         _check_redis_installs()
         connection_info = await self.outputs_async()
-        host = self._get_host(connection_info)
         if self._async_pool is None:
             self._async_pool = await redis.asyncio.from_url(  # type: ignore
-                f"redis://{host}:{connection_info.additional_outputs.redis_port}",
+                f"redis://{connection_info.public_ip}:{connection_info.additional_outputs.redis_port}",
                 password=connection_info.additional_outputs.password,
                 decode_responses=decode_responses,
             )

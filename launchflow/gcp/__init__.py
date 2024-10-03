@@ -24,7 +24,7 @@ from .regional_autoscaler import RegionalAutoscaler
 from .regional_managed_instance_group import RegionalManagedInstanceGroup
 from .resource import GCPResource
 from .secret_manager import SecretManagerSecret
-from .static_site import GCSWebsite
+from .static_site import GCSStaticSite
 from .utils import get_service_account_credentials
 from .workbench import WorkbenchInstance
 
@@ -58,7 +58,7 @@ __all__ = [
     "GKECluster",
     "GKEService",
     "NodePool",
-    "GCSWebsite",
+    "GCSStaticSite",
     "FirebaseStaticSite",
     "FirebaseHostingSite",
     "FirebaseProject",

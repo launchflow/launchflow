@@ -233,6 +233,7 @@ class LambdaService(AWSService[LambdaServiceReleaseInputs]):
         domain: Optional[str] = None,  # TODO: Support custom domains for Lambda
         build_directory: str = ".",
         build_ignore: List[str] = [],  # type: ignore
+        use_vpc: bool = True,
     ) -> None:
         """Create a new Lambda Service.
 
@@ -247,6 +248,7 @@ class LambdaService(AWSService[LambdaServiceReleaseInputs]):
         - `domain (Optional[str])`: Optional custom domain. Currently unsupported, will raise an exception if provided.
         - `build_directory (str)`: The directory to build the Lambda function from. Defaults to the current directory.
         - `build_ignore (List[str])`: A list of files or directories to ignore during the build process. Defaults to an empty list.
+        - `use_vpc (bool)`: Whether the Lambda function should use the environment's VPC. Defaults to True.
         """
         if domain is not None:
             raise exceptions.ComingSoon(issue_number=71)
@@ -284,6 +286,7 @@ class LambdaService(AWSService[LambdaServiceReleaseInputs]):
             memory_size_mb=memory_size_mb,
             package_type="Zip",  # TODO: Support Docker
             runtime=runtime if isinstance(runtime, LambdaRuntime) else runtime.runtime,
+            use_vpc=use_vpc,
         )
         self._lambda_function.resource_id = resource_id_with_launchflow_prefix
 

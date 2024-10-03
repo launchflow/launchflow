@@ -1,19 +1,14 @@
 import asyncio
-import gzip
-import hashlib
-import io
 import os
 import uuid
 from typing import IO, List
 
-import requests
 from docker.errors import APIError, BuildError
 from pathspec import PathSpec
 
 from launchflow import exceptions
 from launchflow.config import config
-from launchflow.gcp.firebase_site import FirebaseStaticSite
-from launchflow.gcp.static_site import GCSWebsite
+from launchflow.gcp.static_site import GCSStaticSite
 from launchflow.models.flow_state import GCPEnvironmentConfig
 from launchflow.workflows.utils import tar_source_in_memory
 
@@ -348,260 +343,6 @@ async def _build_docker_image_local(
     return tagged_image_name
 
 
-async def upload_local_files_to_static_site(
-    gcp_environment_config: GCPEnvironmentConfig,
-    static_site: GCSWebsite,
-):
-    try:
-        import google.auth
-        import google.auth.transport.requests
-        from google.cloud import storage  # type: ignore
-        from googleapiclient.discovery import build
-    except ImportError:
-        raise exceptions.MissingGCPDependency()
-
-    service_url = static_site.outputs().service_url
-    backend_bucket_outputs = static_site._backend_bucket.outputs()
-    bucket = storage.Client().get_bucket(backend_bucket_outputs.bucket_name)
-
-    local_dir = os.path.join(
-        os.path.dirname(os.path.abspath(config.launchflow_yaml.config_path)),
-        static_site.build_directory,
-    )
-
-    def should_include_file(pathspec: PathSpec, file_path: str, root_dir: str):
-        relative_path = os.path.relpath(file_path, root_dir)
-        return not pathspec.match_file(relative_path)
-
-    pathspec = PathSpec.from_lines("gitwildmatch", static_site.build_ignore)
-    for root, _, files in os.walk(local_dir):
-        for file in files:
-            file_path = os.path.join(root, file)
-            if should_include_file(pathspec, file_path, local_dir):
-                blob = bucket.blob(os.path.relpath(file_path, local_dir))
-                blob.upload_from_filename(file_path)
-
-    # Authenticate with the docker registry
-    creds, _ = google.auth.default(
-        scopes=["https://www.googleapis.com/auth/cloud-platform"],
-    )
-    creds.refresh(google.auth.transport.requests.Request())  # type: ignore
-
-    # Build the Compute Engine service object
-    compute_service = build("compute", "v1", credentials=creds)
-
-    # Invalidate the cache for the specified URL map
-    request_body = {
-        "path": "/*",
-    }
-    request_id = str(uuid.uuid4())  # Generate a unique request ID
-
-    url_map_name = backend_bucket_outputs.url_map_resource_id.split("/")[-1]
-    # Perform the cache invalidation request
-    operation = (
-        compute_service.urlMaps()
-        .invalidateCache(
-            project=gcp_environment_config.project_id,  # type: ignore
-            urlMap=url_map_name,
-            body=request_body,
-            requestId=request_id,
-        )
-        .execute()
-    )
-
-    if static_site.wait_for_cdn_invalidation:
-        while True:
-            result = (
-                compute_service.globalOperations()
-                .get(
-                    project=gcp_environment_config.project_id,
-                    operation=operation["name"],
-                )
-                .execute()
-            )
-
-            if result["status"] == "DONE":
-                if "error" in result:
-                    raise Exception(f"Operation failed with errors: {result['error']}")
-                break
-            await asyncio.sleep(5)
-
-    return service_url
-
-
-# Followed these docs: https://firebase.google.com/docs/hosting/api-deploy
-async def deploy_local_files_to_firebase_static_site(
-    gcp_environment_config: GCPEnvironmentConfig,
-    firebase_static_site: FirebaseStaticSite,
-):
-    try:
-        import google.auth
-        import google.auth.transport.requests
-        from googleapiclient.discovery import build
-    except ImportError:
-        raise exceptions.MissingGCPDependency()
-
-    service_url = firebase_static_site.outputs().service_url
-    SITE_ID = firebase_static_site._firebase_hosting_site.resource_id
-
-    local_dir = os.path.join(
-        os.path.dirname(os.path.abspath(config.launchflow_yaml.config_path)),
-        firebase_static_site.build_directory,
-    )
-
-    # Authenticate with the docker registry
-    creds, _ = google.auth.default(
-        quota_project_id=gcp_environment_config.project_id,  # type: ignore
-        scopes=["https://www.googleapis.com/auth/cloud-platform"],
-    )
-    creds.refresh(google.auth.transport.requests.Request())  # type: ignore
-
-    # Build the Firebase Hosting service object
-    firebase_service = build("firebasehosting", "v1beta1", credentials=creds)
-
-    # Create a new version of the Firebase Hosting site
-    request_body = {
-        "config": {
-            "rewrites": [
-                {
-                    "glob": "**",
-                    "path": "/index.html",
-                }
-            ],
-        },
-    }
-    create_version_response = (
-        firebase_service.sites()
-        .versions()
-        .create(
-            parent=f"sites/{SITE_ID}",
-            body=request_body,
-        )
-        .execute()
-    )
-
-    # Extract the VERSION_ID from the response
-    version_name = create_version_response.get("name")
-    VERSION_ID = version_name.split("/")[-1] if version_name else None
-
-    if not VERSION_ID:
-        raise ValueError("Failed to create a new version. VERSION_ID not found.")
-
-    pathspec = PathSpec.from_lines("gitwildmatch", firebase_static_site.build_ignore)
-
-    # Function to determine if a file should be included based on pathspec rules
-    def should_include_file(pathspec: PathSpec, file_path: str, root_dir: str):
-        relative_path = os.path.relpath(file_path, root_dir)
-        return not pathspec.match_file(relative_path)
-
-    # Function to compress a file in memory and calculate its SHA256 hash
-    def gzip_and_hash_file(file_path):
-        # Open the file and compress it in memory
-        with open(file_path, "rb") as f:
-            file_data = f.read()
-            compressed_file = io.BytesIO()
-            with gzip.GzipFile("", "wb", 9, compressed_file, 0.0) as gz:
-                gz.write(file_data)
-
-            compressed_file.seek(0)
-            compressed_data = compressed_file.read()
-
-        # Calculate the SHA256 hash of the compressed file
-        file_hash = hashlib.sha256(compressed_data).hexdigest()
-
-        return file_hash, compressed_data
-
-    # Dictionary to hold the paths and their respective hashes
-    files_to_deploy = {}
-
-    # Walk the directory tree and process each file
-    for root, _, files in os.walk(local_dir):
-        for file in files:
-            file_path = os.path.join(root, file)
-            if should_include_file(pathspec, file_path, local_dir):
-                file_hash, _ = gzip_and_hash_file(file_path)
-                relative_path = os.path.relpath(file_path, local_dir)
-                files_to_deploy[f"/{relative_path}"] = file_hash
-
-    # Step 4: Populate files for the new version
-    populate_files_request_body = {"files": files_to_deploy}
-
-    # Make the API request to populate the files
-    populate_files_response = (
-        firebase_service.sites()
-        .versions()
-        .populateFiles(
-            parent=f"sites/{SITE_ID}/versions/{VERSION_ID}",
-            body=populate_files_request_body,
-        )
-        .execute()
-    )
-
-    # Extract the upload required hashes and the upload URL from the response
-    upload_required_hashes = populate_files_response.get("uploadRequiredHashes", [])
-    upload_url = populate_files_response.get("uploadUrl")
-
-    # Step 5: Upload required files
-    for file_path, file_hash in files_to_deploy.items():
-        if file_hash in upload_required_hashes:
-            # Generate the file-specific upload URL
-            file_upload_url = f"{upload_url}/{file_hash}"
-
-            # Get the compressed data for this file
-            _, compressed_data = gzip_and_hash_file(
-                os.path.join(local_dir, file_path.lstrip("/"))
-            )
-
-            # Upload the file
-            headers = {
-                "Authorization": f"Bearer {creds.token}",  # type: ignore
-                "Content-Type": "application/octet-stream",
-            }
-            response = requests.post(
-                file_upload_url, headers=headers, data=compressed_data
-            )
-
-            if response.status_code != 200:
-                raise ValueError(
-                    f"Failed to upload {file_path}: {response.status_code} - {response.text}"
-                )
-
-    # Step 6: Update the status of the version to FINALIZED
-    finalize_version_request_body = {"status": "FINALIZED"}
-
-    # Make the API request to finalize the version
-    finalize_response = (
-        firebase_service.sites()
-        .versions()
-        .patch(
-            name=f"sites/{SITE_ID}/versions/{VERSION_ID}",
-            updateMask="status",
-            body=finalize_version_request_body,
-        )
-        .execute()
-    )
-
-    if finalize_response.get("status") != "FINALIZED":
-        raise ValueError(f"Failed to finalize version {VERSION_ID}")
-
-    # Step 7: Release the version for deployment
-    release_request_body = {}  # type: ignore
-
-    # Make the API request to create a release
-    _ = (
-        firebase_service.sites()
-        .releases()
-        .create(
-            parent=f"sites/{SITE_ID}",
-            versionName=f"sites/{SITE_ID}/versions/{VERSION_ID}",
-            body=release_request_body,
-        )
-        .execute()
-    )
-
-    return service_url
-
-
 async def build_artifact_registry_docker_image(
     dockerfile_path: str,
     build_directory: str,
@@ -616,9 +357,7 @@ async def build_artifact_registry_docker_image(
     build_local: bool,
 ) -> str:
     if build_local:
-        del (
-            build_ignore
-        )  # TODO: Use this to ignore files while building the docker image
+        del build_ignore  # TODO: Use this to ignore files while building the docker image
 
         docker_image = await _build_docker_image_local(
             docker_repository=artifact_registry_repository,
