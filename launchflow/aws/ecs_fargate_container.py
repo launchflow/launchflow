@@ -19,11 +19,12 @@ class ECSFargateServiceContainerInputs(ResourceInputs):
     desired_count: int = 1
     alb_security_group_id: Optional[str] = None
     alb_target_group_arn: Optional[str] = None
+    public: bool = True
 
 
 @dataclass
 class ECSFargateServiceContainerOutputs(Outputs):
-    public_ip: str
+    public_ip: Optional[str] = None
 
 
 class ECSFargateServiceContainer(AWSResource[ECSFargateServiceContainerOutputs]):
@@ -46,6 +47,7 @@ class ECSFargateServiceContainer(AWSResource[ECSFargateServiceContainerOutputs])
         alb: Optional[ApplicationLoadBalancer] = None,
         port: int = 80,
         desired_count: int = 1,
+        public: bool = True,
     ) -> None:
         """Creates a new ECS Fargate service container.
 
@@ -54,6 +56,7 @@ class ECSFargateServiceContainer(AWSResource[ECSFargateServiceContainerOutputs])
         - `ecs_cluster (Union[ECSCluster, str])`: The ECS cluster or the name of the ECS cluster.
         - `port (int)`: The port the container listens on. Defaults to 80.
         - `desired_count (int)`: The number of tasks to run. Defaults to 1.
+        - `public (bool)`: If true the ECS service will be placed in a public subnet. Defaults to True.
 
         **Raises:**
          - `ValueError`: If `ecs_cluster` is not an instance of `ECSCluster` or `str`.
@@ -71,6 +74,7 @@ class ECSFargateServiceContainer(AWSResource[ECSFargateServiceContainerOutputs])
         self.alb = alb
         self.port = port
         self.desired_count = desired_count
+        self.public = public
 
     def inputs(
         self, environment_state: EnvironmentState
@@ -98,4 +102,5 @@ class ECSFargateServiceContainer(AWSResource[ECSFargateServiceContainerOutputs])
             desired_count=self.desired_count,
             alb_security_group_id=alb_security_group_id,
             alb_target_group_arn=alb_target_group_arn,
+            public=self.public,
         )

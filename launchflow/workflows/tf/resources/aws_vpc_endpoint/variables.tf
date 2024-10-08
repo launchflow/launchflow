@@ -35,34 +35,13 @@ variable "launchflow_environment" {
 }
 
 #
-# ECS Fargate service container specific variables
+# AWS VPC Endpoint tofu variables
 #
 
-variable "ecs_cluster_name" {
+variable "service_name" {
   type = string
 }
 
-variable "resource_name" {
-  type = string
-}
-
-variable "port" {
-  type = number
-}
-
-variable "desired_count" {
-  type = number
-}
-
-variable "alb_security_group_id" {
-  type    = string
-  default = null
-}
-
-variable "alb_target_group_arn" {
-  type = string
-}
-
-variable "public" {
+variable "endpoint_type" {
   type = string
 }

@@ -61,6 +61,7 @@ class ResourceProduct(str, Enum):
     AWS_ACM_CERTIFICATE = "aws_acm_certificate"
     AWS_SQS_QUEUE = "aws_sqs_queue"
     AWS_LAUNCHFLOW_CLOUD_RELEASER = "aws_launchflow_cloud_releaser"
+    AWS_VPC_ENDPOINT = "aws_vpc_endpoint"
     # Local product types
     LOCAL_DOCKER = "local_docker"
     # Kubernetes product types

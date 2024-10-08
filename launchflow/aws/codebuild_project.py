@@ -38,6 +38,7 @@ class Cache(Inputs):
 class EnvironmentVariable:
     name: str
     value: str
+    type: Optional[Literal["PLAINTEXT", "PARAMETER_STORE", "SECRETS_MANAGER"]] = None
 
 
 @dataclasses.dataclass
