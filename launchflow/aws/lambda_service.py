@@ -115,10 +115,21 @@ class PythonRuntime:
     **Args:**
     - `runtime (LambdaRuntime)`: The Python runtime to use. Defaults to Python 3.11.
     - `requirements_txt_path (Optional[str])`: The path to the requirements.txt file to install dependencies from. Defaults to None.
+            Only one of `requirements_txt_path` or `zip_file_path` can be specified.
+    - `zip_file_path (Optional[str])`: The path to the zip file containing the Lambda function source code.
+            If none the build directory you provider (or your current working directory) will be used.
+            Only one of `requirements_txt_path` or `zip_file_path` can be specified.
     """
 
     runtime: LambdaRuntime = LambdaRuntime.PYTHON3_11
     requirements_txt_path: Optional[str] = None
+    zip_file_path: Optional[str] = None
+
+    def __post_init__(self):
+        if self.requirements_txt_path is not None and self.zip_file_path is not None:
+            raise ValueError(
+                "requirements_txt_path and zip_file_path cannot be specified at the same time"
+            )
 
 
 # TODO: Add docstring for DockerRuntime once it's supported
@@ -404,17 +415,23 @@ class LambdaService(AWSService[LambdaServiceReleaseInputs]):
 
         python_version = None
         requirements_txt_path = None
+        zip_file_path = None
         if isinstance(self.runtime_options, PythonRuntime):
             python_version = self.runtime_options.runtime.python_version()
             requirements_txt_path = self.runtime_options.requirements_txt_path
+            zip_file_path = self.runtime_options.zip_file_path
 
-        zip_file_content = _zip_source(
-            build_directory=self.build_directory,
-            build_ignore=self.build_ignore,
-            python_version=python_version,
-            requirements_txt_path=requirements_txt_path,
-            build_logs=build_log_file,
-        )
+        if zip_file_path is None:
+            zip_file_content = _zip_source(
+                build_directory=self.build_directory,
+                build_ignore=self.build_ignore,
+                python_version=python_version,
+                requirements_txt_path=requirements_txt_path,
+                build_logs=build_log_file,
+            )
+        else:
+            with open(zip_file_path, "rb") as file:
+                zip_file_content = file.read()
 
         _ = lambda_client.update_function_configuration(
             FunctionName=lambda_function_outputs.function_name,
