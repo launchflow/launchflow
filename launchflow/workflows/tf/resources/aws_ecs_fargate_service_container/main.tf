@@ -15,7 +15,7 @@ data "aws_ecs_cluster" "ecs_cluster" {
 }
 
 # Import the subnets for the VPC
-data "aws_subnets" "lf_public_vpc_subnets" {
+data "aws_subnets" "lf_vpc_subnets" {
   filter {
     name   = "vpc-id"
     values = [var.vpc_id]
@@ -23,7 +23,7 @@ data "aws_subnets" "lf_public_vpc_subnets" {
   tags = {
     "Project" : var.launchflow_project,
     "Environment" : var.launchflow_environment,
-    "Public" : "true"
+    "Public" : "${var.public}"
   }
 }
 
@@ -135,7 +135,7 @@ resource "aws_ecs_service" "ecs_service" {
   desired_count           = var.desired_count
   launch_type             = "FARGATE"
   enable_ecs_managed_tags = true
-  wait_for_steady_state   = true
+  wait_for_steady_state   = var.public
 
   lifecycle {
     ignore_changes = [
@@ -144,9 +144,9 @@ resource "aws_ecs_service" "ecs_service" {
   }
 
   network_configuration {
-    subnets          = data.aws_subnets.lf_public_vpc_subnets.ids
+    subnets          = data.aws_subnets.lf_vpc_subnets.ids
     security_groups  = [aws_security_group.ecs_tasks_sg.id, data.aws_security_group.default_vpc_sg.id]
-    assign_public_ip = true
+    assign_public_ip = var.public
   }
 
   dynamic "load_balancer" {
@@ -169,6 +169,7 @@ resource "aws_ecs_service" "ecs_service" {
 
 
 data "aws_network_interfaces" "interface_tags" {
+  count = var.public ? 1 : 0
   # Filter on service name
   filter {
     name   = "tag:aws:ecs:serviceName"
@@ -186,11 +187,12 @@ data "aws_network_interfaces" "interface_tags" {
 }
 
 data "aws_network_interface" "first_interface" {
-  id = data.aws_network_interfaces.interface_tags.ids[0]
+  count = var.public ? 1 : 0
+  id    = data.aws_network_interfaces.interface_tags[0].ids[0]
 }
 
 output "public_ip" {
-  value = data.aws_network_interface.first_interface.association[0].public_ip
+  value = try(data.aws_network_interface.first_interface[0].association[0].public_ip, null)
 }
 
 output "aws_arn" {

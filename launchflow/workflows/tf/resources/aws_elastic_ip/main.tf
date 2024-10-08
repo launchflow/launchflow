@@ -31,5 +31,5 @@ output "private_ip" {
 }
 
 output "aws_arn" {
-  value = "TODO"
+  value = aws_eip.eip.arn
 }

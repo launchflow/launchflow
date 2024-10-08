@@ -19,6 +19,7 @@ from .rds_postgres import RDSPostgres
 from .s3 import S3Bucket
 from .secrets_manager import SecretsManagerSecret
 from .sqs import SQSQueue
+from .vpc_endpoint import VPCEndpoint
 
 __all__ = [
     "ACMCertificate",

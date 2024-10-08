@@ -19,7 +19,7 @@ class ExternalHTTP:
         return ApplicationLoadBalancer(
             name,
             container_port=port,
-            public=True,
+            internal=True,
             certificate=None,
         )
 
@@ -30,7 +30,7 @@ class InternalHTTP:
         return ApplicationLoadBalancer(
             name,
             container_port=port,
-            public=False,
+            internal=False,
             certificate=None,
         )
 
@@ -38,7 +38,7 @@ class InternalHTTP:
 @dataclass
 class ApplicationLoadBalancerInputs(ResourceInputs):
     container_port: int
-    public: bool
+    internal: bool
     health_check_path: Optional[str] = None
     domain_name: Optional[str] = None
 
@@ -74,7 +74,7 @@ class ApplicationLoadBalancer(AWSResource[ApplicationLoadBalancerOutputs]):
         container_port: int = 80,
         health_check_path: Optional[str] = None,
         certificate: Optional[ACMCertificate] = None,
-        public: bool = True,
+        internal: bool = True,
     ) -> None:
         """Creates a new Application Load Balancer.
 
@@ -83,7 +83,7 @@ class ApplicationLoadBalancer(AWSResource[ApplicationLoadBalancerOutputs]):
         - `container_port (int)`: The port that the container listens on.
         - `health_check_path (Optional[str])`: The path to use for the health check
         - `certificate (Optional[ACMCertificate])`: The certificate to use for the ALB.
-        - `public (bool)`: Whether the ALB should be exposed in public or private subnets.
+        - `internal (bool)`: Whether the ALB should be exposed in internal or private subnets.
         """
         hash_id = hashlib.sha256(f"{lf.project}-{lf.environment}".encode()).hexdigest()[
             :5
@@ -97,7 +97,7 @@ class ApplicationLoadBalancer(AWSResource[ApplicationLoadBalancerOutputs]):
         self.container_port = container_port
         self.health_check_path = health_check_path
         self.certificate = certificate
-        self.public = public
+        self.internal = internal
 
     def inputs(
         self, environment_state: EnvironmentState
@@ -110,5 +110,5 @@ class ApplicationLoadBalancer(AWSResource[ApplicationLoadBalancerOutputs]):
             container_port=self.container_port,
             health_check_path=self.health_check_path,
             domain_name=domain_name,
-            public=self.public,
+            internal=self.internal,
         )

@@ -1,5 +1,6 @@
+import asyncio
 from dataclasses import dataclass
-from typing import IO, List, Optional, Union
+from typing import IO, Dict, List, Optional, Union
 
 import pkg_resources
 
@@ -33,6 +34,7 @@ class ECSFargateServiceInputs(Inputs):
     cpu: int = 256
     memory: int = 512
     port: int = 80
+    environment_variables: Optional[Dict[str, str]] = None
 
 
 @dataclass
@@ -79,6 +81,7 @@ class ECSFargateService(AWSService[ECSFargateServiceReleaseInputs]):
         domain: Optional[str] = None,
         cluster: Optional[ECSCluster] = None,
         load_balancer: Union[None, InternalHTTP, ExternalHTTP] = ExternalHTTP(),
+        environment_variables: Optional[Dict[str, str]] = None,
     ) -> None:
         """Creates a new ECS Fargate service.
 
@@ -94,6 +97,8 @@ class ECSFargateService(AWSService[ECSFargateServiceReleaseInputs]):
         - `domain (Optional[str])`: The domain name to use for the service. This will create an ACM certificate and configure the ALB to use HTTPS.
         - `certificate (Optional[ACMCertificate])`: An existing ACM certificate to use for the service. This will configure the ALB to use HTTPS.
         - `cluster (Optional[ECSCluster])`: The ECS cluster to use for the service. If not provided, a new cluster will be created.
+        - `load_balancer (Union[None, InternalHTTP, ExternalHTTP])`: The type of load balancer to use for the service. Defaults to `ExternalHTTP`.
+        - `environment_variables (Optional[Dict[str, str]])`: A dictionary of environment variables to pass to the service. These will be available in the container as environment variables.
         """
         if domain is not None:
             # TODO: make domain work with load balancer better.
@@ -163,6 +168,7 @@ class ECSFargateService(AWSService[ECSFargateServiceReleaseInputs]):
             alb=self._alb,
             desired_count=desired_count,
             port=port,
+            public=isinstance(load_balancer, ExternalHTTP),
         )
         self._ecs_fargate_service_container.resource_id = (
             resource_id_with_launchflow_prefix
@@ -172,12 +178,14 @@ class ECSFargateService(AWSService[ECSFargateServiceReleaseInputs]):
         self.port = port
         self.desired_count = desired_count
         self.dockerfile = dockerfile
+        self.environment_variables = environment_variables or {}
 
     def inputs(self) -> ECSFargateServiceInputs:
         return ECSFargateServiceInputs(
             cpu=self.cpu,
             memory=self.memory,
             port=self.port,
+            environment_variables=self.environment_variables,
         )
 
     def resources(self) -> List[Resource]:
@@ -287,6 +295,9 @@ class ECSFargateService(AWSService[ECSFargateServiceReleaseInputs]):
         new_task_definition["containerDefinitions"][0]["image"] = (
             release_inputs.docker_image
         )
+
+        service_inputs: ECSFargateServiceInputs = self.execute_inputs()  # type: ignore
+
         # Remove the hello world command and entrypoint
         if "command" in new_task_definition["containerDefinitions"][0]:
             del new_task_definition["containerDefinitions"][0]["command"]
@@ -295,12 +306,11 @@ class ECSFargateService(AWSService[ECSFargateServiceReleaseInputs]):
         # Update the port mappings
         new_task_definition["containerDefinitions"][0]["portMappings"] = [
             {
-                "containerPort": self.port,
-                "hostPort": self.port,
+                "containerPort": service_inputs.port,
+                "hostPort": service_inputs.port,
             }
         ]
         # Update the cpu and memory
-        service_inputs = self.inputs()
         new_task_definition["cpu"] = str(service_inputs.cpu)
         new_task_definition["memory"] = str(service_inputs.memory)
         new_task_definition["containerDefinitions"][0]["cpu"] = service_inputs.cpu
@@ -320,6 +330,12 @@ class ECSFargateService(AWSService[ECSFargateServiceReleaseInputs]):
             {"name": "LAUNCHFLOW_CLOUD_PROVIDER", "value": "aws"},
             {"name": "LAUNCHFLOW_DEPLOYMENT_ID", "value": deployment_id},
         ]
+
+        if service_inputs.environment_variables is not None:
+            for key, value in service_inputs.environment_variables.items():
+                new_task_definition["containerDefinitions"][0]["environment"].append(
+                    {"name": key, "value": value}
+                )
 
         # Pulled from: https://stackoverflow.com/questions/69830579/aws-ecs-using-boto3-to-update-a-task-definition
         remove_args = [
@@ -347,14 +363,19 @@ class ECSFargateService(AWSService[ECSFargateServiceReleaseInputs]):
             service=ecs_service_name,
             taskDefinition=reg_task_def_response["taskDefinition"]["taskDefinitionArn"],
         )
+
         # This waiter will wait for the service to reach a steady state. It raises an error after 60 attempts.
-        waiter = ecs_client.get_waiter("services_stable")
-        try:
+        def wait_for_service_stable():
+            waiter = ecs_client.get_waiter("services_stable")
             waiter.wait(
                 cluster=ecs_cluster_outputs.cluster_name,
                 services=[ecs_service_name],
                 WaiterConfig={"Delay": 15, "MaxAttempts": 60},
             )
+
+        try:
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(None, wait_for_service_stable)
         except WaiterError as e:
             # TODO: Raise a custom exception here
             # TODO: Add a check to see if the task is crash looping, and maybe rollback the task definition

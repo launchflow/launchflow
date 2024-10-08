@@ -17,7 +17,7 @@ data "aws_subnets" "lf_vpc_subnets" {
   tags = {
     "Project" : var.launchflow_project,
     "Environment" : var.launchflow_environment,
-    "Public" : "${var.public}"
+    "Public" : "${var.internal}"
   }
 }
 
@@ -30,7 +30,7 @@ resource "aws_security_group" "alb_sg" {
 }
 
 resource "aws_security_group_rule" "alb_http_ingress" {
-  count             = var.public ? 1 : 0
+  count             = var.internal ? 1 : 0
   type              = "ingress"
   from_port         = 80
   to_port           = 80
@@ -41,7 +41,7 @@ resource "aws_security_group_rule" "alb_http_ingress" {
 }
 
 resource "aws_security_group_rule" "alb_https_ingress" {
-  count             = var.public ? 1 : 0
+  count             = var.internal ? 1 : 0
   type              = "ingress"
   from_port         = 443
   to_port           = 443
@@ -54,7 +54,7 @@ resource "aws_security_group_rule" "alb_https_ingress" {
 # Create the Application Load Balancer
 resource "aws_alb" "application_load_balancer" {
   name               = var.resource_id
-  internal           = false
+  internal           = var.internal
   load_balancer_type = "application"
   subnets            = data.aws_subnets.lf_vpc_subnets.ids
   security_groups    = [aws_security_group.alb_sg.id]
@@ -97,6 +97,16 @@ data "aws_acm_certificate" "issued" {
 data "aws_route53_zone" "selected" {
   count = var.domain_name != null ? 1 : 0
   name  = var.domain_name
+}
+
+resource "aws_security_group_rule" "alb_egress" {
+  type              = "egress"
+  from_port         = 0
+  to_port           = 0
+  protocol          = "-1"
+  description       = "Allow outbound traffic from alb"
+  security_group_id = aws_security_group.alb_sg.id
+  cidr_blocks       = ["0.0.0.0/0"]
 }
 
 #Defines an ALB listener

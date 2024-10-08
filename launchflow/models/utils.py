@@ -25,6 +25,7 @@ from launchflow.aws.rds_postgres import RDSPostgres
 from launchflow.aws.s3 import S3Bucket
 from launchflow.aws.secrets_manager import SecretsManagerSecret
 from launchflow.aws.sqs import SQSQueue
+from launchflow.aws.vpc_endpoint import VPCEndpoint
 from launchflow.docker.resource import DockerResource
 from launchflow.gcp.artifact_registry_repository import ArtifactRegistryRepository
 from launchflow.gcp.bigquery import BigQueryDataset
@@ -116,6 +117,7 @@ RESOURCE_PRODUCTS_TO_RESOURCES = {
     ResourceProduct.AWS_LAMBDA_EVENT_MAPPING.value: LambdaEventMapping,
     ResourceProduct.AWS_LAMBDA_FUNCTION.value: LambdaFunction,
     ResourceProduct.AWS_LAMBDA_FUNCTION_URL.value: LambdaFunctionURL,
+    ResourceProduct.AWS_VPC_ENDPOINT.value: VPCEndpoint,
     # K8s resource
     ResourceProduct.KUBERNETES_SERVICE_CONTAINER: ServiceContainer,
     ResourceProduct.KUBERNETES_HORIZONTAL_POD_AUTOSCALER: HorizontalPodAutoscaler,

@@ -53,7 +53,7 @@ variable "domain_name" {
   default = null
 }
 
-variable "public" {
+variable "internal" {
   type        = bool
   default     = true
   description = "If true the ALB will be placed in public subnets otherwise it will be placed in a private subnets."
