@@ -64,7 +64,7 @@ resource "aws_codebuild_project" "project" {
       content {
         name  = environment_variable.value.name
         value = environment_variable.value.value
-        type  = optional(string, null)
+        type  = environment_variable.value.type
       }
     }
   }

@@ -73,8 +73,17 @@ def _zip_source(
             # TODO: I removed uv doesn't support `--implementation cp`, I'm not sure if we need it or not
             # TODO: UV --python-platform flag is a little different than the one used in the original code
             # probably need to verify that is works as expected
+            # subprocess.check_call(
+            #     f"uv pip install --no-cache --python-platform linux --target={temp_dir} --python-version {python_version} --only-binary=:all: -r {requirements_txt_path}".split(),
+            #     cwd=config.launchflow_yaml.project_directory_abs_path,
+            #     stdout=build_logs,
+            #     stderr=build_logs,
+            # )
+            # TODO: Update this to use uv for faster builds see above
+            # The main issue is uv expected to be run in a virtual environment or you have to specify --system
+            # I _think_ we should create a virtual environment and use that with uv
             subprocess.check_call(
-                f"uv pip install --no-cache --python-platform linux --target={temp_dir} --python-version {python_version} --only-binary=:all: -r {requirements_txt_path}".split(),
+                f"pip install --no-cache-dir --platform manylinux2014_x86_64 --target={temp_dir} --implementation cp --python-version {python_version} --only-binary=:all: -r {requirements_txt_path}".split(),
                 cwd=config.launchflow_yaml.project_directory_abs_path,
                 stdout=build_logs,
                 stderr=build_logs,
