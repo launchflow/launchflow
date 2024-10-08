@@ -72,6 +72,7 @@ class LambdaFunctionInputs(ResourceInputs):
     memory_size_mb: int
     package_type: Literal["Image", "Zip"]
     runtime: Optional[LambdaRuntime]
+    vpc: bool
 
 
 @dataclass
@@ -101,6 +102,7 @@ class LambdaFunction(AWSResource[LambdaFunctionOutputs]):
         memory_size_mb: int = 256,
         package_type: Literal["Image", "Zip"] = "Zip",
         runtime: Optional[LambdaRuntime] = LambdaRuntime.PYTHON3_11,
+        vpc: bool = True,
     ) -> None:
         """Create a new Lambda Function.
 
@@ -110,6 +112,7 @@ class LambdaFunction(AWSResource[LambdaFunctionOutputs]):
         - `memory_size_mb (int)`: The amount of memory in MB allocated to the Lambda function.
         - `package_type (Literal["Image", "Zip"])`: The type of package for the Lambda function.
         - `runtime (Optional[LambdaRuntime])`: The runtime for the Lambda function.
+        - `vpc (bool)`: Whether the Lambda function should be in the environment VPC.
 
         **Raises:**
         - `ValueError`: If `runtime` is `None` and `package_type` is "Zip".
@@ -127,6 +130,7 @@ class LambdaFunction(AWSResource[LambdaFunctionOutputs]):
         self.memory_size_mb = memory_size_mb
         self.package_type = package_type
         self.runtime = runtime
+        self.vpc = vpc
 
     def inputs(self, environment_state: EnvironmentState) -> LambdaFunctionInputs:
         return LambdaFunctionInputs(
@@ -135,6 +139,7 @@ class LambdaFunction(AWSResource[LambdaFunctionOutputs]):
             memory_size_mb=self.memory_size_mb,
             package_type=self.package_type,
             runtime=self.runtime,
+            vpc=self.vpc,
         )
 
 
