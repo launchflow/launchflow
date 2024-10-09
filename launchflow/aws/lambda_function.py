@@ -73,6 +73,7 @@ class LambdaFunctionInputs(ResourceInputs):
     package_type: Literal["Image", "Zip"]
     runtime: Optional[LambdaRuntime]
     vpc: bool
+    role: Optional[str]
 
 
 @dataclass
@@ -103,6 +104,7 @@ class LambdaFunction(AWSResource[LambdaFunctionOutputs]):
         package_type: Literal["Image", "Zip"] = "Zip",
         runtime: Optional[LambdaRuntime] = LambdaRuntime.PYTHON3_11,
         vpc: bool = True,
+        role: Optional[str] = None,
     ) -> None:
         """Create a new Lambda Function.
 
@@ -113,6 +115,7 @@ class LambdaFunction(AWSResource[LambdaFunctionOutputs]):
         - `package_type (Literal["Image", "Zip"])`: The type of package for the Lambda function.
         - `runtime (Optional[LambdaRuntime])`: The runtime for the Lambda function.
         - `vpc (bool)`: Whether the Lambda function should be in the environment VPC.
+        - `role (Optional[str])`: The ARN of the IAM role for the Lambda function. If none the default role for your environment will be used.
 
         **Raises:**
         - `ValueError`: If `runtime` is `None` and `package_type` is "Zip".
@@ -131,6 +134,7 @@ class LambdaFunction(AWSResource[LambdaFunctionOutputs]):
         self.package_type = package_type
         self.runtime = runtime
         self.vpc = vpc
+        self.role = role
 
     def inputs(self, environment_state: EnvironmentState) -> LambdaFunctionInputs:
         return LambdaFunctionInputs(
@@ -140,6 +144,7 @@ class LambdaFunction(AWSResource[LambdaFunctionOutputs]):
             package_type=self.package_type,
             runtime=self.runtime,
             vpc=self.vpc,
+            role=self.role,
         )
 
 

@@ -63,3 +63,8 @@ variable "image_uri" {
 variable "vpc" {
   type = bool
 }
+
+variable "role" {
+  type    = string
+  default = null
+}

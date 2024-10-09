@@ -65,7 +65,7 @@ data "archive_file" "lambda" {
 
 resource "aws_lambda_function" "default" {
   function_name = var.resource_id
-  role          = data.aws_iam_role.launchflow_env_role.arn
+  role          = var.role == null ? data.aws_iam_role.launchflow_env_role.arn : var.role
   package_type  = var.package_type
   memory_size   = var.memory_size_mb
   timeout       = var.timeout_seconds

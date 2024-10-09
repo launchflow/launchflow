@@ -64,11 +64,6 @@ def _zip_source(
 
         # 2. Install packages from requirements.txt (if specified)
         if requirements_txt_path is not None and python_version is not None:
-            try:
-                # This just verifies the user has uv installed
-                import uv  # noqa
-            except ImportError:
-                raise exceptions.MissingAWSDependency()
             # TODO: update this to be async
             # TODO: I removed uv doesn't support `--implementation cp`, I'm not sure if we need it or not
             # TODO: UV --python-platform flag is a little different than the one used in the original code
@@ -259,6 +254,7 @@ class LambdaService(AWSService[LambdaServiceReleaseInputs]):
         runtime: Union[LambdaRuntime, PythonRuntime, DockerRuntime] = PythonRuntime(),
         domain: Optional[str] = None,  # TODO: Support custom domains for Lambda
         vpc: bool = True,
+        role: Optional[str] = None,
         build_directory: str = ".",
         build_ignore: List[str] = [],  # type: ignore
     ) -> None:
@@ -313,6 +309,7 @@ class LambdaService(AWSService[LambdaServiceReleaseInputs]):
             package_type="Zip",  # TODO: Support Docker
             runtime=runtime if isinstance(runtime, LambdaRuntime) else runtime.runtime,
             vpc=vpc,
+            role=role,
         )
         self._lambda_function.resource_id = resource_id_with_launchflow_prefix
 
