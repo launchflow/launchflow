@@ -250,7 +250,7 @@ class LambdaService(AWSService[LambdaServiceReleaseInputs]):
         timeout_seconds: int = 10,
         memory_size_mb: int = 256,
         env: Optional[Dict[str, str]] = None,
-        url: Union[LambdaURL, APIGatewayURL] = LambdaURL(),
+        url: Optional[Union[LambdaURL, APIGatewayURL]] = LambdaURL(),
         runtime: Union[LambdaRuntime, PythonRuntime, DockerRuntime] = PythonRuntime(),
         domain: Optional[str] = None,  # TODO: Support custom domains for Lambda
         vpc: bool = True,
@@ -314,7 +314,7 @@ class LambdaService(AWSService[LambdaServiceReleaseInputs]):
         self._lambda_function.resource_id = resource_id_with_launchflow_prefix
 
         self._lambda_function_url = None
-        if isinstance(url, LambdaURL):
+        if url is not None and isinstance(url, LambdaURL):
             self._lambda_function_url = LambdaFunctionURL(
                 f"{name}-url",
                 function=self._lambda_function,
@@ -324,7 +324,7 @@ class LambdaService(AWSService[LambdaServiceReleaseInputs]):
 
         self._api_gateway_route = None
         self._api_gateway_integration = None
-        if isinstance(url, APIGatewayURL):
+        if url is not None and isinstance(url, APIGatewayURL):
             self._api_gateway_integration = APIGatewayLambdaIntegration(
                 f"{name}-integration",
                 api_gateway=url.api_gateway,
