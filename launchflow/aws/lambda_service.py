@@ -357,21 +357,23 @@ class LambdaService(AWSService[LambdaServiceReleaseInputs]):
         return to_return
 
     def outputs(self) -> ServiceOutputs:
+        service_url = "Unsuppported - url required"
         try:
             lambda_outputs = self._lambda_function.outputs()
-            if (
-                isinstance(self.url, LambdaURL)
-                and self._lambda_function_url is not None
-            ):
-                lambda_url_outputs = self._lambda_function_url.outputs()
-                service_url = lambda_url_outputs.function_url
-            elif isinstance(self.url, APIGatewayURL):
-                api_gateway_outputs = self.url.api_gateway.outputs()
-                service_url = (
-                    f"{api_gateway_outputs.api_gateway_endpoint}{self.url.path}"
-                )
-            else:
-                raise exceptions.ServiceOutputsNotFound(service_name=self.name)
+            if self.url is not None:
+                if (
+                    isinstance(self.url, LambdaURL)
+                    and self._lambda_function_url is not None
+                ):
+                    lambda_url_outputs = self._lambda_function_url.outputs()
+                    service_url = lambda_url_outputs.function_url
+                elif isinstance(self.url, APIGatewayURL):
+                    api_gateway_outputs = self.url.api_gateway.outputs()
+                    service_url = (
+                        f"{api_gateway_outputs.api_gateway_endpoint}{self.url.path}"
+                    )
+                else:
+                    raise exceptions.ServiceOutputsNotFound(service_name=self.name)
         except exceptions.ResourceOutputsNotFound:
             raise exceptions.ServiceOutputsNotFound(service_name=self.name)
 
