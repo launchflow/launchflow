@@ -2,6 +2,9 @@ import os
 from dataclasses import dataclass
 from typing import Optional
 
+BASE_BIN_DIR = os.path.join(os.path.expanduser("~"), ".launchflow", "bin")
+DEFAULT_TOFU_PATH = os.path.join(BASE_BIN_DIR, "tofu")
+
 
 def get_boolean_variable(name: str, default_value: Optional[bool] = None) -> bool:
     true_ = ("true", "1")
@@ -19,6 +22,7 @@ def get_boolean_variable(name: str, default_value: Optional[bool] = None) -> boo
 
 @dataclass
 class LaunchFlowEnvVars:
+    tofu_path: str
     project: Optional[str] = None
     cloud_provider: Optional[str] = None
     environment: Optional[str] = None
@@ -46,8 +50,10 @@ class LaunchFlowEnvVars:
         # were deployed (assuming we provide some service discovery mechanism)
         deployment_id = os.getenv("LAUNCHFLOW_DEPLOYMENT_ID", None)
         run_cache = os.getenv("LAUNCHFLOW_RUN_CACHE", None)
+        tofu_path = os.getenv("LAUNCHFLOW_TOFU_PATH", DEFAULT_TOFU_PATH)
 
         return cls(
+            tofu_path=tofu_path,
             project=project,
             cloud_provider=cloud_provider,
             environment=environment,

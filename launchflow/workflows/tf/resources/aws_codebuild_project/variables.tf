@@ -62,6 +62,7 @@ variable "environment" {
     environment_variables = optional(list(object({
       name  = string
       value = string
+      type  = optional(string, null)
     })), null)
   })
 }

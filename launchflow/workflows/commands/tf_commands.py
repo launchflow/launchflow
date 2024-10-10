@@ -13,7 +13,6 @@ import httpx
 from launchflow import exceptions
 from launchflow.backend import GCSBackend, LaunchFlowBackend, LocalBackend
 from launchflow.config import config
-from launchflow.dependencies import opentofu
 from launchflow.logger import logger
 from launchflow.utils import logging_output
 
@@ -122,18 +121,18 @@ class TFCommand:
                 "default.tfstate",
             )
             command_lines = [
-                f"{opentofu.TOFU_PATH} init -reconfigure",
+                f"{config.env.tofu_path} init -reconfigure",
                 f'-backend-config "path={os.path.abspath(path)}"',
             ]
         elif isinstance(self.backend, GCSBackend):
             command_lines = [
-                f"{opentofu.TOFU_PATH} init -reconfigure",
+                f"{config.env.tofu_path} init -reconfigure",
                 f'-backend-config "bucket={self.backend.bucket}"',
                 f'-backend-config "prefix={self.tf_state_prefix}"',
             ]
         elif isinstance(self.backend, LaunchFlowBackend):
             command_lines = [
-                f"{opentofu.TOFU_PATH} init -reconfigure",
+                f"{config.env.tofu_path} init -reconfigure",
                 f'-backend-config "path={self.tf_state_prefix}"',
             ]
         else:
@@ -185,7 +184,7 @@ class TFDestroyCommand(TFCommand):
 
     def tf_destroy_command(self) -> List[str]:
         return [
-            f"{opentofu.TOFU_PATH}",
+            f"{config.env.tofu_path}",
             "destroy",
             "-auto-approve",
             "-input=false",
@@ -234,7 +233,7 @@ class TFApplyCommand(TFCommand):
 
     def tf_apply_command(self) -> List[str]:
         return [
-            f"{opentofu.TOFU_PATH}",
+            f"{config.env.tofu_path}",
             "apply",
             "-auto-approve",
             "-input=false",
@@ -274,7 +273,7 @@ class TFApplyCommand(TFCommand):
                 raise exceptions.TofuApplyFailure()
 
             # Run tofu output
-            tofu_output_command = f"{opentofu.TOFU_PATH} output --json"
+            tofu_output_command = f"{config.env.tofu_path} output --json"
             logger.info(f"Running tofu output command: {tofu_output_command}")
             proc = await asyncio.create_subprocess_shell(
                 tofu_output_command,
@@ -298,7 +297,7 @@ class TFImportCommand(TFApplyCommand):
 
     def tf_import_command(self, resource: str, resource_id: str) -> List[str]:
         return [
-            f"{opentofu.TOFU_PATH}",
+            f"{config.env.tofu_path}",
             "import",
             "-input=false",
             *self._var_flags(),
