@@ -68,3 +68,8 @@ variable "role" {
   type    = string
   default = null
 }
+
+variable "reserved_concurrent_executions" {
+  type    = number
+  default = null
+}

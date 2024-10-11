@@ -74,6 +74,7 @@ class LambdaFunctionInputs(ResourceInputs):
     runtime: Optional[LambdaRuntime]
     vpc: bool
     role: Optional[str]
+    reserved_concurrent_executions: Optional[int] = None
 
 
 @dataclass
@@ -105,6 +106,7 @@ class LambdaFunction(AWSResource[LambdaFunctionOutputs]):
         runtime: Optional[LambdaRuntime] = LambdaRuntime.PYTHON3_11,
         vpc: bool = True,
         role: Optional[str] = None,
+        reserved_concurrent_executions: Optional[int] = None,
     ) -> None:
         """Create a new Lambda Function.
 
@@ -131,10 +133,11 @@ class LambdaFunction(AWSResource[LambdaFunctionOutputs]):
         )
         self.timeout_seconds = timeout_seconds
         self.memory_size_mb = memory_size_mb
-        self.package_type = package_type
+        self.package_type: Literal["Image", "Zip"] = package_type
         self.runtime = runtime
         self.vpc = vpc
         self.role = role
+        self.reserved_concurrent_executions = reserved_concurrent_executions
 
     def inputs(self, environment_state: EnvironmentState) -> LambdaFunctionInputs:
         return LambdaFunctionInputs(
@@ -145,6 +148,7 @@ class LambdaFunction(AWSResource[LambdaFunctionOutputs]):
             runtime=self.runtime,
             vpc=self.vpc,
             role=self.role,
+            reserved_concurrent_executions=self.reserved_concurrent_executions,
         )
 
 
