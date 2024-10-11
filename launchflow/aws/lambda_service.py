@@ -255,6 +255,7 @@ class LambdaService(AWSService[LambdaServiceReleaseInputs]):
         domain: Optional[str] = None,  # TODO: Support custom domains for Lambda
         vpc: bool = True,
         role: Optional[str] = None,
+        reserved_concurrent_executions: Optional[int] = None,
         build_directory: str = ".",
         build_ignore: List[str] = [],  # type: ignore
     ) -> None:
@@ -310,6 +311,7 @@ class LambdaService(AWSService[LambdaServiceReleaseInputs]):
             runtime=runtime if isinstance(runtime, LambdaRuntime) else runtime.runtime,
             vpc=vpc,
             role=role,
+            reserved_concurrent_executions=reserved_concurrent_executions,
         )
         self._lambda_function.resource_id = resource_id_with_launchflow_prefix
 
