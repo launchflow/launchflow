@@ -43,7 +43,8 @@ def _to_output_type(outputs: Dict[str, Any], init_fn: Callable):
     for field in fields:
         if dataclasses.is_dataclass(field.type):
             filtered_outputs[field.name] = _to_output_type(
-                outputs[field.name], field.type
+                outputs[field.name],
+                field.type,  # type: ignore
             )
     to_return = init_fn(**filtered_outputs)
     if gcp_id is not None or aws_arn is not None:

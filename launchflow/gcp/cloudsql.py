@@ -279,7 +279,7 @@ class CloudSQLPostgres(
             postgres_db_tier=database_tier,
             postgres_db_edition=self.edition,
             allow_public_access=allow_public_access,
-            availability_type=availability_type,
+            availability_type=availability_type,  # type: ignore
             include_default_db=self.include_default_db,
             include_default_user=self.include_default_user,
             database_flags=self.database_flags,
