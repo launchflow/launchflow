@@ -212,7 +212,9 @@ class CloudSQLPostgres(
         self.delete_protection = delete_protection
         self.allow_public_access = allow_public_access
         self.edition = edition
-        self.availability_type = availability_type
+        self.availability_type: Optional[Literal["ZONAL", "REGIONAL"]] = (
+            availability_type
+        )
         self.database_tier = database_tier
         self.include_default_user = include_default_user
         self.disk_size_gb = disk_size_gb
@@ -228,9 +230,9 @@ class CloudSQLPostgres(
             "google_sql_database_instance.cloud_sql_instance": self.name,
         }
         if self.include_default_db:
-            imports[
-                "google_sql_database.cloud_sql_database[0]"
-            ] = f"{self.name}/{self._default_db.name}"  # type: ignore
+            imports["google_sql_database.cloud_sql_database[0]"] = (
+                f"{self.name}/{self._default_db.name}"  # type: ignore
+            )
         if self.include_default_user:
             pw = beaupy.prompt(
                 f"Please provide the password for user: `{self.name}-user` in db instance `{self.name}`:",
@@ -239,9 +241,9 @@ class CloudSQLPostgres(
             if not pw:
                 raise ValueError(f"A password is required for user `{self.name}-user`")
             imports["random_password.user-password[0]"] = pw
-            imports[
-                "google_sql_user.cloud_sql_user[0]"
-            ] = f"{environment_state.gcp_config.project_id}/{self.name}/{self.name}-user"  # type: ignore
+            imports["google_sql_user.cloud_sql_user[0]"] = (
+                f"{environment_state.gcp_config.project_id}/{self.name}/{self.name}-user"  # type: ignore
+            )
         return imports
 
     def inputs(self, environment_state: EnvironmentState) -> CloudSQLPostgresInputs:
@@ -258,7 +260,9 @@ class CloudSQLPostgres(
             allow_public_access = (
                 environment_state.environment_type == EnvironmentType.DEVELOPMENT
             )
-        availability_type = self.availability_type
+        availability_type: Optional[Literal["ZONAL", "REGIONAL"]] = (
+            self.availability_type
+        )
         if availability_type is None:
             availability_type = (
                 "ZONAL"
