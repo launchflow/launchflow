@@ -11,6 +11,7 @@ provider "aws" {
 
 # Import the private subnets for the VPC
 data "aws_subnets" "lf_private_vpc_subnets" {
+  count = var.vpc ? 1 : 0
   filter {
     name   = "vpc-id"
     values = [var.vpc_id]
@@ -28,6 +29,7 @@ data "aws_iam_role" "launchflow_env_role" {
 }
 
 data "aws_security_group" "default_vpc_sg" {
+  count  = var.vpc ? 1 : 0
   vpc_id = var.vpc_id
   name   = "default"
 }
@@ -62,12 +64,13 @@ data "archive_file" "lambda" {
 
 
 resource "aws_lambda_function" "default" {
-  function_name = var.resource_id
-  role          = data.aws_iam_role.launchflow_env_role.arn
-  package_type  = var.package_type
-  memory_size   = var.memory_size_mb
-  timeout       = var.timeout_seconds
-  publish       = true
+  function_name                  = var.resource_id
+  role                           = var.role == null ? data.aws_iam_role.launchflow_env_role.arn : var.role
+  package_type                   = var.package_type
+  memory_size                    = var.memory_size_mb
+  timeout                        = var.timeout_seconds
+  publish                        = true
+  reserved_concurrent_executions = var.reserved_concurrent_executions
 
   # Conditionally assign filename and handler for ZIP package type
   filename         = var.package_type == "Zip" ? data.archive_file.lambda.output_path : null
@@ -82,9 +85,12 @@ resource "aws_lambda_function" "default" {
   # onto the security group for ~30mins and block it from being deleted.
   replace_security_groups_on_destroy = true
 
-  vpc_config {
-    security_group_ids = [data.aws_security_group.default_vpc_sg.id]
-    subnet_ids         = [data.aws_subnets.lf_private_vpc_subnets.ids[0]]
+  dynamic "vpc_config" {
+    for_each = var.vpc ? [1] : []
+    content {
+      security_group_ids = [data.aws_security_group.default_vpc_sg[0].id]
+      subnet_ids         = [data.aws_subnets.lf_private_vpc_subnets[0].ids[0]]
+    }
   }
 
   environment {
@@ -105,6 +111,7 @@ resource "aws_lambda_function" "default" {
 
 # TODO: Determine if we can remove this / restrict the scope a bit more
 resource "aws_iam_role_policy_attachment" "iam_role_policy_attachment_lambda_vpc_access_execution" {
+  count      = var.vpc ? 1 : 0
   role       = data.aws_iam_role.launchflow_env_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }

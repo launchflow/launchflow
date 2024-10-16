@@ -72,6 +72,9 @@ class LambdaFunctionInputs(ResourceInputs):
     memory_size_mb: int
     package_type: Literal["Image", "Zip"]
     runtime: Optional[LambdaRuntime]
+    vpc: bool
+    role: Optional[str]
+    reserved_concurrent_executions: Optional[int] = None
 
 
 @dataclass
@@ -101,6 +104,9 @@ class LambdaFunction(AWSResource[LambdaFunctionOutputs]):
         memory_size_mb: int = 256,
         package_type: Literal["Image", "Zip"] = "Zip",
         runtime: Optional[LambdaRuntime] = LambdaRuntime.PYTHON3_11,
+        vpc: bool = True,
+        role: Optional[str] = None,
+        reserved_concurrent_executions: Optional[int] = None,
     ) -> None:
         """Create a new Lambda Function.
 
@@ -110,6 +116,8 @@ class LambdaFunction(AWSResource[LambdaFunctionOutputs]):
         - `memory_size_mb (int)`: The amount of memory in MB allocated to the Lambda function.
         - `package_type (Literal["Image", "Zip"])`: The type of package for the Lambda function.
         - `runtime (Optional[LambdaRuntime])`: The runtime for the Lambda function.
+        - `vpc (bool)`: Whether the Lambda function should be in the environment VPC.
+        - `role (Optional[str])`: The ARN of the IAM role for the Lambda function. If none the default role for your environment will be used.
 
         **Raises:**
         - `ValueError`: If `runtime` is `None` and `package_type` is "Zip".
@@ -125,8 +133,11 @@ class LambdaFunction(AWSResource[LambdaFunctionOutputs]):
         )
         self.timeout_seconds = timeout_seconds
         self.memory_size_mb = memory_size_mb
-        self.package_type = package_type
+        self.package_type: Literal["Image", "Zip"] = package_type
         self.runtime = runtime
+        self.vpc = vpc
+        self.role = role
+        self.reserved_concurrent_executions = reserved_concurrent_executions
 
     def inputs(self, environment_state: EnvironmentState) -> LambdaFunctionInputs:
         return LambdaFunctionInputs(
@@ -135,6 +146,9 @@ class LambdaFunction(AWSResource[LambdaFunctionOutputs]):
             memory_size_mb=self.memory_size_mb,
             package_type=self.package_type,
             runtime=self.runtime,
+            vpc=self.vpc,
+            role=self.role,
+            reserved_concurrent_executions=self.reserved_concurrent_executions,
         )
 
 

@@ -59,3 +59,17 @@ variable "image_uri" {
   type    = string
   default = null
 }
+
+variable "vpc" {
+  type = bool
+}
+
+variable "role" {
+  type    = string
+  default = null
+}
+
+variable "reserved_concurrent_executions" {
+  type    = number
+  default = null
+}

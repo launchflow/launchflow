@@ -64,8 +64,19 @@ def _zip_source(
 
         # 2. Install packages from requirements.txt (if specified)
         if requirements_txt_path is not None and python_version is not None:
-            # TODO: Update this to use uv for faster builds
             # TODO: update this to be async
+            # TODO: I removed uv doesn't support `--implementation cp`, I'm not sure if we need it or not
+            # TODO: UV --python-platform flag is a little different than the one used in the original code
+            # probably need to verify that is works as expected
+            # subprocess.check_call(
+            #     f"uv pip install --no-cache --python-platform linux --target={temp_dir} --python-version {python_version} --only-binary=:all: -r {requirements_txt_path}".split(),
+            #     cwd=config.launchflow_yaml.project_directory_abs_path,
+            #     stdout=build_logs,
+            #     stderr=build_logs,
+            # )
+            # TODO: Update this to use uv for faster builds see above
+            # The main issue is uv expected to be run in a virtual environment or you have to specify --system
+            # I _think_ we should create a virtual environment and use that with uv
             subprocess.check_call(
                 f"pip install --no-cache-dir --platform manylinux2014_x86_64 --target={temp_dir} --implementation cp --python-version {python_version} --only-binary=:all: -r {requirements_txt_path}".split(),
                 cwd=config.launchflow_yaml.project_directory_abs_path,
@@ -99,10 +110,21 @@ class PythonRuntime:
     **Args:**
     - `runtime (LambdaRuntime)`: The Python runtime to use. Defaults to Python 3.11.
     - `requirements_txt_path (Optional[str])`: The path to the requirements.txt file to install dependencies from. Defaults to None.
+            Only one of `requirements_txt_path` or `zip_file_path` can be specified.
+    - `zip_file_path (Optional[str])`: The path to the zip file containing the Lambda function source code.
+            If none the build directory you provider (or your current working directory) will be used.
+            Only one of `requirements_txt_path` or `zip_file_path` can be specified.
     """
 
     runtime: LambdaRuntime = LambdaRuntime.PYTHON3_11
     requirements_txt_path: Optional[str] = None
+    zip_file_path: Optional[str] = None
+
+    def __post_init__(self):
+        if self.requirements_txt_path is not None and self.zip_file_path is not None:
+            raise ValueError(
+                "requirements_txt_path and zip_file_path cannot be specified at the same time"
+            )
 
 
 # TODO: Add docstring for DockerRuntime once it's supported
@@ -228,9 +250,12 @@ class LambdaService(AWSService[LambdaServiceReleaseInputs]):
         timeout_seconds: int = 10,
         memory_size_mb: int = 256,
         env: Optional[Dict[str, str]] = None,
-        url: Union[LambdaURL, APIGatewayURL] = LambdaURL(),
+        url: Optional[Union[LambdaURL, APIGatewayURL]] = LambdaURL(),
         runtime: Union[LambdaRuntime, PythonRuntime, DockerRuntime] = PythonRuntime(),
         domain: Optional[str] = None,  # TODO: Support custom domains for Lambda
+        vpc: bool = True,
+        role: Optional[str] = None,
+        reserved_concurrent_executions: Optional[int] = None,
         build_directory: str = ".",
         build_ignore: List[str] = [],  # type: ignore
     ) -> None:
@@ -284,11 +309,14 @@ class LambdaService(AWSService[LambdaServiceReleaseInputs]):
             memory_size_mb=memory_size_mb,
             package_type="Zip",  # TODO: Support Docker
             runtime=runtime if isinstance(runtime, LambdaRuntime) else runtime.runtime,
+            vpc=vpc,
+            role=role,
+            reserved_concurrent_executions=reserved_concurrent_executions,
         )
         self._lambda_function.resource_id = resource_id_with_launchflow_prefix
 
         self._lambda_function_url = None
-        if isinstance(url, LambdaURL):
+        if url is not None and isinstance(url, LambdaURL):
             self._lambda_function_url = LambdaFunctionURL(
                 f"{name}-url",
                 function=self._lambda_function,
@@ -298,7 +326,7 @@ class LambdaService(AWSService[LambdaServiceReleaseInputs]):
 
         self._api_gateway_route = None
         self._api_gateway_integration = None
-        if isinstance(url, APIGatewayURL):
+        if url is not None and isinstance(url, APIGatewayURL):
             self._api_gateway_integration = APIGatewayLambdaIntegration(
                 f"{name}-integration",
                 api_gateway=url.api_gateway,
@@ -331,21 +359,23 @@ class LambdaService(AWSService[LambdaServiceReleaseInputs]):
         return to_return
 
     def outputs(self) -> ServiceOutputs:
+        service_url = "Unsuppported - url required"
         try:
             lambda_outputs = self._lambda_function.outputs()
-            if (
-                isinstance(self.url, LambdaURL)
-                and self._lambda_function_url is not None
-            ):
-                lambda_url_outputs = self._lambda_function_url.outputs()
-                service_url = lambda_url_outputs.function_url
-            elif isinstance(self.url, APIGatewayURL):
-                api_gateway_outputs = self.url.api_gateway.outputs()
-                service_url = (
-                    f"{api_gateway_outputs.api_gateway_endpoint}{self.url.path}"
-                )
-            else:
-                raise exceptions.ServiceOutputsNotFound(service_name=self.name)
+            if self.url is not None:
+                if (
+                    isinstance(self.url, LambdaURL)
+                    and self._lambda_function_url is not None
+                ):
+                    lambda_url_outputs = self._lambda_function_url.outputs()
+                    service_url = lambda_url_outputs.function_url
+                elif isinstance(self.url, APIGatewayURL):
+                    api_gateway_outputs = self.url.api_gateway.outputs()
+                    service_url = (
+                        f"{api_gateway_outputs.api_gateway_endpoint}{self.url.path}"
+                    )
+                else:
+                    raise exceptions.ServiceOutputsNotFound(service_name=self.name)
         except exceptions.ResourceOutputsNotFound:
             raise exceptions.ServiceOutputsNotFound(service_name=self.name)
 
@@ -386,17 +416,23 @@ class LambdaService(AWSService[LambdaServiceReleaseInputs]):
 
         python_version = None
         requirements_txt_path = None
+        zip_file_path = None
         if isinstance(self.runtime_options, PythonRuntime):
             python_version = self.runtime_options.runtime.python_version()
             requirements_txt_path = self.runtime_options.requirements_txt_path
+            zip_file_path = self.runtime_options.zip_file_path
 
-        zip_file_content = _zip_source(
-            build_directory=self.build_directory,
-            build_ignore=self.build_ignore,
-            python_version=python_version,
-            requirements_txt_path=requirements_txt_path,
-            build_logs=build_log_file,
-        )
+        if zip_file_path is None:
+            zip_file_content = _zip_source(
+                build_directory=self.build_directory,
+                build_ignore=self.build_ignore,
+                python_version=python_version,
+                requirements_txt_path=requirements_txt_path,
+                build_logs=build_log_file,
+            )
+        else:
+            with open(zip_file_path, "rb") as file:
+                zip_file_content = file.read()
 
         _ = lambda_client.update_function_configuration(
             FunctionName=lambda_function_outputs.function_name,
