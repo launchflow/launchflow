@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.14](https://github.com/launchflow/launchflow/compare/v0.4.13...v0.4.14) (2024-10-16)
+
+
+### Bug Fixes
+
+* improvements for aws lambdas and other small fixes ([#113](https://github.com/launchflow/launchflow/issues/113)) ([583d0eb](https://github.com/launchflow/launchflow/commit/583d0eb6753d6a843008f84e71dbeebf617f8709))
+
 ## [0.4.13](https://github.com/launchflow/launchflow/compare/v0.4.12...v0.4.13) (2024-09-27)
 
 
