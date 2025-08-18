@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import httpx
 
@@ -202,4 +202,19 @@ class EnvironmentsAsyncClient:
             json=tofu_state,
         )
         if response.status_code != 200:
+            raise LaunchFlowRequestFailure(response)
+
+    async def read_tofu_state(
+        self, project_name: str, env_name: str
+    ) -> Optional[Dict[str, Any]]:
+        url = f"{self.base_url(project_name)}/{env_name}/tofu-state?account_id={self._launchflow_account_id}"
+        response = await self.http_client.get(
+            url,
+            headers={"Authorization": f"Bearer {self.access_token}"},
+        )
+        if response.status_code == 200:
+            return response.json()
+        elif response.status_code == 404:
+            return None
+        else:
             raise LaunchFlowRequestFailure(response)
