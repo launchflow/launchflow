@@ -13,6 +13,7 @@ from terminaltexteffects.effects.effect_wipe import Wipe
 
 import launchflow
 from launchflow import exceptions
+from launchflow.backend import GCSBackend
 from launchflow.cache.launchflow_tmp import (
     build_cache_key,
     encode_resource_outputs_cache,
@@ -54,6 +55,7 @@ from launchflow.flows.create_flows import create as create_resources
 from launchflow.flows.deploy_flows import deploy as deploy_services
 from launchflow.flows.deploy_flows import promote as promote_services
 from launchflow.flows.environments_flows import get_environment
+from launchflow.flows.lf_cloud_migration import migrate
 from launchflow.flows.resource_flows import destroy as destroy_resources
 from launchflow.flows.resource_flows import (
     import_existing_resources,
@@ -703,6 +705,16 @@ async def run(
 def version():
     """Print the version of launchflow."""
     typer.echo(launchflow.__version__)
+
+
+@app.command(name="migrate")
+async def migrate_backend(bucket: str):
+    """Migrate your backend from launchflow cloud to gcs."""
+
+    source_backend = config.launchflow_yaml.backend
+    target_backend = GCSBackend(bucket)
+
+    await migrate(source_backend, target_backend)
 
 
 if __name__ == "__main__":

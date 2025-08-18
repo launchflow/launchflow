@@ -1,7 +1,7 @@
 import dataclasses
 from typing import Optional
 
-from launchflow.backend import GCSBackend, LaunchFlowBackend, LocalBackend
+from launchflow.backend import Backend, GCSBackend, LaunchFlowBackend, LocalBackend
 from launchflow.config import config
 
 
@@ -17,7 +17,11 @@ class LaunchFlowURI:
             raise ValueError("resource_name and service_name cannot be used together")
 
     # TODO: move this method to the Manager classes and let them use their own backend
-    def tf_state_prefix(self, module: Optional[str] = None) -> str:
+    def tf_state_prefix(
+        self, module: Optional[str] = None, backend: Optional[Backend] = None
+    ) -> str:
+        if backend is None:
+            backend = config.launchflow_yaml.backend
         suffix = ""
         if self.resource_name:
             suffix = f"/resources/{self.resource_name}"
@@ -27,16 +31,18 @@ class LaunchFlowURI:
             suffix = ""
         if module is not None:
             suffix = f"{suffix}/{module}"
-        if isinstance(config.launchflow_yaml.backend, LocalBackend):
-            state_prefix = f"{config.launchflow_yaml.backend.path}/{self.project_name}/{self.environment_name}{suffix}"
-        elif isinstance(config.launchflow_yaml.backend, GCSBackend):
-            state_prefix = f"{config.launchflow_yaml.backend.prefix}/{self.project_name}/{self.environment_name}{suffix}"
-        elif isinstance(config.launchflow_yaml.backend, LaunchFlowBackend):
+        if isinstance(backend, LocalBackend):
+            state_prefix = (
+                f"{backend.path}/{self.project_name}/{self.environment_name}{suffix}"
+            )
+        elif isinstance(backend, GCSBackend):
+            state_prefix = (
+                f"{backend.prefix}/{self.project_name}/{self.environment_name}{suffix}"
+            )
+        elif isinstance(backend, LaunchFlowBackend):
             state_prefix = "default.tfstate"
         else:
-            raise NotImplementedError(
-                f"Unsupported backend: {config.launchflow_yaml.backend}"
-            )
+            raise NotImplementedError(f"Unsupported backend: {backend}")
         return state_prefix
 
     def launchflow_tofu_state_url(

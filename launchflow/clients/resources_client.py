@@ -136,3 +136,18 @@ class ResourcesAsyncClient:
         )
         if response.status_code != 200:
             raise LaunchFlowRequestFailure(response)
+
+    async def read_tofu_state(
+        self,
+        project_name: str,
+        environment_name: str,
+        resource_name: str,
+        module_name: str,
+    ):
+        response = await self.http_client.get(
+            f"{self.base_url(project_name, environment_name)}/{resource_name}/tofu-state/{module_name}?account_id={self._launchflow_account_id}",
+            headers={"Authorization": f"Bearer {self.access_token}"},
+        )
+        if response.status_code != 200:
+            raise LaunchFlowRequestFailure(response)
+        return response.json()
