@@ -25,11 +25,31 @@ def get_failure_text(response: Union[httpx.Response, Response]) -> str:
     status_code = response.status_code
     try:
         json_response = response.json()
-        return f"({status_code}): {json_response['detail']}"
+        if isinstance(json_response, dict):
+            detail = (
+                json_response.get("detail")
+                or json_response.get("message")
+                or json_response.get("error")
+                or json_response.get("msg")
+            )
+            if detail is not None:
+                if isinstance(detail, list):
+                    messages = [
+                        d.get("msg") if isinstance(d, dict) and "msg" in d else str(d)
+                        for d in detail
+                    ]
+                    return f"({status_code}): {', '.join(messages)}"
+                return f"({status_code}): {detail}"
+        elif isinstance(json_response, str) and json_response.strip():
+            return f"({status_code}): {json_response.strip()}"
     except Exception:
-        if isinstance(response, Response):
-            return f"({status_code}): {response.reason}"
-        return f"({status_code}): {response.reason_phrase}"
+        pass
+
+    if isinstance(response, Response):
+        reason = response.reason or "Unknown Error"
+        return f"({status_code}): {reason}"
+    reason_phrase = getattr(response, "reason_phrase", None) or "Unknown Error"
+    return f"({status_code}): {reason_phrase}"
 
 
 def generate_random_password(
